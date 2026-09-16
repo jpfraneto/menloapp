@@ -2,6 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdtemp, rm, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { createHash } from "node:crypto";
 import { Database } from "bun:sqlite";
 import { createGitHubApps, validateRecipe } from "../src/github-apps.ts";
 
@@ -11,16 +12,37 @@ const sha = "a".repeat(40), next = "b".repeat(40);
 const metadata = { repository: "maker/TestApp", slug: "test-app", name: "Test App", commit: sha, project: "App.xcodeproj", scheme: "App" };
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "menlo-github-"));
-  const state = { id: 12, owner: 4, push: true, omitPermissions: false, private: false, head: sha, status: "ahead", ahead: 3, fail: false };
+  const files = new Map<string, Buffer>();
+  const state = { id: 12, owner: 4, push: true, omitPermissions: false, private: false, head: sha, status: "ahead", ahead: 3, fail: false, fileMode: "100644", folderMode: "040000" };
+  const hash = (bytes: Buffer) => createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
   const fetcher = async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input));
+    if (url.origin === "https://raw.githubusercontent.com") {
+      expect(init?.headers).toBeUndefined();
+      const file = files.get(url.pathname.split("/").slice(4).join("/"));
+      return file ? new Response(Uint8Array.from(file).buffer) : new Response(null, { status: 404 });
+    }
     expect(url.origin).toBe("https://api.github.com");
     if (state.fail) return Response.json({}, { status: 503 });
     if (url.pathname === "/user") return Response.json({ id: 4, login: "maker" });
     if (url.pathname.includes("/collaborators/")) return Response.json({ permission: state.push ? "write" : "read", user: { id: 4 } });
     if (url.pathname.includes("/compare/")) return Response.json({ status: state.status, ahead_by: state.ahead });
     if (url.pathname.includes("/commits/")) return Response.json({ sha: state.head });
-    if (url.pathname.includes("/contents/")) { expect(url.searchParams.get("ref")).toBe(state.head); return Response.json({ type: "file" }); }
+    if (url.pathname.includes("/git/trees/")) {
+      const folder = "c".repeat(40);
+      const tree = url.pathname.endsWith(folder) ? [...files].map(([file, bytes]) => ({ path: file.slice(9), type: "blob", mode: state.fileMode, size: bytes.length, sha: hash(bytes) })) : files.size ? [{ path: "menloapp", type: "tree", mode: state.folderMode, sha: folder }] : [];
+      return Response.json({ tree, truncated: false });
+    }
+    if (url.pathname.includes("/git/blobs/")) {
+      const bytes = [...files.values()].find(bytes => url.pathname.endsWith(hash(bytes)));
+      return bytes ? Response.json({ encoding: "base64", content: bytes.toString("base64") }) : Response.json({}, { status: 404 });
+    }
+    if (url.pathname.includes("/contents/")) {
+      const file = decodeURIComponent(url.pathname.split("/contents/")[1]!);
+      if (!file.startsWith("menloapp/")) return Response.json({ type: "file" });
+      const bytes = files.get(file);
+      return bytes ? Response.json({ type: "file", size: bytes.length, sha: createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"), encoding: "base64", content: bytes.toString("base64") }) : Response.json({}, { status: 404 });
+    }
     return Response.json({ id: state.id, owner: { id: state.owner, login: "maker" }, full_name: "maker/TestApp", private: state.private, visibility: state.private ? "private" : "public", permissions: state.omitPermissions ? undefined : { push: state.push }, default_branch: "main" });
   };
   let router = createGitHubApps({ root, baseUrl: "https://tohseno.com" }, { fetch: fetcher as typeof fetch });
@@ -28,7 +50,7 @@ async function fixture() {
     method, headers: auth ? { Authorization: "Bearer ghp_testcredential", "Content-Type": "application/json" } : {}, ...(body ? { body: JSON.stringify(body) } : {}),
   }));
   cleanup.push(async () => { router.close(); await rm(root, { recursive: true, force: true }); });
-  return { root, state, request, get router() { return router; }, restart() { router.close(); router = createGitHubApps({ root, baseUrl: "https://tohseno.com" }, { fetch: fetcher as typeof fetch }); } };
+  return { root, state, files, request, get router() { return router; }, restart() { router.close(); router = createGitHubApps({ root, baseUrl: "https://tohseno.com" }, { fetch: fetcher as typeof fetch }); } };
 }
 
 test("deploy proves GitHub authority and persists one stable app link without credentials", async () => {
@@ -105,4 +127,68 @@ test("deployment cannot register a different default-branch commit after a race"
   f.state.head = next;
   expect((await f.request("POST", "apps", metadata))!.status).toBe(409);
   expect((await f.request("GET", "apps/test-app"))!.status).toBe(404);
+});
+
+const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV1sAAAAASUVORK5CYII=", "base64");
+function addPresentation(files: Map<string, Buffer>, name = "Committed App") {
+  files.set("menloapp/app.json", Buffer.from(JSON.stringify({ version: 1, name, subtitle: "A useful app", description: "First line\nSecond line", icon: "menloapp/icon.png", screenshots: ["menloapp/one.png", "menloapp/two.png", "menloapp/three.png"], preview: { path: "menloapp/preview.mp4", kind: "simulator", source_commit: sha } })));
+  for (const file of ["icon.png", "one.png", "two.png", "three.png"]) files.set(`menloapp/${file}`, png);
+  files.set("menloapp/preview.mp4", Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109, 0, 0, 0, 0]));
+}
+
+test("app pages and API use committed metadata and pin every asset to that commit", async () => {
+  const f = await fixture();
+  addPresentation(f.files);
+  const deployed = await (await f.request("POST", "apps", { ...metadata, name: "Ignored request name" }))!.json();
+  expect(deployed.name).toBe("Committed App");
+  const page = (await f.router.render("test-app"))!;
+  expect(page).toContain("Committed App");
+  expect(page).toContain("A useful app");
+  expect(page).toContain("Simulator recording");
+  expect(page).toContain("<video controls playsinline");
+  expect(page).toContain(`/media/${sha}/menloapp/icon.png`);
+  expect(page.match(/alt="Committed App screenshot/g)?.length).toBe(3);
+  expect(page).not.toContain("Ignored request name");
+  addPresentation(f.files, "Next name"); f.state.head = next; f.restart();
+  const updated = await (await f.request("GET", "apps/test-app"))!.json();
+  expect(updated.name).toBe("Next name");
+  expect(updated.head_commit).toBe(next);
+  expect(updated.presentation.preview.source_commit).toBe(sha);
+});
+
+test("public media verifies committed bytes, supports video ranges, and refuses unselected files", async () => {
+  const f = await fixture(); addPresentation(f.files);
+  await f.request("POST", "apps", metadata);
+  const route = `https://tohseno.com/api/menlo/v1/apps/test-app/media/${sha}/menloapp/`;
+  const icon = (await f.router.fetch(new Request(`${route}icon.png`)))!;
+  expect(icon.status).toBe(200);
+  expect(icon.headers.get("content-type")).toBe("image/png");
+  expect(Buffer.from(await icon.arrayBuffer())).toEqual(png);
+  const range = (await f.router.fetch(new Request(`${route}preview.mp4`, { headers: { Range: "bytes=4-7" } })))!;
+  expect(range.status).toBe(206); expect(await range.text()).toBe("ftyp");
+  expect(range.headers.get("content-range")).toBe("bytes 4-7/16");
+  expect((await f.router.fetch(new Request(`${route}preview.mp4`, { headers: { Range: "bytes=999-" } })))!.status).toBe(416);
+  expect((await f.router.fetch(new Request(`${route}private.png`)))!.status).toBe(404);
+  f.files.set("menloapp/icon.png", Buffer.from("different bytes"));
+  expect((await f.router.fetch(new Request(`${route}icon.png`)))!.status).toBe(502);
+});
+
+test("malformed committed presentation cannot publish arbitrary remote media or HTML", async () => {
+  const f = await fixture();
+  f.files.set("menloapp/app.json", Buffer.from(JSON.stringify({ version: 1, name: "App", icon: "https://evil.test/a.png" })));
+  expect((await f.request("POST", "apps", metadata))!.status).toBe(422);
+  addPresentation(f.files, '<script>alert("x")</script>');
+  expect((await f.request("POST", "apps", metadata))!.status).toBe(201);
+  const page = (await f.router.render("test-app"))!;
+  expect(page).toContain("&lt;script&gt;");
+  expect(page).not.toContain('<script>alert');
+});
+
+
+test("public presentation rejects symbolic links even when Contents API would follow them", async () => {
+  const f = await fixture(); addPresentation(f.files);
+  f.state.fileMode = "120000";
+  expect((await f.request("POST", "apps", metadata))!.status).toBe(422);
+  f.state.fileMode = "100644"; f.state.folderMode = "120000";
+  expect((await f.request("POST", "apps", metadata))!.status).toBe(422);
 });

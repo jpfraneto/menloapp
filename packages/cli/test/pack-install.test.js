@@ -28,14 +28,22 @@ test("npm pack installs into an isolated prefix without network or native mutati
       encoding: "utf8", env: { ...process.env, npm_config_ignore_scripts: "true" },
     });
     assert.equal(installed.status, 0, installed.stderr);
-    const executable = path.join(prefix, "bin", "tohseno");
+    const executable = path.join(prefix, "bin", "menloapp");
     assert.match(await readFile(executable, "utf8"), /node/);
     for (const args of [[], ["--version"], ["--help"]]) {
       const run = spawnSync(executable, args, { encoding: "utf8" });
       assert.equal(run.status, 0, run.stderr);
-      assert.match(run.stdout, /TOHSENO|tohseno/);
-      if (args[0] === "--version") assert.equal(run.stdout, `tohseno ${metadata.version}\n`);
+      assert.match(run.stdout, /MENLO|menloapp/);
+      if (args[0] === "--version") assert.equal(run.stdout, `menloapp ${metadata.version}\n`);
     }
+    const projectPrefix = path.join(temporary, "project-dependency");
+    await mkdir(projectPrefix);
+    const dependency = spawnSync("npm", ["install", "--prefix", projectPrefix, "--offline", path.join(temporary, filename)], { encoding: "utf8" });
+    assert.equal(dependency.status, 0, dependency.stderr);
+    const localCommand = spawnSync(path.join(projectPrefix, "node_modules", ".bin", "menloapp"), ["deploy", "--help"], { encoding: "utf8" });
+    assert.equal(localCommand.status, 0, localCommand.stderr);
+    assert.match(localCommand.stdout, /--record/);
+    await assert.rejects(access(path.join(projectPrefix, "menloapp")));
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }
@@ -75,19 +83,19 @@ test("a fresh global install installs only the CLI launcher", async () => {
     assert.match(installed.stdout, /added 1 package/);
     await assert.rejects(access(path.join(home, ".tohseno")));
 
-    const executable = path.join(prefix, "bin", "tohseno");
+    const executable = path.join(prefix, "bin", "menloapp");
     const guide = spawnSync(executable, [], {
       encoding: "utf8",
       env: { ...process.env, HOME: home },
     });
     assert.equal(guide.status, 0, guide.stderr);
-    assert.match(guide.stdout, /tohseno deploy/);
-    const alias = spawnSync(path.join(prefix, "bin", "menlo"), ["deploy", "--help"], { encoding: "utf8", env: { ...process.env, HOME: home } });
+    assert.match(guide.stdout, /menloapp deploy/);
+    const alias = spawnSync(path.join(prefix, "bin", "menloapp"), ["deploy", "--help"], { encoding: "utf8", env: { ...process.env, HOME: home } });
     assert.equal(alias.status, 0, alias.stderr);
     assert.match(alias.stdout, /GitHub/);
-    const typo = spawnSync(path.join(prefix, "bin", "menlo"), ["deplpy"], { encoding: "utf8", env: { ...process.env, HOME: home } });
+    const typo = spawnSync(path.join(prefix, "bin", "menloapp"), ["deplpy"], { encoding: "utf8", env: { ...process.env, HOME: home } });
     assert.equal(typo.status, 1);
-    assert.match(typo.stderr, /Did you mean menlo deploy/);
+    assert.match(typo.stderr, /Did you mean menloapp deploy/);
     assert.ok(!typo.stdout.includes("Installing"));
     await assert.rejects(access(path.join(home, ".tohseno")));
   } finally {

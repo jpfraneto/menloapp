@@ -1,0 +1,14 @@
+**
+!Dockerfile
+!website/
+!website/**
+!packages/
+!packages/cli/
+!packages/cli/src/
+!packages/cli/src/presentation.js
+**/node_modules
+**/.env
+**/.env.*
+**/.DS_Store
+website/docs-pages/
+website/dist/

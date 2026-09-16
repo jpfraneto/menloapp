@@ -94,9 +94,9 @@ describe("public pages", () => {
     expect(response.status).toBe(200);
     const body = await response.text();
     expect(body).toContain("<title>MENLO — From GitHub to their iPhone</title>");
-    expect(body).toContain("npm i -g tohseno");
-    expect(body).toContain("tohseno deploy");
-    expect(body).toContain("menlo deploy works too");
+    expect(body).toContain("npm i -g menloapp");
+    expect(body).toContain("menloapp deploy");
+    expect(body).toContain("menloapp.lol/your-app");
     expect(body).toContain("centralized app directory with an off-chain ledger");
     expect(body).toContain("v1 or v2 when it earns its cost");
     expect(body).toContain("paired iPhone");

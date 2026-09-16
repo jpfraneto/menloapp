@@ -541,7 +541,38 @@ pub async fn refresh_updates(projects: &LivingProjectService) -> Result<(), BoxE
 }
 
 pub fn deploy(args: &[String]) -> Result<(), BoxError> {
-    use std::io::Write;
+    // Keep relative JavaScript imports beside the embedded entrypoint. Running
+    // github.js on stdin would resolve them against the user's app directory.
+    let modules = tempfile::Builder::new()
+        .prefix("menloapp-deploy-")
+        .tempdir()?;
+    for (name, source) in [
+        (
+            "github.js",
+            include_str!("../../packages/cli/src/github.js"),
+        ),
+        (
+            "deploy-ui.js",
+            include_str!("../../packages/cli/src/deploy-ui.js"),
+        ),
+        (
+            "presentation.js",
+            include_str!("../../packages/cli/src/presentation.js"),
+        ),
+        (
+            "project-presentation.js",
+            include_str!("../../packages/cli/src/project-presentation.js"),
+        ),
+        (
+            "record.js",
+            include_str!("../../packages/cli/src/record.js"),
+        ),
+    ] {
+        std::fs::write(modules.path().join(name), source)?;
+    }
+    std::fs::write(modules.path().join("package.json"), r#"{"type":"module"}"#)?;
+    let entry = modules.path().join("deploy.mjs");
+    std::fs::write(&entry, "import { deploy } from './github.js';\ntry { process.exitCode = await deploy(process.argv.slice(2)); } catch (error) { console.error(error.message); process.exitCode = 1; }\n")?;
     let node = ["/opt/homebrew/bin/node", "/usr/local/bin/node"]
         .into_iter()
         .find(|p| Path::new(p).is_file())
@@ -550,21 +581,15 @@ pub fn deploy(args: &[String]) -> Result<(), BoxError> {
     if args.iter().any(|argument| argument == "--json") {
         command.env("MENLO_NONINTERACTIVE", "1");
     }
-    let mut child = command
-        .args(["--input-type=module", "-"])
+    let status = command
+        .arg(entry)
         .args(args)
-        .stdin(Stdio::piped())
+        .stdin(Stdio::inherit())
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
-        .spawn()
-        .map_err(|_| "Install Node.js (the npm runtime), then run tohseno deploy again")?;
-    let script = format!("{}\ntry {{ process.exitCode = await deploy(process.argv.slice(2)); }} catch (error) {{ console.error(error.message); process.exitCode = 1; }}\n", include_str!("../../packages/cli/src/github.js"));
-    child
-        .stdin
-        .take()
-        .ok_or("Node stdin unavailable")?
-        .write_all(script.as_bytes())?;
-    if !child.wait()?.success() {
+        .status()
+        .map_err(|_| "Install Node.js (the npm runtime), then run menloapp deploy again")?;
+    if !status.success() {
         return Err("MENLO deployment did not complete. See the action above.".into());
     }
     Ok(())
@@ -739,6 +764,10 @@ pub fn update_notices(root: &Path, projects: &LivingProjectService) -> Result<()
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn native_deploy_loads_embedded_javascript_modules() {
+        super::deploy(&["--help".into()]).unwrap();
+    }
     use super::*;
     #[tokio::test]
     async fn checkout_verification_preserves_edits_and_rejects_links() {

@@ -4,33 +4,40 @@ import path from "node:path";
 import process from "node:process";
 import { choose, continueAfter, deployUI, openBrowser, shellQuote } from "./deploy-ui.js";
 
-export const MENLO_ORIGIN = "https://tohseno.com";
+import { setupPresentation, readCommittedPresentation } from "./project-presentation.js";
+import { recordExperience } from "./record.js";
+
+export const MENLO_ORIGIN = "https://menloapp.lol";
 const SHA = /^[a-f0-9]{40}$/;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const run = (command, args) => execFileSync(command, args, { encoding: "utf8", timeout: 20_000, maxBuffer: 8 * 1024 * 1024, stdio: ["ignore", "pipe", "pipe"] }).trim();
 
 export function githubRepository(remote) {
   const match = /^(?:git@github\.com:|https:\/\/github\.com\/|ssh:\/\/git@github\.com\/)([A-Za-z0-9-]+\/[A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(remote.trim());
-  if (!match || match[1].split("/").some(p => p === "." || p === "..")) throw new Error("This app needs a GitHub repository as its origin.\nSet it with: git remote set-url origin https://github.com/YOUR-NAME/YOUR-APP.git\nThen run menlo deploy again.");
+  if (!match || match[1].split("/").some(p => p === "." || p === "..")) throw new Error("This app needs a GitHub repository as its origin.\nSet it with: git remote set-url origin https://github.com/YOUR-NAME/YOUR-APP.git\nThen run menloapp deploy again.");
   return match[1];
 }
 
 export function deployOptions(args) {
-  const options = { directory: ".", json: false, dryRun: false };
+  const options = { directory: ".", json: false, dryRun: false, record: false, seconds: 20 };
   let directory = false;
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === "--json") options.json = true;
+    else if (arg === "--record") options.record = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--help" || arg === "-h") options.help = true;
-    else if (["--scheme", "--app-slug", "--project", "--name"].includes(arg)) {
+    else if (["--scheme", "--app-slug", "--project", "--name", "--simulator", "--seconds"].includes(arg)) {
       const value = args[++i];
       if (!value || value.startsWith("-")) throw new Error(`${arg} needs a value`);
-      options[{ "--scheme": "scheme", "--app-slug": "slug", "--project": "project", "--name": "name" }[arg]] = value;
-    } else if (arg.startsWith("-")) throw new Error(`Unknown MENLO deploy option: ${arg}\nRun menlo deploy --help for supported options.`);
+      options[{ "--scheme": "scheme", "--app-slug": "slug", "--project": "project", "--name": "name", "--simulator": "simulator", "--seconds": "seconds" }[arg]] = value;
+    } else if (arg.startsWith("-")) throw new Error(`Unknown MENLO deploy option: ${arg}\nRun menloapp deploy --help for supported options.`);
     else if (!directory) { options.directory = arg; directory = true; }
     else throw new Error("Choose one app directory.");
   }
+  options.seconds = Number(options.seconds);
+  if (!Number.isInteger(options.seconds) || options.seconds < 3 || options.seconds > 60) throw new Error("Choose --seconds from 3 to 60.");
+  if (options.dryRun && options.record) throw new Error("Choose --dry-run or --record, not both.");
   return options;
 }
 
@@ -42,13 +49,13 @@ async function api(url, init = {}, fetcher = fetch) {
   const service = ["api.github.com", "github.com"].includes(new URL(url).hostname) ? "GitHub" : "MENLO";
   let response;
   try { response = await fetcher(url, { ...init, redirect: "error", signal: AbortSignal.timeout(20_000) }); }
-  catch { throw new Error(`Could not reach ${service}. Check your connection and run menlo deploy again.`); }
+  catch { throw new Error(`Could not reach ${service}. Check your connection and run menloapp deploy again.`); }
   let body;
-  try { body = await response.json(); } catch { throw new Error(`${service} returned an unreadable response. Run menlo deploy again shortly.`); }
-  if (!body || typeof body !== "object") throw new Error(`${service} returned an unreadable response. Run menlo deploy again shortly.`);
+  try { body = await response.json(); } catch { throw new Error(`${service} returned an unreadable response. Run menloapp deploy again shortly.`); }
+  if (!body || typeof body !== "object") throw new Error(`${service} returned an unreadable response. Run menloapp deploy again shortly.`);
   if (!response.ok) {
     const detail = typeof body.error === "string" ? body.error : typeof body.message === "string" ? body.message : "";
-    if (response.status === 429 || response.status === 403 && /rate limit/i.test(detail)) throw new APIError(`${service}'s request limit was reached. Wait a few minutes, then run menlo deploy again.`, 429);
+    if (response.status === 429 || response.status === 403 && /rate limit/i.test(detail)) throw new APIError(`${service}'s request limit was reached. Wait a few minutes, then run menloapp deploy again.`, 429);
     throw new APIError(detail.slice(0, 500).replace(/[\x00-\x1f\x7f]/g, " ") || `${service} request failed (${response.status}).`, response.status);
   }
   return body;
@@ -57,7 +64,7 @@ async function api(url, init = {}, fetcher = fetch) {
 export async function deviceLogin(clientId, { fetcher = fetch, log = console.error, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)), open = openBrowser } = {}) {
   const post = (url, fields) => api(url, { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams(fields) }, fetcher);
   const device = await post("https://github.com/login/device/code", { client_id: clientId, scope: "read:user public_repo" });
-  if (!device.device_code || !device.user_code || device.verification_uri !== "https://github.com/login/device" || !Number.isFinite(device.expires_in)) throw new Error("MENLO's GitHub sign-in is unavailable. Run gh auth login, then menlo deploy.");
+  if (!device.device_code || !device.user_code || device.verification_uri !== "https://github.com/login/device" || !Number.isFinite(device.expires_in)) throw new Error("MENLO's GitHub sign-in is unavailable. Run gh auth login, then menloapp deploy.");
   log(`Sign in to GitHub: ${device.verification_uri}\nEnter code: ${device.user_code}\nWaiting for your approval in the browser…`);
   open(device.verification_uri);
   const deadline = Date.now() + Math.min(device.expires_in, 900) * 1000;
@@ -67,9 +74,9 @@ export async function deviceLogin(clientId, { fetcher = fetch, log = console.err
     const result = await post("https://github.com/login/oauth/access_token", { client_id: clientId, device_code: device.device_code, grant_type: "urn:ietf:params:oauth:grant-type:device_code" });
     if (typeof result.access_token === "string") return result.access_token;
     if (result.error === "slow_down") interval += 5000;
-    else if (result.error !== "authorization_pending") throw new Error(`GitHub sign-in ${result.error === "access_denied" ? "was cancelled" : "expired"}. Run menlo deploy to sign in again.`);
+    else if (result.error !== "authorization_pending") throw new Error(`GitHub sign-in ${result.error === "access_denied" ? "was cancelled" : "expired"}. Run menloapp deploy to sign in again.`);
   }
-  throw new Error("GitHub sign-in expired. Run menlo deploy to sign in again.");
+  throw new Error("GitHub sign-in expired. Run menloapp deploy to sign in again.");
 }
 
 const headers = credential => ({ Authorization: `Bearer ${credential}`, Accept: "application/vnd.github+json", "User-Agent": "menlo-cli" });
@@ -81,7 +88,7 @@ export async function authenticate(ui, { fetcher = fetch, execute = run, env = p
   if (!credential && platform === "darwin") credential = optionalRun(execute, "/usr/bin/security", ["find-generic-password", "-s", "com.menlo.github", "-a", "github", "-w"]);
   const validate = async value => {
     const user = await api("https://api.github.com/user", { headers: headers(value) }, fetcher);
-    if (!user.login || !Number.isSafeInteger(user.id)) throw new Error("GitHub did not return your account. Run gh auth login, then menlo deploy.");
+    if (!user.login || !Number.isSafeInteger(user.id)) throw new Error("GitHub did not return your account. Run gh auth login, then menloapp deploy.");
     ui.log(`GitHub: signed in as ${user.login}`);
     return { credential: value, user };
   };
@@ -89,12 +96,12 @@ export async function authenticate(ui, { fetcher = fetch, execute = run, env = p
     try { return await validate(credential); }
     catch (error) {
       if (error.status !== 401) throw error;
-      if (variable) throw new Error(`GitHub rejected the credential in ${variable}.\nReplace it with a valid token, or run:\n  unset ${variable}\n  gh auth login\n  menlo deploy`);
+      if (variable) throw new Error(`GitHub rejected the credential in ${variable}.\nReplace it with a valid token, or run:\n  unset ${variable}\n  gh auth login\n  menloapp deploy`);
       ui.log("Your GitHub sign-in has expired. Sign in again to continue.");
     }
   } else ui.log("You are not signed in to GitHub. Sign in to connect this app to your account.");
   const hasGH = Boolean(optionalRun(execute, "gh", ["--version"]));
-  const instructions = hasGH ? "Run gh auth login, then menlo deploy." : "Install GitHub CLI from https://cli.github.com (on Mac: brew install gh), then run:\n  gh auth login\n  menlo deploy";
+  const instructions = hasGH ? "Run gh auth login, then menloapp deploy." : "Install GitHub CLI from https://cli.github.com (on Mac: brew install gh), then run:\n  gh auth login\n  menloapp deploy";
   if (!ui.interactive) throw new Error(`You are not signed in to GitHub, or your sign-in has expired.\n${instructions}`);
   if (hasGH) {
     const answer = await ui.ask("Sign in to GitHub in your browser now? [Y/n] ");
@@ -113,18 +120,18 @@ export async function authenticate(ui, { fetcher = fetch, execute = run, env = p
 
 function git(directory, ...args) {
   try { return run("git", ["-C", directory, ...args]); }
-  catch { throw new Error("Open your app's Git repository, then run menlo deploy. It needs a GitHub origin and at least one commit."); }
+  catch { throw new Error("Open your app's Git repository, then run menloapp deploy. It needs a GitHub origin and at least one commit."); }
 }
 
 async function inspectRepository(options) {
   let input;
-  try { input = await realpath(options.directory); } catch { throw new Error(`App directory not found: ${options.directory}\nRun menlo deploy from your app's repository.`); }
+  try { input = await realpath(options.directory); } catch { throw new Error(`App directory not found: ${options.directory}\nRun menloapp deploy from your app's repository.`); }
   const explicitContainer = /\.(xcodeproj|xcworkspace)$/.test(input) ? input : undefined;
   const directory = explicitContainer ? path.dirname(input) : input;
   const root = git(directory, "rev-parse", "--show-toplevel");
   let remote;
   try { remote = run("git", ["-C", root, "remote", "get-url", "origin"]); }
-  catch { throw new Error("This repository has no GitHub origin.\nCreate a GitHub repository and connect it with gh repo create --source=. --remote=origin, then run menlo deploy."); }
+  catch { throw new Error("This repository has no GitHub origin.\nCreate a GitHub repository and connect it with gh repo create --source=. --remote=origin, then run menloapp deploy."); }
   return { root, directory, explicitContainer, repository: githubRepository(remote) };
 }
 
@@ -155,16 +162,16 @@ export async function inspectProject(options, ui = deployUI(options)) {
   if (options.project || explicitContainer) {
     let selected;
     try { selected = await realpath(options.project ? path.resolve(root, options.project) : explicitContainer); }
-    catch { throw new Error("That Xcode project does not exist. Run menlo deploy without --project to choose a committed app."); }
+    catch { throw new Error("That Xcode project does not exist. Run menloapp deploy without --project to choose a committed app."); }
     const relative = path.relative(root, selected);
     if (relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Choose a project inside this GitHub repository.");
-    if (!tracked.has(`${relative}/${relative.endsWith(".xcodeproj") ? "project.pbxproj" : "contents.xcworkspacedata"}`)) throw new Error("That Xcode project is not committed to GitHub. Commit and push it, or run menlo deploy without --project to select a committed app.");
+    if (!tracked.has(`${relative}/${relative.endsWith(".xcodeproj") ? "project.pbxproj" : "contents.xcworkspacedata"}`)) throw new Error("That Xcode project is not committed to GitHub. Commit and push it, or run menloapp deploy without --project to select a committed app.");
     containers = [relative];
   } else {
     const covered = new Set([...members.values()].flat());
     containers = containers.filter(file => !covered.has(file));
   }
-  if (!containers.length) throw new Error("No committed Xcode project or workspace was found.\nGenerate or add your iOS project (.xcodeproj or .xcworkspace), commit and push it, then run menlo deploy.");
+  if (!containers.length) throw new Error("No committed Xcode project or workspace was found.\nGenerate or add your iOS project (.xcodeproj or .xcworkspace), commit and push it, then run menloapp deploy.");
   const project = await choose(ui, "Which app do you want to deploy?", containers, "--project");
   let scheme = options.scheme;
   if (!scheme) {
@@ -182,18 +189,19 @@ export async function inspectProject(options, ui = deployUI(options)) {
         names = (result.project || result.workspace)?.schemes ?? [];
       } catch { /* Explain how to make the app scheme available. */ }
     }
-    if (!names.length) throw new Error(`Could not find an app scheme in ${project}.\nIn Xcode, open Product → Scheme → Manage Schemes and mark your iOS app scheme Shared. Commit and push it, then run menlo deploy.\nIf you already know the scheme: menlo deploy --scheme YOUR-APP`);
+    if (!names.length) throw new Error(`Could not find an app scheme in ${project}.\nIn Xcode, open Product → Scheme → Manage Schemes and mark your iOS app scheme Shared. Commit and push it, then run menloapp deploy.\nIf you already know the scheme: menloapp deploy --scheme YOUR-APP`);
     scheme = await choose(ui, "Which iOS app scheme should testers build?", names, "--scheme");
   }
-  return { repository, project, scheme, name: options.name || scheme, slug: options.slug || repository.split("/")[1].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), commit };
+  const presentation = await readCommittedPresentation(root, commit);
+  return { repository, project, scheme, name: presentation?.name || options.name || scheme, slug: options.slug || repository.split("/")[1].toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), commit, ...(presentation ? { description: presentation.description } : {}) };
 }
 
 async function publicRepository(repository, credential, ui, fetcher) {
   const read = async () => {
     try { return await api(`https://api.github.com/repos/${repository}`, { headers: headers(credential) }, fetcher); }
     catch (error) {
-      if (error.status === 404 || error.status === 403 && !/request limit/.test(error.message)) throw new Error(`Your GitHub account could not access ${repository}.\nCheck https://github.com/${repository} and grant access to this repository, or sign in with gh auth login using the account that owns it.\nThen run menlo deploy again.`);
-      if (error.status === 401) throw new Error("Your GitHub sign-in expired. Run gh auth login, then menlo deploy.");
+      if (error.status === 404 || error.status === 403 && !/request limit/.test(error.message)) throw new Error(`Your GitHub account could not access ${repository}.\nCheck https://github.com/${repository} and grant access to this repository, or sign in with gh auth login using the account that owns it.\nThen run menloapp deploy again.`);
+      if (error.status === 401) throw new Error("Your GitHub sign-in expired. Run gh auth login, then menloapp deploy.");
       throw error;
     }
   };
@@ -201,7 +209,7 @@ async function publicRepository(repository, credential, ui, fetcher) {
   if (repo.private !== false) {
     const url = `https://github.com/${repository}/settings#danger-zone`;
     const message = `${repository} is private. MENLO currently lets testers build from public GitHub source.\nTo deploy this app, make the repository public in GitHub Settings → Danger Zone → Change visibility. This makes its code and history public.\n${url}`;
-    if (!ui.interactive) throw new Error(`${message}\n\nThen run menlo deploy again. To keep this source private, stop here; private repositories are not supported yet.`);
+    if (!ui.interactive) throw new Error(`${message}\n\nThen run menloapp deploy again. To keep this source private, stop here; private repositories are not supported yet.`);
     ui.log(`\n${message}`);
     const answer = await ui.ask("Open GitHub settings to continue? [Y/n] ");
     if (answer && !/^y(es)?$/i.test(answer)) throw new Error("Deploy stopped. Your repository is still private.");
@@ -212,7 +220,7 @@ async function publicRepository(repository, credential, ui, fetcher) {
       if (repo.private !== false) ui.log("GitHub still reports this repository as private.");
     }
   }
-  if (repo.archived || repo.disabled) throw new Error("This GitHub repository is archived or disabled. Restore it in GitHub settings, then run menlo deploy.");
+  if (repo.archived || repo.disabled) throw new Error("This GitHub repository is archived or disabled. Restore it in GitHub settings, then run menloapp deploy.");
   return repo;
 }
 
@@ -221,18 +229,26 @@ export async function deploy(args, dependencies = {}) {
   const ui = dependencies.ui || deployUI(options);
   const fetcher = dependencies.fetcher || fetch;
   if (options.help) {
-    ui.print("MENLO deploy\n\nmenlo deploy [path]\n\nSign in to GitHub, choose your app if needed, and get a production app link.\nMENLO guides you through each step. Later pushes appear automatically.\n\nOptions: --project path/App.xcodeproj, --scheme Name, --app-slug your-app,\n         --name Name, --dry-run (local checks only), --json (no prompts)");
+    ui.print("MENLO deploy\n\nmenloapp deploy [path]\n\nSign in to GitHub, choose your app if needed, and get a production app link.\nMENLO guides you through each step. Later pushes appear automatically.\n\nOptions: --project path/App.xcodeproj, --scheme Name, --app-slug your-app,\n         --name Name, --dry-run (local checks only), --json (no prompts)\n         --record (build and record, then review/commit before publishing),\n         --seconds 3–60, --simulator UDID");
     return 0;
   }
   if (options.dryRun) { ui.print(JSON.stringify(await inspectProject(options, ui), null, 2)); return 0; }
   const local = await inspectRepository(options);
+  if (await setupPresentation(local.root, options.name || local.repository.split("/")[1])) {
+    await continueAfter(ui, "Created menloapp/app.json and asset instructions. Edit your public app details, add your icon and up to three screenshots, then commit and push menloapp/.");
+  }
+  if (options.record) {
+    const project = await inspectProject(options, ui);
+    await recordExperience(local.root, project, options, ui);
+    return 0;
+  }
   ui.log(`MENLO deploy\nRepository: ${local.repository}`);
   const { credential } = await authenticate(ui, { ...dependencies, fetcher });
   const repo = await publicRepository(local.repository, credential, ui, fetcher);
   let project;
   while (true) {
     project = await inspectProject(options, ui);
-    if (project.repository !== local.repository) throw new Error("The GitHub origin changed during deployment. Run menlo deploy again to connect the new repository.");
+    if (project.repository !== local.repository) throw new Error("The GitHub origin changed during deployment. Run menloapp deploy again to connect the new repository.");
     const head = await api(`https://api.github.com/repos/${project.repository}/commits/${encodeURIComponent(repo.default_branch)}`, { headers: headers(credential) }, fetcher);
     if (head.sha === project.commit) break;
     const branch = git(local.root, "branch", "--show-current");
@@ -246,10 +262,12 @@ export async function deploy(args, dependencies = {}) {
   let reusedLink = false;
   while (true) {
     try {
-      result = await api(`${MENLO_ORIGIN}/api/menlo/v1/apps`, { method: "POST", headers: { Authorization: `Bearer ${credential}`, "Content-Type": "application/json" }, body: JSON.stringify({ ...project, description: repo.description || "" }) }, fetcher);
+      // The server reads full presentation copy from the pinned Git commit.
+      // Only a short legacy fallback belongs in the registration request.
+      result = await api(`${MENLO_ORIGIN}/api/menlo/v1/apps`, { method: "POST", headers: { Authorization: `Bearer ${credential}`, "Content-Type": "application/json" }, body: JSON.stringify({ ...project, description: (repo.description || "").slice(0, 500) }) }, fetcher);
       break;
     } catch (error) {
-      const existing = /^This repository already has a link: https:\/\/tohseno\.com\/([a-z0-9-]+)\. Use --app-slug /.exec(error.message);
+      const existing = /^This repository already has a link: https:\/\/menloapp\.lol\/([a-z0-9-]+)\. Use --app-slug /.exec(error.message);
       if (error.status === 409 && existing && !reusedLink) {
         project.slug = existing[1]; reusedLink = true;
         ui.log(`Keeping your existing app link: ${MENLO_ORIGIN}/${project.slug}`);
@@ -267,12 +285,12 @@ export async function deploy(args, dependencies = {}) {
         project.slug = slug;
         continue;
       }
-      if (error.status === 401) throw new Error("GitHub sign-in was not accepted by MENLO. Run gh auth login, then menlo deploy.");
-      if (error.status === 403) throw new Error(`Your GitHub account needs write access to ${project.repository} to deploy it.\nAsk its owner for access, or run gh auth login with an account that has access. Then run menlo deploy.`);
-      throw new Error(`${error.message}\n\nRun menlo deploy again after completing that step.`);
+      if (error.status === 401) throw new Error("GitHub sign-in was not accepted by MENLO. Run gh auth login, then menloapp deploy.");
+      if (error.status === 403) throw new Error(`Your GitHub account needs write access to ${project.repository} to deploy it.\nAsk its owner for access, or run gh auth login with an account that has access. Then run menloapp deploy.`);
+      throw new Error(`${error.message}\n\nRun menloapp deploy again after completing that step.`);
     }
   }
-  if (result.public_url !== `${MENLO_ORIGIN}/${project.slug}`) throw new Error("MENLO did not confirm the expected app link. Run menlo deploy again to verify it.");
+  if (result.public_url !== `${MENLO_ORIGIN}/${project.slug}`) throw new Error("MENLO did not confirm the expected app link. Run menloapp deploy again to verify it.");
   if (options.json) ui.print(JSON.stringify(result));
   else ui.print(`\nYour app is live:\n${result.public_url}\n\nShare this link. Testers open it in MENLO to build and run the app on their iPhone.\nKeep pushing to ${repo.default_branch}; this link follows your code automatically.\n`);
   return 0;

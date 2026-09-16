@@ -3,3 +3,12 @@
 @media(max-width:599px){.menlo-landing .ml-header{min-height:72px}.menlo-landing .ml-wordmark{font-size:36px;gap:8px}.menlo-landing .ml-wordmark img{width:32px;height:32px}.menlo-landing .ml-desktop-link{display:none}.menlo-landing .ml-header nav{font-size:14px}.menlo-landing .ml-hero{padding-top:32px}.menlo-landing .ml-h1{font-size:clamp(43px,12.3vw,54px)}.menlo-landing .ml-command{padding:10px;gap:8px}.menlo-landing .ml-command code{font-size:16px}.menlo-landing .ml-command button{font-size:12px;padding:6px}.menlo-landing .ml-steps,.menlo-landing .ml-app-grid{grid-template-columns:1fr}.menlo-landing .ml-section-heading,.menlo-landing .ml-footer{display:block}.menlo-landing .ml-section-heading>a{display:inline-flex;min-height:44px;margin-bottom:16px}.menlo-landing .ml-section{padding-block:40px}.menlo-landing .ml-footer nav{justify-content:flex-start;gap:12px 24px}.menlo-landing .ml-belief{padding-block:48px}.menlo-landing .ml-hero-art{margin-top:24px}}
 
 .menlo-landing .ml-command pre{font-size:17px;line-height:1.6;margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.menlo-landing .ml-app h2{font:400 26px/1.2 Georgia,serif}.menlo-landing .ml-app{overflow-wrap:anywhere}@media(max-width:599px){.menlo-landing .ml-command pre{font-size:14px}.menlo-landing .ml-command{align-items:flex-start}}
+
+/* Public app presentation, read from the selected Git commit. */
+.ml-detail-icon { display:block; width:112px; height:112px; object-fit:cover; border-radius:24px; margin:24px 0; }
+.ml-screenshots { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; align-items:start; margin:36px 0; }
+.ml-screenshots img { width:100%; max-height:640px; object-fit:contain; border-radius:18px; border:1px solid var(--ml-line,#d8d5cc); }
+.ml-preview { margin:36px 0; }
+.ml-preview video { display:block; width:100%; max-width:440px; max-height:640px; background:#181818; border-radius:18px; }
+.ml-section .ml-body { white-space:pre-line; overflow-wrap:anywhere; }
+@media (max-width:640px) { .ml-screenshots { display:flex; overflow-x:auto; gap:14px; scroll-snap-type:x proximity; } .ml-screenshots img { flex:0 0 76%; width:76%; scroll-snap-align:start; } }

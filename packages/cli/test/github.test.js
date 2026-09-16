@@ -10,6 +10,7 @@ import { suggestedCommand } from "../src/cli.js";
 const schemeXML = name => `<Scheme><BuildableReference BuildableName="${name}.app" /></Scheme>`;
 const appFiles = name => ({ [`${name}.xcodeproj/project.pbxproj`]: "fixture", [`${name}.xcodeproj/xcshareddata/xcschemes/${name}.xcscheme`]: schemeXML(name) });
 async function repository(t, files = appFiles("App")) {
+  files = { "menloapp/app.json": JSON.stringify({ version: 1, name: "App", subtitle: "", description: "", screenshots: [] }), ...files };
   const root = await mkdtemp(path.join(os.tmpdir(), "menlo-deploy-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   for (const [file, content] of Object.entries(files)) {
@@ -36,9 +37,9 @@ function requests(commit, { privateRepo = false, post, repoRead } = {}) {
     if (url === "https://api.github.com/user") return Response.json({ id: 42, login: "maker" });
     if (url === "https://api.github.com/repos/maker/App") return Response.json(repoRead ? repoRead() : { private: privateRepo, default_branch: "main", description: "An app" });
     if (url.endsWith("/commits/main")) return Response.json({ sha: commit });
-    if (url === "https://tohseno.com/api/menlo/v1/apps") {
+    if (url === "https://menloapp.lol/api/menlo/v1/apps") {
       const body = JSON.parse(init.body);
-      return post ? post(body) : Response.json({ public_url: `https://tohseno.com/${body.slug}` });
+      return post ? post(body) : Response.json({ public_url: `https://menloapp.lol/${body.slug}` });
     }
     throw new Error(`Unexpected URL: ${url}`);
   };
@@ -153,7 +154,7 @@ test("private source requires the human's visibility action and then resumes to 
   assert.equal(await deploy([root], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } }), 0);
   assert.deepEqual(ui.opened, ["https://github.com/maker/App/settings#danger-zone"]);
   assert.match(ui.logs.join("\n"), /code and history public/);
-  assert.match(ui.output.join("\n"), /Your app is live:\nhttps:\/\/tohseno.com\/app/);
+  assert.match(ui.output.join("\n"), /Your app is live:\nhttps:\/\/menloapp.lol\/app/);
   assert.equal(network.calls.filter(call => call.init.method === "POST").length, 1);
   assert.ok(!network.calls.some(call => call.init.method === "PATCH"));
 });
@@ -170,7 +171,7 @@ test("cancelling private visibility never publishes or changes the GitHub repo",
 test("a private repo in noninteractive mode reports exact settings and never prompts", async t => {
   const { root, commit } = await repository(t);
   const ui = interfaceFor([], false);
-  await assert.rejects(deploy([root, "--json"], { ui, ...requests(commit, { privateRepo: true }), env: { GH_TOKEN: "fixture-secret" } }), /github.com\/maker\/App\/settings#danger-zone[\s\S]*menlo deploy again/);
+  await assert.rejects(deploy([root, "--json"], { ui, ...requests(commit, { privateRepo: true }), env: { GH_TOKEN: "fixture-secret" } }), /github.com\/maker\/App\/settings#danger-zone[\s\S]*menloapp deploy again/);
   assert.equal(ui.prompts.length, 0);
   assert.equal(ui.output.length, 0);
 });
@@ -200,21 +201,21 @@ test("repeat deploy finds the existing stable app link without requiring a slug 
   const registered = [];
   const network = requests(commit, { post: body => {
     registered.push(body);
-    return body.slug === "existing-app" ? Response.json({ public_url: "https://tohseno.com/existing-app" }) : Response.json({ error: "This repository already has a link: https://tohseno.com/existing-app. Use --app-slug existing-app." }, { status: 409 });
+    return body.slug === "existing-app" ? Response.json({ public_url: "https://menloapp.lol/existing-app" }) : Response.json({ error: "This repository already has a link: https://menloapp.lol/existing-app. Use --app-slug existing-app." }, { status: 409 });
   } });
   const ui = interfaceFor([], false);
   await deploy([root, "--json"], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } });
   assert.deepEqual(registered.map(body => body.slug), ["app", "existing-app"]);
-  assert.equal(JSON.parse(ui.output[0]).public_url, "https://tohseno.com/existing-app");
+  assert.equal(JSON.parse(ui.output[0]).public_url, "https://menloapp.lol/existing-app");
 });
 
 test("link collisions are resolved in the same deploy without changing repositories", async t => {
   const { root, commit } = await repository(t);
   const ui = interfaceFor(["", "my-app"]);
   let count = 0;
-  const network = requests(commit, { post: body => ++count < 3 ? Response.json({ error: "That app link belongs to another repository. Choose --app-slug with another name." }, { status: 409 }) : Response.json({ public_url: `https://tohseno.com/${body.slug}` }) });
+  const network = requests(commit, { post: body => ++count < 3 ? Response.json({ error: "That app link belongs to another repository. Choose --app-slug with another name." }, { status: 409 }) : Response.json({ public_url: `https://menloapp.lol/${body.slug}` }) });
   await deploy([root], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } });
-  assert.match(ui.output.join("\n"), /https:\/\/tohseno.com\/my-app/);
+  assert.match(ui.output.join("\n"), /https:\/\/menloapp.lol\/my-app/);
 });
 
 test("network failures and rate limits name the service and do not masquerade as bad sign-in", async () => {

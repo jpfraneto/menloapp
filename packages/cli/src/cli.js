@@ -1,28 +1,29 @@
 import { NPM_CLI_VERSION } from "./constants.js";
 
-export const HELP = `MENLO (tohseno ${NPM_CLI_VERSION})
+export const HELP = `MENLO (menloapp ${NPM_CLI_VERSION})
 
 Usage:
-  tohseno deploy [path]   Connect a public GitHub app and get a shareable link
-  menlo deploy [path]     The same command, with MENLO's name
-  tohseno github install <slug>   Build a GitHub app for your iPhone
-  tohseno init [path]     Connect local source to your Mac workshop
-  tohseno open            Open MENLO on your Mac
-  tohseno doctor          Check this Mac
-  tohseno --version       Print the npm CLI version
+  menloapp init [path]            Create your public app metadata folder
+  menloapp deploy [path]          Connect a public GitHub app and get its link
+  menloapp deploy --record        Record the app in Simulator for review
+  menloapp github install <slug>  Build a GitHub app for your iPhone
+  menloapp open                   Open MENLO on your Mac
+  menloapp doctor                 Check this Mac
+  menloapp --version              Print the npm CLI version
 
-Commit and push your app, then deploy once. Its link follows GitHub's default
-branch. No Companion setup, native runtime download, or gas is needed to deploy.
-Testers use Xcode and their own Apple signing identity on their Mac.`;
+Commit and push your app and menloapp/ assets, then deploy. Its link follows
+GitHub's default branch. Testers use Xcode and their own Apple signing identity.`;
 
 export const GUIDE = `MENLO CLI ${NPM_CLI_VERSION} is installed.
 
 From your app's public GitHub repository:
   cd /path/to/YourApp
-  tohseno deploy
+  menloapp init
+  # Edit menloapp/app.json, then commit and push.
+  menloapp deploy
 
 Share the link. Keep pushing code. Your testers choose when to update.
-Deploy will guide you through GitHub sign-in and choosing an app if needed.`;
+Deploy guides you through GitHub sign-in and choosing an app if needed.`;
 
 export function suggestedCommand(value) {
   if (!value || value === "deploy") return null;

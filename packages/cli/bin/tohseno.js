@@ -6,19 +6,21 @@ import { NPM_CLI_VERSION, PRODUCT_VERSION } from "../src/constants.js";
 import { delegate, installedNative } from "../src/native.js";
 import { installAuthorizedNative } from "../src/installer.js";
 import { startProduct } from "../src/start.js";
+import { initPresentation } from "../src/project-presentation.js";
 import { deploy } from "../src/github.js";
 
 async function main() {
   const raw = process.argv.slice(2);
+  if (raw[0] === "init") return initPresentation(raw.slice(1));
   const commandIndex = raw[0] === "--json" ? 1 : 0;
   const suggestion = suggestedCommand(raw[commandIndex]);
-  if (suggestion) throw new Error(`Unknown command: ${raw[commandIndex]}. Did you mean menlo ${suggestion}?`);
+  if (suggestion) throw new Error(`Unknown command: ${raw[commandIndex]}. Did you mean menloapp ${suggestion}?`);
   if (raw[commandIndex] === "deploy" && !raw.includes("--legacy-registry")) {
     return deploy([...raw.slice(0, commandIndex), ...raw.slice(commandIndex + 1)]);
   }
   const command = parseCommand(process.argv.slice(2));
   if (command.kind === "help") { console.log(HELP); return 0; }
-  if (command.kind === "version") { console.log(`tohseno ${NPM_CLI_VERSION}`); return 0; }
+  if (command.kind === "version") { console.log(`menloapp ${NPM_CLI_VERSION}`); return 0; }
   if (command.kind === "guide") { console.log(GUIDE); return 0; }
   if (process.platform !== "darwin") throw new Error("TOHSENO installs on macOS only.");
   let installed = await installedNative(PRODUCT_VERSION);
@@ -52,6 +54,6 @@ async function main() {
 }
 
 main().then((code) => { process.exitCode = code; }).catch((error) => {
-  console.error(`menlo: ${redact(error.message)}`);
+  console.error(`menloapp: ${redact(error.message)}`);
   process.exitCode = 1;
 });

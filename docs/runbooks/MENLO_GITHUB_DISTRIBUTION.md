@@ -3,6 +3,10 @@
 Authority: [ADR 0040](../adr/0040-menlo-github-distribution.md). This is the normal
 public-repository path; the historical Registry and Claim path remains separate.
 
+For the new `menloapp` package, public assets, recording, and `menloapp.lol`
+cutover, use [MENLOAPP_LAUNCH.md](MENLOAPP_LAUNCH.md). The evidence below retains
+the exact earlier package names and artifact URLs.
+
 ## What is ready, and what still needs a human
 
 Implementation targets npm CLI 1.3.1, native CLI 1.3.0, and Mac 1.3.0-rc.1 (10012).

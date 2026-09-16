@@ -49,11 +49,11 @@ test("command parsing keeps native commands opaque", () => {
 });
 
 test("the npm CLI makes GitHub deploy the primary path", () => {
-  assert.match(GUIDE, /cd \/path\/to\/YourApp\n  tohseno deploy/);
+  assert.match(GUIDE, /cd \/path\/to\/YourApp[\s\S]*menloapp deploy/);
   assert.match(GUIDE, /Keep pushing code/);
-  assert.match(HELP, /tohseno init \[path\]/);
-  assert.match(HELP, /tohseno deploy/);
-  assert.ok(HELP.indexOf("tohseno init") < HELP.indexOf("tohseno open"));
+  assert.match(HELP, /menloapp init \[path\]/);
+  assert.match(HELP, /menloapp deploy/);
+  assert.ok(HELP.indexOf("menloapp init") < HELP.indexOf("menloapp open"));
 });
 
 test("stable semantic versions compare without prerelease ambiguity", () => {

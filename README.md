@@ -4,18 +4,30 @@ Deploy your iOS app from GitHub. Share a link. Let someone build it on their own
 Mac, try it on their iPhone, and give practical feedback.
 
 ```sh
-npm i -g tohseno
+npm i -g menloapp
 cd YourApp
-tohseno deploy
-# menlo deploy is an alias
+menloapp init
+# Edit menloapp/app.json, then commit and push.
+menloapp deploy
 ```
 
 Commit and push a public GitHub repository first. Deploy signs in with GitHub,
 checks repository write access, and registers the Xcode project and scheme.
-It returns `https://tohseno.com/your-app`. Later pushes to the default branch
+It returns `https://menloapp.lol/your-app`. Later pushes to the default branch
 appear as updates without another deploy, source upload, wallet, or gas payment.
 Use `--project path/App.xcodeproj`, `--scheme App`, or `--app-slug your-app`
 when a repository needs an explicit choice. `--dry-run` inspects without publishing.
+
+The committed `menloapp/app.json` supplies the name, subtitle, description,
+icon and up to three screenshots. The website reads the selected media from the
+same Git commit. `menloapp deploy --record` builds the committed app in an iPhone
+Simulator and saves a real preview for review, commit and publication. See the
+[CLI guide](packages/cli/README.md) for the folder format and project dependency
+usage (`npm install menloapp`, then `npx menloapp deploy`).
+
+The `menloapp` package and domain cutover are prepared in source; see the
+[deployment instructions](docs/runbooks/MENLOAPP_LAUNCH.md) for the remaining
+npm login and custom-domain setup. These are not yet a live launch claim.
 
 The link opens MENLO into a review of one exact commit. The recipient explicitly
 chooses to build; their Mac checks GitHub identity, downloads and verifies that
@@ -35,8 +47,8 @@ on-chain Registry releases remain available through the historical Registry;
 their signatures and receipts retain their meaning. `deploy --legacy-registry`
 is the explicit compatibility path.
 
-The package and technical bundle identifiers remain `tohseno` while the product
-is MENLO. The Mac remains the single build machine; Companion is its paired
+The npm package and command are `menloapp`. Existing native bundle and protocol
+identifiers remain compatible with Tohseno. The Mac remains the single build machine; Companion is its paired
 private remote. Updates are checked about every five minutes while the Mac
 service runs and synchronize when Companion is active; this is not APNs delivery.
 

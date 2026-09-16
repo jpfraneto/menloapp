@@ -9,8 +9,11 @@ iOS distribution the primary product path.
 
 ## Decision
 
-MENLO connects a public GitHub repository to a stable app link. `npm i -g tohseno`
-and `tohseno deploy` are the initial developer entry point; `menlo` is an alias.
+MENLO connects a public GitHub repository to a stable app link. `npm i -g menloapp`
+and `menloapp deploy` are the developer entry point at `menloapp.lol`. The
+owner’s later September 16 naming and media instruction supersedes the initial
+`tohseno` npm name and `menlo` alias for new installations. Native technical
+identifiers and existing published release pins remain compatible.
 Deployment proves the signed-in GitHub user has push access to the repository.
 GitHub numeric user, owner, and repository IDs anchor identity. Profiles link to
 GitHub. We do not introduce a separate reputation system.
@@ -61,3 +64,27 @@ Exercise a real public repo -> deploy -> app link -> recipient review -> exact
 commit checkout -> local build/sign -> intended iPhone, followed by a push and
 an explicitly accepted update. Tests and source implementation are separately
 reported from published packages, released clients, and physical acceptance.
+
+## Public presentation and optional recording
+
+The owner’s September 16 extension selects a small public `menloapp/` folder.
+`app.json` declares a name, subtitle, description, optional app icon, up to three
+screenshots, and an optional recorded preview. These files are ordinary public
+Git files and are read from the same full commit as the app page. Later pushes
+update presentation through the existing default-branch discovery mechanism.
+Registration establishes identity and recipe; it is not a second media editor.
+
+`menloapp init` scaffolds the folder. A first deploy offers that same scaffold
+and requires review, commit and push before registration. Installing the npm
+package globally or as a project dependency does not run a setup or upload hook.
+
+`menloapp deploy --record` explicitly builds an isolated copy of the committed
+app for one selected, booted iPhone Simulator, launches it, and records a bounded
+walkthrough. The resulting MP4 is selected in the manifest and stops for review
+before a subsequent commit/push/deploy makes it public. No private existing
+capture is automatically selected. The source commit actually built remains
+attached to the preview, even when a later commit contains the video file.
+
+A Simulator recording is a recorded demonstration, not an interactive app,
+physical installation, recipient acceptance or verification report. Manually
+supplied screen/device recordings are labeled as supplied by the maker.

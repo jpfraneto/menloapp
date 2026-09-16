@@ -4,6 +4,26 @@ Written 2026-07-30, amended through 2026-09-16. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## menloapp naming and public presentation (September 16)
+
+GitHub is now `jpfraneto/menloapp`. Source prepares npm `menloapp@1.4.0`, the
+`menloapp` command and `https://menloapp.lol/<slug>`. `menloapp init` scaffolds a
+public `menloapp/app.json`; name, subtitle, description, icon, up to three
+screenshots and a preview are read from the exact Git commit. The server checks
+regular Git file modes, bounded media and blob-byte agreement. `deploy --record`
+builds and launches the committed app in an explicitly selected iPhone Simulator,
+then saves a source-bound MP4 for review and a later commit/push/deploy.
+
+Launch is not active yet: npm authentication returns 401, and Railway refused
+the third custom domain because of the current service's domain limit. Existing
+`tohseno.com` and `www.tohseno.com` domains occupy the two slots. No domain was
+removed, plan upgraded or package published. The root Dockerfile packages the
+website and its shared presentation validator for the existing production
+service. A real sample build and recorded preview passed in a temporary Simulator;
+the local page loaded all images and played the video in desktop/mobile Chrome
+checks. Native artifact and protocol pins are unchanged. See the
+[launch instructions](runbooks/MENLOAPP_LAUNCH.md).
+
 ## MENLO GitHub distribution (September 16)
 
 ADR 0040 makes GitHub the primary identity and source system. Current source
