@@ -22,7 +22,7 @@ paired intended iPhone. Source is pinned to a Git commit and independently
 verified. Scripts can require `--approve-mac-review` after local review.
 
 npm install has no postinstall action. Commands requiring the native runtime
-use the fixed HTTPS manifest at `https://tohseno.com/releases/cli-v1.json`,
+use the fixed HTTPS manifest at `https://tohseno.com/releases/cli-1.3.0.json`,
 verify archive length, SHA-256, the closed file manifest, and Developer ID.
 Deployment does not use that runtime. Existing chain-based publishing is
 available explicitly through `deploy --legacy-registry`.

@@ -327,6 +327,11 @@ const STATIC_FILES: Record<
     type: "application/json; charset=utf-8",
     revalidate: true,
   },
+  "/releases/cli-1.3.0.json": {
+    file: "releases/cli-1.3.0.json",
+    type: "application/json; charset=utf-8",
+    revalidate: true,
+  },
   "/robots.txt": { file: "robots.txt", type: "text/plain; charset=utf-8" },
   "/logo.svg": { file: "logo.svg", type: "image/svg+xml" },
   "/landing-assets/wordmark.svg": {
