@@ -182,3 +182,11 @@ sample commit.
 The final Railway rollout from `6326679` is
 `3d753785-bce2-4b49-bebf-a19525e15cf6`; it applies the verified 1.3.0-rc.1
 Mac pin and versioned CLI manifest while preserving the older CLI manifest.
+
+
+Final production checks observed Mac version `1.3.0-rc.1`, build `10012`,
+the preview CLI manifest at `cli-1.3.0.json`, and the preserved 1.2.1 manifest
+at `cli-v1.json`. Downloading through `https://tohseno.com/download/macos`
+returned exactly 53,474,187 bytes with the pinned DMG digest above. The live
+homepage contains the preview command and persisted `hello-menlo` app card;
+the directory still resolves the current GitHub commit after redeployment.
