@@ -13,8 +13,12 @@ to Mac and Companion. Installed commits advance only after intended-device
 installation verification. Existing Registry publication is an explicit legacy
 path, not a requirement of GitHub deployment.
 
-The CLI package is 1.3.0, with a `menlo` alias. The Mac candidate is
-1.3.0-rc.1, build 10012. Release/deployment evidence is recorded in the
+The CLI preview package is 1.3.0, with a `menlo` alias. The published Mac candidate is
+1.3.0-rc.1, build 10012, from source `409916d`. App and DMG signatures,
+notarization, stapling, Gatekeeper, and downloaded-byte agreement passed. The
+real `hello-menlo` GitHub deploy and later commit comparison succeeded. An
+isolated recipient workspace fetched, verified, built and signed that live
+source, stopping at ready-for-iPhone without an installation claim. Release/deployment evidence is recorded in the
 [distribution runbook](runbooks/MENLO_GITHUB_DISTRIBUTION.md). At implementation
 time, GitHub device-flow credentials were not configured on the production
 service and the local npm session returned 401. Existing `gh` sessions can

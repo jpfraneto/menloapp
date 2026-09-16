@@ -57,6 +57,14 @@ Official references:
 1. Install the exact MENLO Mac candidate. Open it and finish Apple's account,
    Trust, Developer Mode, and Companion pairing steps with the intended iPhone.
    Those are physical authority, not something an agent or fixture can accept.
+   Existing owners also need the new Companion source on their phone: the old
+   client cannot display GitHub status or send the new update command. The
+   existing `companion install` command returns early for an already paired
+   installation. For this upgrade, open
+   `companion/apple/TohsenoCompanion/App/TohsenoCompanion.xcodeproj` in Xcode,
+   choose the same signing team and intended phone, and Run once. Updating the
+   existing app preserves pairing. The candidate bundles this project and SDK
+   under `Tohseno.app/Contents/Resources/FactoryRelease/share/` as well.
 2. In a public GitHub iOS app, commit and push to its default branch. Run
    `tohseno deploy` (or `menlo deploy`). Choose `--project` and `--scheme` only
    if the repo has more than one app. Keep the returned root URL.
@@ -125,5 +133,39 @@ the existing Railway production service from reviewed `main`.
 
 ## Observed release evidence
 
-Pending packaging and production checks; this section is updated with actual
-artifact identities and deployment results, not inferred from implementation.
+- Native implementation commit: `409916d`; preview package/pin commit: `d9cfcae`.
+- Production website deployment: `c2dcf3a4-0825-4899-b31d-ee492f4e35ad`.
+- Real sample: [hello-menlo](https://tohseno.com/hello-menlo), backed by
+  [jpfraneto/menlo-hello-world](https://github.com/jpfraneto/menlo-hello-world),
+  GitHub repository ID `1373192564`.
+- The packed CLI's `menlo deploy` returned that URL. A later push from
+  `6473453f146de6f011a891f84f0e966f0c8c6e69` to
+  `d02af97c84f790bf9437c4378a1836aa4eb2af69` changed the existing live link
+  and returned `commits_behind: 1`, without a second deployment.
+- The candidate's real `github install` fetched the latter public commit,
+  verified it, adopted it, built with Xcode and signed locally. Its isolated
+  workspace returned `ready_for_iphone`; no phone was associated, so no physical
+  installation occurred. The source and build evidence were retained.
+- Mac app notarization: `360c55cd-5c86-4891-a11f-d751fa8d15dc` (Accepted).
+  DMG notarization: `f6e9b697-3099-4ba0-8f94-e616fe1bfdeb` (Accepted).
+  Both stapled-ticket validation and Gatekeeper assessment passed.
+- Checks passed: 142 website tests + TypeScript, 19 npm tests, 267 Rust tests
+  across CLI/application/Companion (one unrelated ignored test), targeted
+  Clippy, 46 Mac tests, 32 shared SDK tests, and 58 Companion tests.
+- The in-app browser reported no available browser. Public HTTP routes and
+  native fixture renders were checked; browser visual acceptance is not claimed.
+
+The signed candidate and direct-install preview CLI are packaged under
+`dist/menlo-1.3.0-rc.1/`. The preview uses
+`https://tohseno.com/releases/cli-1.3.0.json`; the older `cli-v1.json` pin is
+retained for existing npm clients. The landing page deliberately shows the
+working preview URL until the owner publishes npm 1.3.0. After that publication,
+its command can return to `npm i -g tohseno`.
+
+
+Published release: [MENLO 1.3.0-rc.1](https://github.com/jpfraneto/tohseno/releases/tag/v1.3.0-rc.1).
+Origin downloads of the DMG, both native archives, preview package, and manifest
+matched every published SHA-256. The DMG is 53,474,187 bytes, SHA-256
+`b5509689a96611d549f53488edad6664295e455c9aa8adc70f05a098a90d5656`.
+The preview npm package SHA-256 is
+`645015fbdcfef8103048df9c284e8b18e8fd2f74c7c27f7a31fd08baffcaaa65`.

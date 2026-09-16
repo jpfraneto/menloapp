@@ -7,7 +7,7 @@ export default defineConfig({
     starlight({
       title: "Menlo",
       description:
-        "Permissionless iOS app distribution: publish source, share a link, and build and sign on your own Mac.",
+        "GitHub to iPhone: deploy once, share a link, and try apps on your own device.",
       favicon: "/menlo-mark.svg",
       logo: { src: "./public/menlo-mark.svg", alt: "", replacesTitle: false },
       customCss: ["./src/styles/starlight.css"],
@@ -71,7 +71,8 @@ export default defineConfig({
           ],
         },
         {
-          label: "Share",
+          label: "Historical Registry",
+          collapsed: true,
           items: [
             "guide/product/registry",
             "guide/product/ship-claim-update",

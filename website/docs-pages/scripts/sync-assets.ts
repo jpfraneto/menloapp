@@ -47,7 +47,7 @@ const docs = await Promise.all(
 const llmsIndex = [
   "# Menlo documentation",
   "",
-  "> Menlo is a permissionless network for sharing iOS app source, building on your own Mac, and signing for your iPhone. The CLI and protocol still use Tohseno.",
+  "> MENLO distributes public GitHub iOS apps: deploy once, share a link, build and sign on the recipient Mac. GitHub is identity and version control; the current directory and ledger are centralized. ADR 0040 supersedes chain-based consumer onboarding. Registry, Ship, and Claim pages describe the retained legacy path.",
   "",
   "This index is generated from the same public Markdown used by the human-readable site.",
   "For a single model-ready corpus, use https://docs.tohseno.com/llms-full.txt.",
@@ -61,7 +61,7 @@ const llmsIndex = [
   "",
 ].join("\n");
 
-const llmsFull = docs
+const llmsFull = "# Current distribution authority\n\nADR 0040 (2026-09-16): MENLO uses GitHub identity, public repositories, an off-chain directory, exact-commit local builds, and intended-iPhone installation. No gas, Claim, or Companion publication approval is required on this path. Start with /guide/start/install-and-onboard/. Registry, Ship, and Claim material below describes the retained legacy system.\n\n" + docs
   .map(
     ({ title, route, body }) =>
       `# ${title}\n\nSource: https://docs.tohseno.com${route}\n\n${body}\n`,

@@ -1,59 +1,21 @@
 ---
 title: Menlo documentation
-description: Choose the shortest path into the product, then inspect the machinery only when you need it.
+description: GitHub identity, living app links, local Xcode builds, and practical feedback.
 ---
 
-Menlo is a permissionless distribution network for iOS apps. These pages cover sharing source, receiving exact releases, and building and signing on your own Mac.
+MENLO connects a public GitHub iOS app to a link someone can use to try it on their iPhone.
 
-The product is now Menlo; the existing `tohseno` commands, technical identifiers, and URLs retain their names.
-
-## Choose a path
-
-- **Share an existing app:** [setup and publish](/guide/start/install-and-onboard/) → [Ship, Claim, and Update](/guide/product/ship-claim-update/)
-- **Receive software:** [discover apps](/guide/product/registry/) → [receive an exact release](/guide/product/ship-claim-update/)
-- **New to Menlo:** [what Menlo is](/guide/start/what-is-tohseno/) → [requirements](/guide/start/requirements/) → [install and onboard](/guide/start/install-and-onboard/)
-- **Make something small:** [create an app](/guide/start/create-an-app/)
-- **Bring an existing app:** [adopt an Xcode project](/guide/start/adopt-an-app/)
-- **Change what is already in your hand:** [evolve an app](/guide/start/evolve-an-app/)
-- **Understand the private and public boundaries:** [trust boundaries](/guide/security/trust-boundaries/)
-
-## Go deeper only when it helps
-
-You do not need the protocol to make an app. Start with **Start here**, then use **The product** whenever a screen or word needs explanation.
-
-Read **How the machine works** when you want the actual path from a request to source, build, signature, installation, and durable history. Read **Protocol** for exact identities, commitments, encodings, signatures, contract generation, activation, and conformance. **Security & privacy** states what each component can see and the conditions that stop the machine.
-
-Operators and contributors should finish with **Operate & develop** and **Reference**.
-
-## The whole machine in one view
+- [Deploy or try an app](/guide/start/install-and-onboard/)
+- [Requirements for makers and testers](/guide/start/requirements/)
+- [Current availability](/guide/reference/current-status/)
+- [Create or evolve your own source](/guide/start/evolve-an-app/)
 
 ```text
-person on iPhone                         person on Mac
-Tohseno Companion                       Tohseno.app
-        │ signed + encrypted request          │
-        └──────── content-blind relay ────────┤
-                                               ▼
-                                     Local Workspace Service
-                                               │ durable admission
-                                               ▼
-                                     one bounded coding harness
-                                               │ source changes
-                                               ▼
-                                 deterministic Xcode verification
-                                               │ locally signed app
-                                               ▼
-                                          physical iPhone
-
-optional explicit public path:
-Companion approval → sanitized source → generation 0.8 witness
-                   → one Ship → later Updates
-                   → separately activated, non-transferable Claim receipt
+GitHub repo → menlo deploy → app link
+    → recipient reviews commit → their Mac builds and signs → intended iPhone
+GitHub push → commits-behind notice → explicit Update → same app on their phone
 ```
 
-The local app, private command channel, public Registry, and Claims contract are different boundaries. A local build is not a publication. A pending transaction is not a Claim. A successful build is not an installation. These docs keep those facts separate.
+GitHub is the identity and version-control system. MENLO's directory and registration ledger are centralized today; decentralized witnessing is a future choice when useful. The protocol and historical Registry documentation describe their retained boundaries, not prerequisites for GitHub distribution.
 
-## Authority
-
-This website explains the repository; it does not replace it. Exact public bytes and validation rules live in `protocol/`. Accepted product decisions live in `docs/adr/`. The current shipped/inactive/deferred snapshot lives in `docs/STATE.md`. If this site disagrees with those sources, the repository sources win.
-
-[Open the source-of-truth map](/guide/reference/source-of-truth/)
+Repository authority: frozen bytes in `protocol/`, accepted decisions in `docs/adr/` (especially ADR 0040), and current evidence in `docs/STATE.md`.

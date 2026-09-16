@@ -1,32 +1,26 @@
 ---
-title: What is Menlo?
-description: A permissionless network for people to distribute iOS apps through source, their own Macs, and their own Apple identities.
+title: What is MENLO?
+description: Share a GitHub iOS app, let someone try it on their iPhone, and get practical feedback.
 ---
 
-Menlo lets people share iOS apps directly with other people. A maker publishes an exact source release and shares its app page. A recipient verifies that source, builds it with Xcode on their own Mac, signs with their own Apple identity, and installs on their intended iPhone.
+“Deploy it on MENLO. I'll try it right now.”
 
-The person-to-person path does not require App Store submission. Apple's signing, provisioning, Trust, Developer Mode, and operating-system security requirements still apply. This is source-based distribution, not a one-tap website installation or an Apple endorsement.
+MENLO connects a public GitHub repository to a stable app link. The maker runs `menlo deploy` or `tohseno deploy` once. A tester opens the link, reviews a commit, and uses their Mac to build and sign for their own iPhone. Later GitHub pushes become available updates without another publication.
 
-## Menlo and Tohseno
+GitHub is the public identity and source system. App pages link directly to the maker's GitHub profile and repository. Feedback belongs with that existing work; MENLO does not add a separate reputation system.
 
-Menlo is the product name and visual identity. The existing CLI is still `tohseno`, installed with `npm i -g tohseno`. Protocol names, contracts, bundle identifiers, storage paths, and `tohseno.com` URLs retain their existing names. Use `tohseno init` and `tohseno deploy`; there is no `menlo` CLI command.
+## Centralized now, decentralized when useful
 
-## Publish, share, receive
+MENLO currently runs a centralized app directory with an append-only off-chain registration ledger. No wallet or gas payment is required. Source goes from GitHub to the tester's Mac. On-chain witnessing can return in v1/v2 when its benefit justifies its cost.
 
-1. Bring an existing iOS app and set up Companion on your iPhone.
-2. Run `tohseno init` from the project, then `tohseno deploy`.
-3. Approve the exact source release on Companion. Its first publication is one **Ship**; later releases are **Updates**.
-4. Share the canonical app link. A recipient encounters an exact release through Companion and prepares it on their Mac.
-5. The recipient independently verifies, builds, signs, and installs for their own device.
+The earlier Registry, Shot, Ship, and Claim system remains available for historical releases. It does not gate GitHub distribution. Frozen protocol encodings and deployed contracts keep their existing semantics.
 
-A Claim records an encounter with an exact release. It is not installation evidence, a purchase, or a guarantee that the source is safe.
+## Apple boundaries still apply
 
-## Your workshop stays connected
+The tester needs a Mac, full Xcode, their own Apple signing identity, and an intended iPhone with Trust and Developer Mode. MENLO does not bypass provisioning limits or make a website download into an App Store installation.
 
-The Mac keeps source and build tools. Companion carries private requests and holds the non-exportable Builder DeviceKey. You can adopt an existing Xcode project without moving it, create a new app with a coding agent, or evolve an app through the same local factory. Private creation and evolution do not publish automatically.
+Companion is a private remote for the paired Mac. It shows installed-commit update status and can request the next build. The Mac is the single build machine. A coding agent is optional for creating or changing source, and is not needed for distribution.
 
-## Upload funding
+The npm package, technical identifiers, and existing domain retain the Tohseno name; MENLO is the product name and CLI alias.
 
-One upload per Builder is sponsored. Later uploads require ETH funding, including Updates. The subsidy cap is live; the paid-wallet and copyable funding-address interface are unfinished. Do not use a BuilderAccount identity address as a deposit wallet: the current contract cannot receive or spend ETH.
-
-Next: [requirements](/guide/start/requirements/) and [setup](/guide/start/install-and-onboard/).
+Next: [deploy or try an app](/guide/start/install-and-onboard/).

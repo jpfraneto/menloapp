@@ -31,11 +31,11 @@ function assert(condition: unknown, message: string): asserts condition {
 
 const home = await readFile(join(distRoot, "index.html"), "utf8");
 assert(home.includes("Menlo documentation"), "docs home must use the current Menlo identity");
-assert(home.includes("permissionless distribution network for iOS apps"), "docs must lead with iOS distribution");
-assert(home.includes("One sponsored upload"), "docs must expose the upload policy");
+assert(home.includes("Your GitHub app. On their iPhone."), "docs must lead with iOS distribution");
+assert(home.includes("No gas. No source upload."), "docs must explain GitHub distribution");
 const statusPage = await readFile(join(distRoot, "guide/reference/current-status/index.html"), "utf8");
-assert(statusPage.includes("1.2.1-rc.1"), "current status must describe the published Menlo candidate");
-assert(statusPage.includes("not implemented yet"), "current status must disclose unfinished wallet funding");
+assert(statusPage.includes("1.3.0-rc.1"), "current status must describe the published Menlo candidate");
+assert(statusPage.includes("not implemented yet"), "current status must disclose current notification limits");
 assert(!statusPage.includes("Production Claims writes and the Claims relayer are disabled"), "retired availability snapshot must not ship");
 assert(home.includes("Start where you are"), "docs home must lead with the three useful paths");
 assert(home.includes("data-page-ai"), "docs home must include the page-level AI handoff");

@@ -1,37 +1,30 @@
 ---
 title: Menlo documentation
-description: Permissionless iOS app distribution. Publish source, share a link, and build and sign for your own iPhone.
+description: GitHub to iPhone. Deploy once, share a link, and get practical feedback.
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-Your app. In someone else’s hands. **Menlo is a permissionless distribution network for iOS apps.** Publish your source, share your app’s page, and let another person verify, build, and sign it on their Mac for their iPhone.
-
-Menlo runs on Tohseno. The tools, CLI commands, protocol identifiers, and existing URLs still use that name.
+**Your GitHub app. On their iPhone.** MENLO connects a public GitHub repository to a living app link. A tester reviews a commit, builds and signs it on their own Mac, and tries it on their intended iPhone.
 
 ## Start where you are
 
 <CardGrid>
-  <LinkCard title="Share an app you’ve built" description="Set up your Xcode project, approve its source in Companion, and share a public link." href="/guide/start/install-and-onboard/" />
-  <LinkCard title="Receive someone’s app" description="Find an exact release, receive through Companion, then build and sign on your own Mac." href="/guide/product/ship-claim-update/" />
-  <LinkCard title="Build or change an app" description="Create something small or evolve an app already connected to your workshop." href="/guide/start/evolve-an-app/" />
+  <LinkCard title="Share an app you’ve built" description="Connect GitHub, run menlo deploy, and send the link." href="/guide/start/install-and-onboard/" />
+  <LinkCard title="Try someone’s app" description="Review the source, build on your Mac, and get it onto your iPhone." href="/guide/start/install-and-onboard/#try-someone-elses-app" />
+  <LinkCard title="Build or change an app" description="Use the optional local factory to create or evolve your own source." href="/guide/start/evolve-an-app/" />
 </CardGrid>
 
-## From your repo to their iPhone
+## Deploy once. Push as usual.
 
-```text
-publish source → approve in Companion → share the app’s link
-        → recipient verifies source → Xcode build → their signature → their iPhone
-```
+The app follows its GitHub default branch. Later pushes appear as updates; testers choose when their Mac builds the next commit. Companion shows how many commits the installed app is behind.
 
-You need a Mac, Xcode, your own Apple signing identity, and an intended iPhone. Companion holds the Builder’s signing authority. Receiving a release does not skip Apple provisioning, Trust, Developer Mode, or local installation checks.
+## No gas. No source upload.
 
-## One sponsored upload
+GitHub supplies identity, profiles, and version control. MENLO runs a centralized directory and off-chain registration ledger today. Decentralized witnessing is a possible v1/v2 step when it earns its cost.
 
-Menlo sponsors **one upload per Builder**. Retries of the same publication job share that reservation. Later uploads, including Updates, require ETH funding. The cap is deployed, but the paid-wallet setup and address/Copy interface are **not available yet**; later uploads currently stop with a funding-required message.
+The package remains named `tohseno`; `menlo` is an alias. The 1.3.0 preview has a direct installer while npm publication and GitHub sign-in setup are completed. [Use the working preview path](/guide/start/install-and-onboard/) or [check current status](/guide/reference/current-status/).
 
-[Check current availability](/guide/reference/current-status/) before publishing. [Download Menlo for Mac](https://tohseno.com/download/macos) or [explore real apps](https://tohseno.com/registry).
+[Try Hello from MENLO](https://tohseno.com/hello-menlo) · [Download MENLO for Mac](https://tohseno.com/download/macos) · [Explore apps](https://tohseno.com/apps).
 
-## Keep learning
-
-Start with **Start here** and **Share** for distribution. **Build & evolve** covers the local workshop. Architecture, protocol, and operations explain the machinery and its authority boundaries.
+Apple signing, provisioning, Trust, and Developer Mode still apply. Earlier Registry and Claim documentation describes the retained legacy system, outside the normal GitHub path.

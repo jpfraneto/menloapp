@@ -1,52 +1,40 @@
 ---
-title: Set up and share an app
-description: Install the existing Tohseno tools, pair Menlo Companion, and publish an exact iOS source release.
+title: Deploy from GitHub. Try it on iPhone.
+description: Connect a public GitHub app, share its MENLO link, and prepare exact commits on the recipient's Mac.
 ---
 
-## 1. Start on your Mac
+## Share your app
 
-You need macOS 14 or later, full Xcode, an Apple signing identity, and an intended iPhone. For an existing Xcode project, install the CLI:
-
-```sh
-npm i -g tohseno
-cd ExistingApp
-tohseno init
-```
-
-Menlo is the product name; the package and commands still use `tohseno`. The install has no postinstall download or GUI launch. `init` checks the intended iPhone for the real Companion and its private pairing before adopting the project. It does not restructure your repository.
-
-## 2. Install and pair Companion
-
-If Companion is missing, follow the CLI's instruction:
+Commit and push your iOS project to a public GitHub repository. During the 1.3.0 preview, install the exact preview package:
 
 ```sh
-tohseno companion install
+npm i -g https://github.com/jpfraneto/tohseno/releases/download/v1.3.0-rc.1/tohseno-1.3.0.tgz
+cd YourApp
+menlo deploy
 ```
 
-The Mac builds and signs the actual Companion for your intended iPhone. Keep it unlocked, complete Trust and Developer Mode in Apple's UI, and use a cable when Apple requires initial pairing. Later cable and supported local-network reachability are observed transports to the same intended phone; another visible phone is not substituted.
+The package remains named `tohseno`; `tohseno deploy` works too. Once 1.3.0 is published on npm, the normal installer is `npm i -g tohseno`. npm installation does not start a service or install native software.
 
-Scan the Mac's one-use pairing QR in Companion. Pairing completes only after the Mac accepts the phone's proof and publishes an authenticated workspace snapshot. A QR scan or reachable relay alone is not pairing. Apple credentials belong in Xcode; Menlo does not collect your Apple password.
+Deploy reuses `gh auth login` or a MENLO GitHub sign-in. Device authorization currently awaits the operator's GitHub Client ID, so use your existing GitHub CLI session for the preview. MENLO proves write access to the repository and returns **tohseno.com/your-app**. No `init`, Companion publication approval, wallet, gas, or source upload is required.
 
-## 3. Publish your source
+If your repository has several projects, use `--project path/App.xcodeproj --scheme App`. Choose a link with `--app-slug your-app`. `--dry-run` checks local metadata without publishing.
 
-From the adopted project:
+## Try someone else's app
 
-```sh
-tohseno deploy
-```
+1. [Download MENLO for Mac](https://tohseno.com/download/macos). Open the signed, notarized DMG, drag the app into Applications, and open it. It retains the technical `Tohseno.app` filename.
+2. Complete Xcode, Apple signing, Trust, Developer Mode, and Companion pairing with your intended iPhone. Apple credentials stay in Xcode.
+3. Open the maker's link and choose **Open in MENLO**. Review the source and exact commit, then choose **Build for my iPhone**. Opening a link alone never starts a build.
+4. Your Mac downloads the selected commit directly from GitHub, verifies it, builds with Xcode, and signs with your Apple identity. Build scripts can require explicit Mac review.
+5. Connect and unlock the intended iPhone when the build is ready. Another visible phone is not substituted. Open the app and use its GitHub feedback link to tell the maker what you noticed.
 
-Review and approve the exact public source on Companion. First publication is **Ship**; later public releases are **Updates**. The returned canonical app link is the distribution destination. An optional `--app-slug your-app` does not bypass the separate approval process for a short global alias.
+Start with [Hello from MENLO](https://tohseno.com/hello-menlo). A local build is not evidence of physical installation.
 
-Menlo sponsors one upload per Builder. Later uploads require ETH funding, but the paid-wallet setup is not ready yet; those uploads currently stop with a funding-required message. See [current status](/guide/reference/current-status/).
+## Keep up with the maker
 
-## Prefer the Mac application?
+The maker pushes to GitHub as usual. The same MENLO link follows the default branch without another deploy. Your awake Mac checks about every five minutes. Companion syncs while active and shows how many commits the installed app is behind.
 
-[Download Menlo for Mac](https://tohseno.com/download/macos). The production door serves an explicitly labeled release candidate pinned to an immutable HTTPS artifact and exact SHA-256. Open the DMG, drag the included app into **Applications**, then open it through Finder. The bundle retains its technical `Tohseno.app` filename while the interface is Menlo.
+Choose **Update on my Mac**. It builds the chosen commit, then waits for the intended phone. The installed-commit record changes only after verified device installation. Rewritten history is shown explicitly; failed updates retain the old installed version. This preview does not provide background APNs notifications.
 
-The native readiness screen walks through Xcode, Apple signing, the intended iPhone, Companion installation, and pairing. Complete any Apple-controlled action in Apple's own UI. Do not disable Gatekeeper or substitute an unverified artifact.
+## Where the network stands
 
-## Receive an app
-
-Explore [the Registry](https://tohseno.com/registry) and open an exact release in Companion. A canonical Claim can queue that release for your Mac; installation remains separate. Your Mac verifies the exact source, builds with Xcode, signs with your own Apple identity, and installs on your intended phone.
-
-Next: [Ship, Claim, and Update](/guide/product/ship-claim-update/) or [the Mac workshop](/guide/product/mac-app/).
+GitHub supplies identity, source, profiles, and version control. MENLO operates a small centralized directory and off-chain registration ledger. Decentralized witnessing is a possible v1/v2 step when it is useful. Historical Registry/Claim releases retain their semantics; they are outside this normal GitHub path.
