@@ -10,6 +10,8 @@ import { createRegistryRouter } from "./src/registry.ts";
 import { createClaimsRouter } from "./src/claims.ts";
 import { createBuyRouter } from "./src/buy.ts";
 import type { RegistryRouter } from "./src/registry.ts";
+import { createGitHubApps } from "./src/github-apps.ts";
+import { menloHome } from "./src/menlo-home.ts";
 
 const PUBLIC_DIRECTORY = join(import.meta.dir, "public");
 
@@ -515,6 +517,12 @@ export async function createApplication(
   });
   const registry = await createRegistryRouter(config, undefined, claims);
   registryReference = registry;
+  const githubApps = createGitHubApps({
+    baseUrl: config.baseUrl,
+    root: config.menlo?.root ?? (config.registry.root ? join(config.registry.root, "menlo") : undefined),
+    clientId: config.menlo?.clientId,
+    readToken: config.menlo?.readToken,
+  }, { legacySlugExists: async slug => !!(await registry.renderHumanRoute(`/${slug}`)) });
   const log = options.log ??
     ((record: Record<string, unknown>) => console.info(JSON.stringify(record)));
   const logError = options.logError ??
@@ -580,6 +588,8 @@ export async function createApplication(
     const method = request.method.toUpperCase();
     const canonicalResponse = canonicalBoundary(request, config);
     if (canonicalResponse) return canonicalResponse;
+    const githubResponse = await githubApps.fetch(request);
+    if (githubResponse) return withSecurityHeaders(githubResponse);
     if (relay.handles(pathname)) return relay.fetch(request);
     if (buy.handles(pathname)) return buy.fetch(request);
     if (billing.handles(pathname)) return billing.fetch(request);
@@ -587,6 +597,10 @@ export async function createApplication(
     if (claims.handles(pathname)) return claims.fetch(request);
     if (registry.handles(pathname)) return registry.fetch(request);
 
+    if (pathname === "/apps") {
+      if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
+      return headResponse(html(githubApps.renderIndex()), method);
+    }
     if (pathname === "/docs") {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
       return headResponse(
@@ -607,12 +621,12 @@ export async function createApplication(
         || pathname.startsWith("/claims/") || isGlobalAliasPath(pathname)) {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
       let content: string | undefined;
-      if (pathname === "/") content = landingPage;
+      if (pathname === "/") content = menloHome(githubApps.cards(), "", "Live source on GitHub. Centralized discovery today.");
       else if (pathname === "/registry") content = await registry.renderRegistry(url.searchParams.get("q") ?? undefined);
       else if (/^\/claims\/[1-9]\d*$/.test(pathname)) content = await claims.renderReceipt(pathname.slice(8));
       else if (/^\/s\/[0-9a-f]{64}$/.test(pathname)) content = await registry.renderShot(`0x${pathname.slice(3)}`);
       else if (/^\/@[^/]+$/.test(pathname)) content = await registry.renderBuilder(decodeURIComponent(pathname.slice(2)));
-      else content = await registry.renderHumanRoute(pathname);
+      else content = await githubApps.render(pathname.slice(1)) ?? await registry.renderHumanRoute(pathname);
       if (!content) throw new HttpError(404, "Not found");
       return headResponse(html(content), method);
     }

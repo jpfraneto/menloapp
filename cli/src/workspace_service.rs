@@ -569,6 +569,41 @@ pub async fn run_with(
         billing_verification_key,
         native_sessions: NativeSessionAuthority::default(),
     });
+    let github_state = state.clone();
+    let github_task = tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(5));
+        interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
+        let mut last_check = std::time::Instant::now() - Duration::from_secs(300);
+        let mut last_notices = None;
+        loop {
+            interval.tick().await;
+            let _ = crate::github_commands::resume_jobs(
+                &github_state.service_root,
+                &github_state.living_projects,
+            )
+            .await;
+            if last_check.elapsed() >= Duration::from_secs(300) {
+                let _ =
+                    crate::github_commands::refresh_updates(&github_state.living_projects).await;
+                let _ = crate::github_commands::update_notices(
+                    &github_state.service_root,
+                    &github_state.living_projects,
+                );
+                last_check = std::time::Instant::now();
+            }
+            if let Ok(projection) = load_private_updates(&github_state.service_root) {
+                if last_notices.as_ref() != Some(&projection.updated_at)
+                    && github_state
+                        .companion
+                        .publish_private_updates_to_all_devices(&projection)
+                        .await
+                        .is_ok()
+                {
+                    last_notices = Some(projection.updated_at);
+                }
+            }
+        }
+    });
     let reconciliation_companion = state.companion.clone();
     let reconciliation_application = state.application.clone();
     let reconciliation_living_projects = state.living_projects.clone();
@@ -660,6 +695,7 @@ pub async fn run_with(
         .with_graceful_shutdown(shutdown_signal())
         .await;
     reconciliation_task.abort();
+    github_task.abort();
     let _ = reconciliation_task.await;
     remove_runtime_if_current(&paths.service_state, &runtime.instance_id)?;
     result.map_err(Into::into)
@@ -696,6 +732,7 @@ fn router(state: Arc<WorkspaceState>) -> Router {
         )
         .route("/api/v1/projects", get(projects))
         .route("/api/v1/projects/adopt", post(adopt_project))
+        .route("/api/v1/github/install", post(install_github_app))
         .route("/api/v1/projects/{project_id}", get(project))
         .route(
             "/api/v1/projects/{project_id}/activity",
@@ -1172,7 +1209,37 @@ async fn open_project_on_iphone(
         .project(&project_id)
         .map_err(ApiError::internal)?
         .ok_or_else(|| ApiError::not_found("adopted project does not exist"))?;
-    let device = match tohseno_engine::gates::device::inventory().map_err(ApiError::internal)? {
+    let intended = if project.github_origin.is_some() {
+        Some(
+            project
+                .installations
+                .iter()
+                .rev()
+                .find(|record| record.verified)
+                .ok_or_else(|| {
+                    ApiError::conflict(
+                        "iphone_not_ready",
+                        "Install this app on your intended iPhone first",
+                    )
+                })?
+                .device_identifier_digest
+                .clone(),
+        )
+    } else {
+        None
+    };
+    let inventory = tohseno_engine::gates::device::inventory().map_err(ApiError::internal)?;
+    let inventory = match (inventory, intended) {
+        (tohseno_engine::gates::device::DeviceInventoryState::Ready(devices), Some(digest)) => {
+            let devices = devices
+                .into_iter()
+                .filter(|device| crate::living_project::device_digest(&device.identifier) == digest)
+                .collect();
+            tohseno_engine::gates::device::DeviceInventoryState::Ready(devices)
+        }
+        (inventory, _) => inventory,
+    };
+    let device = match inventory {
         tohseno_engine::gates::device::DeviceInventoryState::Ready(mut devices)
             if devices.len() == 1 =>
         {
@@ -1194,7 +1261,13 @@ async fn open_project_on_iphone(
     let bundle_identifier = project
         .network_delivery
         .as_ref()
-        .filter(|delivery| delivery.status == "installed")
+        .filter(|delivery| {
+            delivery.status == "installed"
+                || project
+                    .github_origin
+                    .as_ref()
+                    .is_some_and(|origin| origin.installed_commit.is_some())
+        })
         .map(|delivery| delivery.local_bundle_identifier.as_str())
         .unwrap_or(&project.bundle_identifier);
     tohseno_engine::gates::install::launch_owner_app(&device, bundle_identifier)
@@ -1210,6 +1283,7 @@ async fn install_network_project(
     AxumPath(project_id): AxumPath<String>,
     Json(request): Json<NetworkInstallRequest>,
 ) -> Result<Json<Value>, ApiError> {
+    let _github_operation = crate::github_commands::GITHUB_OPERATIONS.lock().await;
     state
         .living_projects
         .install_network_project(&project_id, request.mac_review_approved)
@@ -1221,6 +1295,16 @@ async fn install_network_project(
             }))
         })
         .map_err(|error| ApiError::conflict("network_install_failed", error.to_string()))
+}
+
+async fn install_github_app(
+    State(state): State<Arc<WorkspaceState>>,
+    Json(request): Json<crate::github_commands::GitHubInstallRequest>,
+) -> Result<Json<crate::living_project::LivingProjectRecord>, ApiError> {
+    crate::github_commands::install(&state.living_projects, request)
+        .await
+        .map(Json)
+        .map_err(|error| ApiError::conflict("github_install_failed", error.to_string()))
 }
 
 async fn project_evolutions(

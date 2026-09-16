@@ -1,8 +1,27 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-10. This is the plain-language
+Written 2026-07-30, amended through 2026-09-16. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## MENLO GitHub distribution (September 16)
+
+ADR 0040 makes GitHub the primary identity and source system. Current source
+implements gas-free public-repository registration, stable root app links,
+exact-commit recipient review/build, and GitHub update comparisons projected
+to Mac and Companion. Installed commits advance only after intended-device
+installation verification. Existing Registry publication is an explicit legacy
+path, not a requirement of GitHub deployment.
+
+The CLI package is 1.3.0, with a `menlo` alias. The Mac candidate is
+1.3.0-rc.1, build 10012. Release/deployment evidence is recorded in the
+[distribution runbook](runbooks/MENLO_GITHUB_DISTRIBUTION.md). At implementation
+time, GitHub device-flow credentials were not configured on the production
+service and the local npm session returned 401. Existing `gh` sessions can
+register apps. No new physical recipient installation or update is claimed.
+
+The following sections retain earlier operational evidence. Their chain-based
+consumer workflow descriptions are superseded by ADR 0040.
 
 ## Developer handoff simplification
 

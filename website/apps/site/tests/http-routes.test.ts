@@ -88,23 +88,23 @@ const landingStylePath = fileURLToPath(
 const INSTALL_COMMAND = "curl -fsSL https://tohseno.com/oneshot.sh | bash";
 
 describe("public pages", () => {
-  test("serves the founder’s plain-text landing page and retains the Registry", async () => {
+  test("serves GitHub-first MENLO distribution and retains the historical Registry", async () => {
     const application = await testApplication();
     const response = await application.fetch(request("/"));
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).toContain("hi, this is jp. founder of tohseno");
-    expect(body).toContain("the permissionless p2p network for distributing apple apps");
+    expect(body).toContain("<title>MENLO — From GitHub to their iPhone</title>");
     expect(body).toContain("npm i -g tohseno");
-    expect(body).toContain("tohseno init");
     expect(body).toContain("tohseno deploy");
-    expect(body).toContain("practical feedback");
-    expect(body).toContain("<title>Tohseno</title>");
-    expect(body).toContain('href="/home.css"');
-    expect(body).toContain('href="https://x.com/messages/compose?recipient_id=1430539235480719367"');
-    expect(body).toContain('href="mailto:jp@anky.app"');
-    expect(body).not.toMatch(/<(?:script|img|nav|button|form|footer)\b/);
+    expect(body).toContain("menlo deploy works too");
+    expect(body).toContain("centralized app directory with an off-chain ledger");
+    expect(body).toContain("v1 or v2 when it earns its cost");
+    expect(body).toContain("paired iPhone");
+    expect(body).not.toContain("tohseno init");
     expect(body).not.toMatch(/\{\{[A-Z0-9_]+\}\}/);
+    const apps = await application.fetch(request("/apps"));
+    expect(apps.status).toBe(200);
+    expect(await apps.text()).toContain("The first GitHub apps will appear here");
     const registry = await (await application.fetch(request("/registry"))).text();
     expect(registry).toContain('class="registry-page"');
     expect(registry).toContain('href="/registry.css"');

@@ -26,8 +26,6 @@ public struct TohsenoRootView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let readiness = model.readiness, !readiness.ready {
                 ReadinessScreen(model: model, readiness: readiness)
-            } else if let defaults = model.defaults, !defaults.ready {
-                HarnessReadinessScreen(model: model, defaults: defaults)
             } else {
                 factory
             }
@@ -42,6 +40,9 @@ public struct TohsenoRootView: View {
         .foregroundStyle(TohsenoTheme.bone)
         .tint(TohsenoTheme.amber)
         .task { model.start() }
+        .sheet(item: Binding(get: { model.githubReview }, set: { if $0 == nil { model.dismissGitHubReview() } })) { review in
+            GitHubReviewSheet(model: model, review: review)
+        }
         .alert("Menlo", isPresented: errorBinding) {
             Button("OK") { model.dismissError() }
         } message: {
@@ -74,9 +75,9 @@ public struct TohsenoRootView: View {
             case .library:
                 LivingWorkshopView(model: model, adopt: chooseProject)
             case .registry:
-                RegistryView(model: model)
+                GitHubExploreView(model: model)
             case .profile:
-                ProfileView(model: model)
+                GitHubAccountView(model: model)
             case .create:
                 CreationView(model: model)
             case .app:
@@ -1507,6 +1508,15 @@ private struct AppDetailView: View {
                     .foregroundStyle(app.presentation.state == .failed ? .red : .secondary)
                     .lineLimit(1)
             }
+            if let github = app.github {
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(github.updateSummary).font(.caption)
+                    if github.hasUpdate {
+                        Button("Update from GitHub") { Task { await model.reviewGitHubApp(slug: github.slug, commit: github.headCommit, repositoryID: github.repositoryID) } }
+                    }
+                    Link("GitHub ↗", destination: URL(string: "https://github.com/\(github.repository)")!).font(.caption)
+                }
+            }
             Spacer(minLength: 12)
             Picker("Workspace", selection: $tab) {
                 ForEach(AppWorkspaceTab.allCases) { tab in
@@ -1517,7 +1527,7 @@ private struct AppDetailView: View {
             .pickerStyle(.segmented)
             .frame(width: 225)
             .accessibilityIdentifier("app.workspace-tabs")
-            if app.latestVersionID != nil || app.sourceState != nil,
+            if app.github == nil, app.latestVersionID != nil || app.sourceState != nil,
                !app.presentation.state.isInFlight {
                 Button("What should change?") { showingEvolution = true }
                     .buttonStyle(.borderedProminent)
@@ -1838,111 +1848,35 @@ private struct AppWorkspaceView: View {
     let app: AppSummary
     let change: () -> Void
     let details: () -> Void
-    @State private var choosingScreenshots = false
-    @State private var screenshotURLs: [URL] = []
-    @State private var screenshotSelectionError: String?
-
     var body: some View {
         VStack(alignment: .leading, spacing: 22) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Your app")
-                    .font(.largeTitle.bold())
-                Text("The accepted app, its next change, and the device it lives on.")
-                    .foregroundStyle(.secondary)
-            }
-            GroupBox {
-                VStack(alignment: .leading, spacing: 18) {
-                    LabeledContent("Status", value: app.deliveryHeadline)
-                    if let ordinal = app.latestVersionOrdinal {
-                        LabeledContent("Accepted version", value: "\(ordinal)")
-                    }
-                    if let bundleIdentifier = app.bundleIdentifier {
-                        LabeledContent("Bundle", value: bundleIdentifier)
-                    }
-                    Divider()
-                    Button("What should change?", action: change)
+            Text(app.displayName).font(.largeTitle.bold())
+            Text(app.deliveryHeadline).foregroundStyle(.secondary)
+            if let github = app.github {
+                Text(github.updateSummary).font(.headline)
+                Link("View source and maker on GitHub ↗", destination: URL(string: "https://github.com/\(github.repository)")!)
+                Link("Give practical feedback ↗", destination: URL(string: "https://github.com/\(github.repository)/issues")!)
+                if github.hasUpdate {
+                    Button("Update from GitHub") { Task { await model.reviewGitHubApp(slug: github.slug, commit: github.headCommit, repositoryID: github.repositoryID) } }
                         .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .disabled(app.latestVersionID == nil || app.presentation.state.isInFlight)
-                    Text("Describe one change. Return sends; Shift–Return adds a line.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                } else if ["failed", "verified_source"].contains(github.deliveryStatus) {
+                    Button("Retry this commit") { Task { await model.reviewGitHubApp(slug: github.slug, commit: github.commit, repositoryID: github.repositoryID) } }
                 }
-                .padding(.top, 5)
-            } label: {
-                Label("App overview", systemImage: "app.dashed")
+            } else {
+                Text("Share a link. Your testers get updates when you push to GitHub.")
+                Button("Deploy on MENLO") { Task { await model.deployOnMenlo(app) } }
+                    .buttonStyle(.borderedProminent).disabled(model.isSubmitting)
+                    .accessibilityIdentifier("app.ship")
+                Text("Your source must be committed and pushed to a public GitHub repository.").font(.caption).foregroundStyle(.secondary)
+                Button("What should change?", action: change).disabled(app.presentation.state.isInFlight)
             }
-            GroupBox {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("The app's real icon is included automatically. Choose up to eight PNG or JPEG screenshots to publish with this exact release.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if screenshotURLs.isEmpty {
-                        Text("No screenshots selected.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        ForEach(Array(screenshotURLs.enumerated()), id: \.element) { index, url in
-                            HStack {
-                                Image(systemName: "photo")
-                                Text(url.lastPathComponent).lineLimit(1)
-                                Spacer()
-                                Button("Remove") { screenshotURLs.remove(at: index) }
-                                    .buttonStyle(.plain)
-                            }
-                            .font(.caption)
-                        }
-                    }
-                    HStack {
-                        Button("Add screenshots…") { choosingScreenshots = true }
-                            .disabled(screenshotURLs.count >= 8)
-                            .accessibilityIdentifier("app.ship-screenshots")
-                        Text("\(screenshotURLs.count)/8 selected")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    if let screenshotSelectionError {
-                        Text(screenshotSelectionError)
-                            .font(.caption)
-                            .foregroundStyle(.red)
-                    }
-                }
-                .padding(.top, 5)
-            } label: {
-                Label("Public app page", systemImage: "photo.on.rectangle.angled")
-            }
+            if let message = model.networkActionMessage { Text(message).textSelection(.enabled) }
             HStack {
                 if app.presentation.state == .installed && !app.deliveryUnconfirmed {
                     Button("Open on iPhone") { Task { await model.openOnPhone(for: app) } }
-                        .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("app.open-on-iphone")
                 }
                 Button("Details…", action: details)
-                Spacer()
-                Button("Ship…") { Task { await model.ship(app, screenshotURLs: screenshotURLs) } }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(model.isSubmitting || app.presentation.state.isInFlight)
-                    .accessibilityIdentifier("app.ship")
-            }
-        }
-        .fileImporter(
-            isPresented: $choosingScreenshots,
-            allowedContentTypes: [.png, .jpeg],
-            allowsMultipleSelection: true
-        ) { result in
-            do {
-                let selected = try result.get()
-                let combined = screenshotURLs + selected
-                var observed = Set<String>()
-                let distinct = combined.filter {
-                    observed.insert($0.standardizedFileURL.path).inserted
-                }
-                screenshotURLs = Array(distinct.prefix(8))
-                screenshotSelectionError = distinct.count > 8
-                    ? "Only the first eight distinct screenshots were selected."
-                    : nil
-            } catch {
-                screenshotSelectionError = error.localizedDescription
             }
         }
     }

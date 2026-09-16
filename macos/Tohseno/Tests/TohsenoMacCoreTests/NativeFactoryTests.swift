@@ -6,6 +6,28 @@ import XCTest
 
 final class NativeFactoryTests: XCTestCase {
     @MainActor
+    func testGitHubLinkReviewsPinnedCommitBeforeAnyBuild() async throws {
+        let factory = FakeFactory()
+        let model = TohsenoAppModel(client: factory)
+        let commit = String(repeating: "a", count: 40)
+        let url = try XCTUnwrap(URL(string: "menlo://app/test-app?commit=\(commit)&repository=12"))
+        await model.openNetworkLink(url)
+        XCTAssertEqual(model.githubReview?.commit, commit)
+        let before = await factory.githubInstallCalls
+        XCTAssertEqual(before, 0)
+        await model.installReviewedGitHubApp()
+        let after = await factory.githubInstallCalls
+        XCTAssertEqual(after, 1)
+        XCTAssertNil(model.githubReview)
+        XCTAssertTrue(model.networkActionMessage?.contains("Connect your intended iPhone") == true)
+        for suffix in ["&commit=\(commit)", "&url=https://evil.invalid"] {
+            XCTAssertNil(GitHubAppLink(URL(string: url.absoluteString + suffix)!))
+        }
+        await model.reviewGitHubApp(slug: "test-app", commit: commit, repositoryID: 99)
+        XCTAssertNil(model.githubReview)
+    }
+
+    @MainActor
     func testFailureNoticeExplainsQuotaAndRejectsStaleEvidence() async throws {
         let base = workshopApp(.failed)
         let app = AppSummary(
@@ -1099,6 +1121,18 @@ final class NativeFactoryTests: XCTestCase {
 }
 
 private actor FakeFactory: FactoryServing {
+    private(set) var githubInstallCalls = 0
+    func resolveGitHubApp(slug: String) async throws -> GitHubApp {
+        GitHubApp(schema: "menlo.github-app/1", id: "fixture", slug: slug, repositoryID: 12,
+            repository: "maker/app", name: "Test App", project: "App.xcodeproj", scheme: "App",
+            headCommit: String(repeating: "b", count: 40), publicURL: "https://tohseno.com/\(slug)")
+    }
+    func installGitHubApp(slug: String, repositoryID: UInt64, commit: String, approveMacReview: Bool) async throws -> GitHubInstallResult {
+        githubInstallCalls += 1
+        return GitHubInstallResult(schema: "menlo.github-install-result/1", projectID: "project_test", slug: slug,
+            commit: commit, status: "ready_for_iphone", sourcePath: "/tmp/fixture")
+    }
+
     private(set) var createCalls = 0
     private(set) var deployScreenshotPaths: [String] = []
     let createDelay: Duration

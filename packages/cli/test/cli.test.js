@@ -15,14 +15,14 @@ import path from "node:path";
 function manifest() {
   return {
     schema: "tohseno.native-release-manifest/1",
-    native_release_version: "1.2.1",
-    minimum_npm_cli_version: "1.2.1",
+    native_release_version: "1.3.0",
+    minimum_npm_cli_version: "1.3.0",
     layout_version: "tohseno-user-release/2",
     artifacts: [
       {
         architecture: "arm64",
         target: "aarch64-apple-darwin",
-        url: "https://github.com/jpfraneto/tohseno/releases/download/npm-v1.2.1/tohseno-cli-1.2.1-aarch64-apple-darwin.tar.gz",
+        url: "https://github.com/jpfraneto/tohseno/releases/download/npm-v1.3.0/tohseno-cli-1.3.0-aarch64-apple-darwin.tar.gz",
         byte_size: 123,
         sha256: "ab".repeat(32),
         signing: { kind: "release-package", team_id: null, designated_requirement: null },
@@ -30,7 +30,7 @@ function manifest() {
       {
         architecture: "x64",
         target: "x86_64-apple-darwin",
-        url: "https://github.com/jpfraneto/tohseno/releases/download/npm-v1.2.1/tohseno-cli-1.2.1-x86_64-apple-darwin.tar.gz",
+        url: "https://github.com/jpfraneto/tohseno/releases/download/npm-v1.3.0/tohseno-cli-1.3.0-x86_64-apple-darwin.tar.gz",
         byte_size: 456,
         sha256: "cd".repeat(32),
         signing: { kind: "release-package", team_id: null, designated_requirement: null },
@@ -47,9 +47,9 @@ test("command parsing keeps native commands opaque", () => {
   assert.deepEqual(parseCommand(["create", "my-app"]), { kind: "delegate", args: ["create", "my-app"] });
 });
 
-test("the npm CLI makes init then deploy the primary path", () => {
-  assert.match(GUIDE, /cd \/path\/to\/YourApp\n  tohseno init\n  tohseno deploy/);
-  assert.match(GUIDE, /one line at a time/);
+test("the npm CLI makes GitHub deploy the primary path", () => {
+  assert.match(GUIDE, /cd \/path\/to\/YourApp\n  tohseno deploy/);
+  assert.match(GUIDE, /Keep pushing code/);
   assert.match(HELP, /tohseno init \[path\]/);
   assert.match(HELP, /tohseno deploy/);
   assert.ok(HELP.indexOf("tohseno init") < HELP.indexOf("tohseno open"));
@@ -62,19 +62,19 @@ test("stable semantic versions compare without prerelease ambiguity", () => {
 });
 
 test("manifest selects the exact architecture and enforces minimum CLI", () => {
-  assert.equal(validateManifest(manifest(), "1.2.1", "arm64").artifact.target, "aarch64-apple-darwin");
+  assert.equal(validateManifest(manifest(), "1.3.0", "arm64").artifact.target, "aarch64-apple-darwin");
   const newer = manifest();
-  newer.minimum_npm_cli_version = "1.2.2";
-  assert.throws(() => validateManifest(newer, "1.2.1", "arm64"), /too old/);
+  newer.minimum_npm_cli_version = "1.3.1";
+  assert.throws(() => validateManifest(newer, "1.3.0", "arm64"), /too old/);
   assert.throws(() => nodeArchitecture("mips"), /Apple silicon and Intel/);
 });
 
-test("npm 1.2.1 refuses a stale native release manifest", () => {
+test("npm 1.3.0 refuses a stale native release manifest", () => {
   const stale = manifest();
   stale.native_release_version = "1.0.0";
   assert.throws(
-    () => validateManifest(stale, "1.2.1", "arm64"),
-    /requires native TOHSENO 1\.2\.1/,
+    () => validateManifest(stale, "1.3.0", "arm64"),
+    /requires native TOHSENO 1\.3\.0/,
   );
 });
 
@@ -82,16 +82,16 @@ test("manifest rejects duplicate architectures, sizes, digests, and extra fields
   const duplicate = manifest();
   duplicate.artifacts[1].architecture = "arm64";
   duplicate.artifacts[1].target = "aarch64-apple-darwin";
-  assert.throws(() => validateManifest(duplicate, "1.2.1", "arm64"), /duplicate/);
+  assert.throws(() => validateManifest(duplicate, "1.3.0", "arm64"), /duplicate/);
   const size = manifest();
   size.artifacts[0].byte_size = 0;
-  assert.throws(() => validateManifest(size, "1.2.1", "arm64"), /byte size/);
+  assert.throws(() => validateManifest(size, "1.3.0", "arm64"), /byte size/);
   const digest = manifest();
   digest.artifacts[0].sha256 = "AB".repeat(32);
-  assert.throws(() => validateManifest(digest, "1.2.1", "arm64"), /SHA-256/);
+  assert.throws(() => validateManifest(digest, "1.3.0", "arm64"), /SHA-256/);
   const extra = manifest();
   extra.token = "secret";
-  assert.throws(() => validateManifest(extra, "1.2.1", "arm64"), /unexpected/);
+  assert.throws(() => validateManifest(extra, "1.3.0", "arm64"), /unexpected/);
 });
 
 test("URL allowlist rejects HTTP, credentials, ports, and unapproved hosts", () => {

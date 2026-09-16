@@ -185,6 +185,8 @@ pub struct LivingProjectRecord {
     pub latest_publication: Option<ProjectPublication>,
     #[serde(default)]
     pub network_origin: Option<NetworkProjectOrigin>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub github_origin: Option<crate::github_commands::GitHubOrigin>,
     #[serde(default)]
     pub network_delivery: Option<NetworkDeliveryState>,
     pub build: ProjectBuildState,
@@ -411,6 +413,8 @@ pub struct AdoptionRequest {
     pub model: Option<String>,
     #[serde(default)]
     pub network_origin: Option<NetworkProjectOrigin>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub github_origin: Option<crate::github_commands::GitHubOrigin>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -565,11 +569,54 @@ impl LivingProjectService {
         mac_review_approved: bool,
     ) -> Result<LivingProjectRecord, BoxError> {
         let _execution = self.execution_lock.lock().await;
+        let result = self
+            .build_and_install_network_project(project_id, mac_review_approved)
+            .await;
+        if let Err(error) = &result {
+            let mut project = self.project(project_id)?.ok_or("unknown living project")?;
+            if let Some(delivery) = project
+                .network_delivery
+                .as_mut()
+                .filter(|value| value.status == "building")
+            {
+                delivery.status = "failed".into();
+                delivery.failure = Some(bounded_message(&error.to_string(), 1_000));
+                delivery.updated_at = now();
+                project.revision += 1;
+                project.updated_at = now();
+                self.replace_project(&project)?;
+            }
+        }
+        result
+    }
+
+    async fn build_and_install_network_project(
+        &self,
+        project_id: &str,
+        mac_review_approved: bool,
+    ) -> Result<LivingProjectRecord, BoxError> {
         let mut project = self.project(project_id)?.ok_or("unknown living project")?;
-        let origin = project
-            .network_origin
-            .clone()
-            .ok_or("this project is not a verified network import")?;
+        let (release_identity, local_bundle) = if let Some(origin) = &project.github_origin {
+            let digest = crate::github_commands::verify_checkout(
+                Path::new(&origin.source_root),
+                &origin.commit,
+            )
+            .await?;
+            if digest != origin.source_digest {
+                return Err("The GitHub source changed after verification".into());
+            }
+            (
+                origin.source_digest.clone(),
+                origin.local_bundle_identifier(),
+            )
+        } else if let Some(origin) = &project.network_origin {
+            (
+                origin.parent_release_digest.clone(),
+                local_network_bundle_identifier(&origin.parent_shot_id),
+            )
+        } else {
+            return Err("this project is not a verified source import".into());
+        };
         let safety = tohseno_network::build_profile::classify_xcode_project(
             Path::new(&project.source_path),
             Path::new(&project.container_path),
@@ -600,12 +647,11 @@ impl LivingProjectService {
         let team = tohseno_engine::gates::sign::development_team_profile()?;
         let delivery_root = self.project_data_directory(project_id)?.join(format!(
             "network-release-{}",
-            origin.parent_release_digest.trim_start_matches("0x")
+            release_identity.trim_start_matches("0x")
         ));
         ensure_private_directory(&delivery_root)?;
         let derived = delivery_root.join("derived-data");
         ensure_private_directory(&derived)?;
-        let local_bundle = local_network_bundle_identifier(&origin.parent_shot_id);
         let mut arguments = xcode_build_arguments(
             &project,
             &derived,
@@ -692,6 +738,17 @@ impl LivingProjectService {
         local_bundle: &str,
         provisioning: tohseno_engine::gates::sign::ProvisioningKind,
     ) -> Result<LivingProjectRecord, BoxError> {
+        // New GitHub recipients must establish an intended phone through setup.
+        // The historical exactly-one-visible-device fallback is not a new association.
+        if project.github_origin.is_some()
+            && self
+                .companion_install_target
+                .load()?
+                .intended_device_digest
+                .is_none()
+        {
+            return Ok(project.clone());
+        }
         let observed = tokio::task::spawn_blocking(device::inventory).await??;
         let device = match observed {
             DeviceInventoryState::Ready(devices) => {
@@ -751,11 +808,40 @@ impl LivingProjectService {
             delivery.status = "installed".into();
             delivery.updated_at = installed_at.clone();
         }
+        if let Some(origin) = &mut installed.github_origin {
+            origin.installed_commit = Some(origin.commit.clone());
+            origin.commits_behind = None;
+            origin.comparison_status = "unchecked".into();
+        }
         installed.last_successful_installation = Some(installed_at);
         installed.revision += 1;
         installed.updated_at = now();
         self.replace_project(&installed)?;
         Ok(installed)
+    }
+
+    pub fn update_github_comparison(
+        &self,
+        project_id: &str,
+        expected: &crate::github_commands::GitHubOrigin,
+        observed: &crate::github_commands::GitHubOrigin,
+    ) -> Result<(), BoxError> {
+        let _guard = self.publication.lock().map_err(|_| "project lock failed")?;
+        let mut project = self.project(project_id)?.ok_or("Unknown GitHub project")?;
+        let Some(origin) = project.github_origin.as_mut() else {
+            return Ok(());
+        };
+        if origin.commit != expected.commit || origin.installed_commit != expected.installed_commit
+        {
+            return Ok(());
+        }
+        origin.head_commit = observed.head_commit.clone();
+        origin.commits_behind = observed.commits_behind;
+        origin.comparison_status = observed.comparison_status.clone();
+        origin.checked_at = observed.checked_at.clone();
+        project.revision += 1;
+        project.updated_at = now();
+        self.replace_project_unlocked(&project)
     }
 
     pub fn evolutions(&self, project_id: &str) -> Result<Vec<ProjectEvolutionRecord>, BoxError> {
@@ -779,12 +865,22 @@ impl LivingProjectService {
     }
 
     pub fn adoption(&self, request: AdoptionRequest) -> Result<AdoptionResult, BoxError> {
+        if let Some(origin) = &request.github_origin {
+            origin.validate()?;
+            if request.network_origin.is_some() {
+                return Err("GitHub and Registry origins cannot be mixed".into());
+            }
+        }
         let selected = resolve_container(Path::new(&request.path))?;
-        let source_root = selected
-            .path
-            .parent()
-            .ok_or("selected Xcode container has no source root")?
-            .to_path_buf();
+        let source_root = if let Some(origin) = &request.github_origin {
+            PathBuf::from(&origin.source_root)
+        } else {
+            selected
+                .path
+                .parent()
+                .ok_or("selected Xcode container has no source root")?
+                .to_path_buf()
+        };
         let schemes = list_schemes(&selected)?;
         if schemes.is_empty() {
             return Err("Xcode reported no shared or user-visible schemes for this project".into());
@@ -845,9 +941,14 @@ impl LivingProjectService {
             .ok_or("Xcode did not resolve an application bundle identifier")?;
         validate_bundle_identifier(&bundle_identifier)?;
         if let Some(mut existing) = self.list_projects()?.into_iter().find(|project| {
-            Path::new(&project.container_path) == selected.path
+            (request.github_origin.as_ref().is_some_and(|incoming| {
+                project
+                    .github_origin
+                    .as_ref()
+                    .is_some_and(|prior| prior.repository_id == incoming.repository_id)
+            })) || (Path::new(&project.container_path) == selected.path
                 && project.scheme == scheme
-                && project.bundle_identifier == bundle_identifier
+                && project.bundle_identifier == bundle_identifier)
         }) {
             if !same_network_import(
                 request.network_origin.as_ref(),
@@ -857,7 +958,32 @@ impl LivingProjectService {
                     "this source root is already bound to a different network release".into(),
                 );
             }
+            if let Some(origin) = &request.github_origin {
+                if existing
+                    .github_origin
+                    .as_ref()
+                    .is_none_or(|prior| prior.repository_id != origin.repository_id)
+                {
+                    return Err("This source is already attached to a different local app".into());
+                }
+                existing.container_path = selected.path.display().to_string();
+                existing.container_kind = selected.kind;
+                existing.source_path = source_root.display().to_string();
+                existing.scheme = scheme.clone();
+                existing.bundle_identifier = bundle_identifier.clone();
+                existing.wrapper_name = nonempty_setting(&settings, "WRAPPER_NAME")
+                    .ok_or("Xcode application wrapper is missing")?;
+                existing.github_origin = Some(origin.clone());
+                existing.network_delivery = Some(github_delivery(origin));
+                existing.build = ProjectBuildState::default();
+                existing.candidate_shot_id = None;
+            } else if existing.github_origin.is_some() {
+                return Err(
+                    "Update this app through its GitHub link to preserve commit identity".into(),
+                );
+            }
             if existing.candidate_shot_id.is_none()
+                && existing.github_origin.is_none()
                 && !existing
                     .network_origin
                     .as_ref()
@@ -876,8 +1002,11 @@ impl LivingProjectService {
             existing.revision += 1;
             existing.updated_at = now();
             self.replace_project(&existing)?;
-            let existing = self.verify_adoption_build(&existing)?;
-            let existing = self.observe_existing_installation(existing)?;
+            let existing = if existing.github_origin.is_some() {
+                existing
+            } else {
+                self.observe_existing_installation(self.verify_adoption_build(&existing)?)?
+            };
             return Ok(AdoptionResult {
                 schema: ADOPTION_SCHEMA.into(),
                 status: "adopted".into(),
@@ -937,6 +1066,7 @@ impl LivingProjectService {
             ),
             latest_publication: None,
             network_origin: request.network_origin.clone(),
+            github_origin: request.github_origin.clone(),
             network_delivery: request
                 .network_origin
                 .as_ref()
@@ -963,6 +1093,10 @@ impl LivingProjectService {
             updated_at: created,
         };
         let mut record = record;
+        if let Some(origin) = &record.github_origin {
+            record.candidate_shot_id = None;
+            record.network_delivery = Some(github_delivery(origin));
+        }
         if record
             .network_origin
             .as_ref()
@@ -979,8 +1113,11 @@ impl LivingProjectService {
         ensure_private_directory(&self.project_data_directory(&project_id)?)?;
         ensure_private_directory(&self.evolution_directory(&project_id)?)?;
         drop(_guard);
-        let record = self.verify_adoption_build(&record)?;
-        let record = self.observe_existing_installation(record)?;
+        let record = if record.github_origin.is_some() {
+            record
+        } else {
+            self.observe_existing_installation(self.verify_adoption_build(&record)?)?
+        };
         Ok(AdoptionResult {
             schema: ADOPTION_SCHEMA.into(),
             status: "adopted".into(),
@@ -1099,6 +1236,9 @@ impl LivingProjectService {
         let project = self
             .project(&request.project_id)?
             .ok_or("unknown adopted project")?;
+        if project.github_origin.is_some() {
+            return Err("This app follows GitHub. Give feedback to its maker, or fork the repository before editing your own copy.".into());
+        }
         let source = Path::new(&project.source_path);
         let observed_git = observe_git(source)?;
         let observed_source_state = source_state(source, observed_git.as_ref())?;
@@ -1838,6 +1978,8 @@ impl LivingProjectService {
     }
 
     pub async fn retry_ready_network_installations_once(&self) -> Result<usize, BoxError> {
+        let _github_operation = crate::github_commands::GITHUB_OPERATIONS.lock().await;
+        let _execution = self.execution_lock.lock().await;
         let provisioning = match tohseno_engine::gates::sign::development_team_profile() {
             Ok(team) => team.provisioning,
             Err(_) => return Ok(0),
@@ -2000,6 +2142,24 @@ impl LivingProjectService {
                 bundle_identifier: Some(project.bundle_identifier),
                 kind: ShotKind::AdoptedProject,
                 source_state: Some(project.current_source_state),
+                github: project.github_origin.as_ref().map(|origin| {
+                    tohseno_application::snapshot::GitHubAppStatus {
+                        slug: origin.slug.clone(),
+                        repository_id: origin.repository_id,
+                        repository: origin.repository.clone(),
+                        commit: origin.commit.clone(),
+                        installed_commit: origin.installed_commit.clone(),
+                        head_commit: origin.head_commit.clone(),
+                        commits_behind: origin.commits_behind,
+                        comparison_status: origin.comparison_status.clone(),
+                        checked_at: origin.checked_at.clone(),
+                        delivery_status: project
+                            .network_delivery
+                            .as_ref()
+                            .map(|d| d.status.clone())
+                            .unwrap_or_else(|| "source_ready".into()),
+                    }
+                }),
                 icon: IconDescriptor {
                     revision: icon_digest.clone(),
                     blob_id: icon_digest.clone(),
@@ -3206,6 +3366,21 @@ fn project_presentation(
     project: &LivingProjectRecord,
     execution: Option<&ExecutionSummary>,
 ) -> Presentation {
+    if let Some(delivery) = &project.network_delivery {
+        let (state, headline) = match delivery.status.as_str() {
+            "installed" => (PresentedState::Installed, "Installed on your iPhone"),
+            "ready_for_iphone" => (PresentedState::ReadyForPhone, "Ready for your iPhone"),
+            "building" => (PresentedState::Building, "Building on your Mac"),
+            "failed" => (PresentedState::Failed, "Build needs attention"),
+            "requires_mac_review" => (PresentedState::Waiting, "Review source on your Mac"),
+            _ => (PresentedState::Waiting, "Source downloaded"),
+        };
+        return Presentation {
+            state,
+            headline: headline.into(),
+            detail: delivery.failure.clone(),
+        };
+    }
     match project.latest_evolution_status {
         Some(EvolutionStatus::Received | EvolutionStatus::Queued) => Presentation {
             state: PresentedState::Waiting,
@@ -3329,7 +3504,7 @@ fn command_digest(request: &ProjectEvolutionRequest) -> Result<String, BoxError>
     Ok(format!("{:x}", Sha256::digest(serde_json::to_vec(&value)?)))
 }
 
-fn device_digest(identifier: &str) -> String {
+pub(crate) fn device_digest(identifier: &str) -> String {
     let digest =
         protocol_sha256(format!("TOHSENO-PRIVATE-OWNER-DEVICE-V1\0{identifier}").as_bytes());
     digest.to_string().trim_start_matches("0x").into()
@@ -3401,6 +3576,12 @@ fn validate_project(value: &LivingProjectRecord) -> Result<(), BoxError> {
             return Err("publication checkpoint sequence is invalid".into());
         }
         validate_text("publication status", &publication.status, 64)?;
+    }
+    if let Some(origin) = &value.github_origin {
+        origin.validate()?;
+        if value.network_origin.is_some() || value.candidate_shot_id.is_some() {
+            return Err("A GitHub app is not a protocol Shot or Registry receipt".into());
+        }
     }
     if let Some(origin) = &value.network_origin {
         validate_prefixed_hex_digest("network parent ShotID", &origin.parent_shot_id)?;
@@ -3699,6 +3880,18 @@ fn ensure_private_directory(path: &Path) -> Result<(), BoxError> {
     Ok(())
 }
 
+fn github_delivery(origin: &crate::github_commands::GitHubOrigin) -> NetworkDeliveryState {
+    NetworkDeliveryState {
+        release_digest: origin.source_digest.clone(),
+        status: "verified_source".into(),
+        local_bundle_identifier: origin.local_bundle_identifier(),
+        artifact_path: None,
+        provisioning_expires_at: None,
+        failure: None,
+        updated_at: now(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3752,6 +3945,7 @@ mod tests {
             scheme: None,
             harness: None,
             model: None,
+            github_origin: None,
             network_origin: Some(origin),
         };
         let first = living.adoption(request.clone()).unwrap().project.unwrap();
@@ -4015,6 +4209,7 @@ mod tests {
             current_source_state: "state_fixture".into(),
             candidate_shot_id: Some("11".repeat(32)),
             latest_publication: None,
+            github_origin: None,
             network_origin: None,
             network_delivery: None,
             build: ProjectBuildState::default(),
@@ -4046,6 +4241,34 @@ mod tests {
         let without_agent: LivingProjectRecord = serde_json::from_value(without_agent).unwrap();
         validate_project(&without_agent).unwrap();
         assert!(without_agent.harness.is_none());
+
+        let mut github = record.clone();
+        github.candidate_shot_id = None;
+        let origin = crate::github_commands::GitHubOrigin {
+            slug: "test-app".into(),
+            repository_id: 12,
+            repository: "maker/app".into(),
+            commit: "b".repeat(40),
+            installed_commit: Some("a".repeat(40)),
+            source_root: github.source_path.clone(),
+            source_digest: format!("0x{}", "77".repeat(32)),
+            head_commit: Some("b".repeat(40)),
+            commits_behind: Some(3),
+            comparison_status: "ahead".into(),
+            checked_at: Some("2026-09-16T12:00:00Z".into()),
+        };
+        github.github_origin = Some(origin.clone());
+        github.network_delivery = Some(github_delivery(&origin));
+        validate_project(&github).unwrap();
+        let bundle = origin.local_bundle_identifier();
+        for status in ["building", "failed", "ready_for_iphone"] {
+            github.network_delivery.as_mut().unwrap().status = status.into();
+            let saved = serde_json::to_vec(&github).unwrap();
+            let reopened: LivingProjectRecord = serde_json::from_slice(&saved).unwrap();
+            let retained = reopened.github_origin.unwrap();
+            assert_eq!(retained.installed_commit, Some("a".repeat(40)));
+            assert_eq!(retained.local_bundle_identifier(), bundle);
+        }
 
         let parent_shot = format!("0x{}", "22".repeat(32));
         let parent_release = format!("0x{}", "33".repeat(32));

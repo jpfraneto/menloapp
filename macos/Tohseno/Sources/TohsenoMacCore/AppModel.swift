@@ -41,6 +41,9 @@ public final class TohsenoAppModel {
     public private(set) var cliMessage: String?
     public private(set) var networkActionMessage: String?
     public private(set) var networkReview: NetworkReviewRequest?
+    public private(set) var githubReview: GitHubReview?
+    public private(set) var githubBusy = false
+    public let githubAccount = GitHubAccountModel()
     public private(set) var isLoading = true
     public private(set) var isLoadingRegistry = false
     public private(set) var isEnablingCLI = false
@@ -342,6 +345,17 @@ public final class TohsenoAppModel {
         catch { errorMessage = error.localizedDescription }
     }
 
+    public func deployOnMenlo(_ app: AppSummary) async {
+        guard !isSubmitting else { return }
+        isSubmitting = true
+        defer { isSubmitting = false }
+        do {
+            let deployed = try await client.deployGitHubApp(projectID: app.id)
+            guard deployed.schema == "menlo.github-app/1" else { throw FactoryClientError.invalidResponse("MENLO did not return an app link.") }
+            networkActionMessage = deployed.publicURL
+        } catch { errorMessage = error.localizedDescription }
+    }
+
     public func ship(_ app: AppSummary, screenshotURLs: [URL] = []) async {
         guard !isSubmitting else { return }
         isSubmitting = true
@@ -543,7 +557,43 @@ public final class TohsenoAppModel {
         )
     }
 
+    public func reviewGitHubApp(slug: String, commit: String? = nil, repositoryID: UInt64? = nil) async {
+        do {
+            let app = try await client.resolveGitHubApp(slug: slug)
+            guard app.schema == "menlo.github-app/1", repositoryID == nil || repositoryID == app.repositoryID else {
+                throw FactoryClientError.invalidResponse("The GitHub repository behind this link changed.")
+            }
+            githubReview = GitHubReview(app: app, commit: commit ?? app.headCommit)
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    public func dismissGitHubReview() { if !githubBusy { githubReview = nil } }
+
+    public func installReviewedGitHubApp(approveMacReview: Bool = false) async {
+        guard let review = githubReview, !githubBusy else { return }
+        githubBusy = true
+        defer { githubBusy = false }
+        do {
+            let result = try await client.installGitHubApp(slug: review.app.slug, repositoryID: review.app.repositoryID, commit: review.commit, approveMacReview: approveMacReview)
+            guard result.schema == "menlo.github-install-result/1", result.commit == review.commit, result.slug == review.app.slug else {
+                throw FactoryClientError.invalidResponse("The prepared commit differs from your request.")
+            }
+            githubReview = nil
+            networkActionMessage = result.status == "installed" ? "Installed on your iPhone." : result.status == "ready_for_iphone" ? "Built and signed. Connect your intended iPhone to install." : "Source is saved. The app is not installed yet."
+            await reloadWorkspace()
+            route = .app(result.projectID)
+        } catch {
+            if error.localizedDescription.contains("Requires review on your Mac:") {
+                githubReview?.reasons = error.localizedDescription
+            } else { errorMessage = error.localizedDescription }
+        }
+    }
+
     public func openNetworkLink(_ url: URL) async {
+        if let link = GitHubAppLink(url) {
+            await reviewGitHubApp(slug: link.slug, commit: link.commit, repositoryID: link.repositoryID)
+            return
+        }
         if url.scheme?.lowercased() == "tohseno", url.host?.lowercased() == "follow",
            let address = url.path.split(separator: "/").first.map(String.init),
            address.range(of: #"^0x[0-9a-f]{40}$"#, options: .regularExpression) != nil {

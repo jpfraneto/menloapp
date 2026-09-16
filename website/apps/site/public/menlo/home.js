@@ -6,10 +6,10 @@ copyButton?.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(document.getElementById("install-command").textContent);
     copyButton.textContent = "Copied";
-    copyStatus.textContent = "Command copied.";
-    resetCopy = setTimeout(() => { copyButton.textContent = "Copy command"; copyStatus.textContent = ""; }, 2000);
+    copyStatus.textContent = "Commands copied.";
+    resetCopy = setTimeout(() => { copyButton.textContent = "Copy commands"; copyStatus.textContent = ""; }, 2000);
   } catch {
-    copyButton.textContent = "Copy command";
+    copyButton.textContent = "Copy commands";
     copyStatus.textContent = "Select and copy the command above.";
   }
 });

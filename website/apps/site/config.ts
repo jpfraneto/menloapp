@@ -29,6 +29,7 @@ export interface AppConfig {
   distribution: DistributionConfig;
   registry: RegistryConfig;
   claims: ClaimsConfig;
+  menlo?: { root?: string; clientId?: string; readToken?: string };
 }
 
 export interface RegistryConfig {
@@ -435,6 +436,11 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     port,
     baseUrl: parsedBase.origin,
     trustProxy: env.TRUST_PROXY === "true",
+    menlo: {
+      root: env.MENLO_ROOT,
+      clientId: env.GITHUB_CLIENT_ID,
+      readToken: env.GITHUB_READ_TOKEN,
+    },
     relay: {
       enabled: relayEnabled,
       claimInstallerReady,

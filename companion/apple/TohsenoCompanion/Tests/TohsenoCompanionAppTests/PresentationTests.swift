@@ -198,12 +198,12 @@ struct PresentationTests {
             encoding: .utf8
         )
         for label in [
-            "Shots", "Discover", "Notifications", "Profile and connection", "Take a Shot", "Take the Shot",
+            "Apps", "Discover", "Notifications", "Profile and connection", "Take a Shot", "Take the Shot",
         ] {
             #expect(source.contains("\"\(label)\""))
         }
         #expect(source.contains("KeeperInboxView"))
-        #expect(source.contains("BuilderProfileView"))
+        #expect(source.contains("MenloProfileView"))
         #expect(source.contains("navigation.take-a-shot"))
         #expect(!source.contains("POCKET WORKSHOP"))
         #expect(!source.contains(".tabItem { Label(\"Apps\""))

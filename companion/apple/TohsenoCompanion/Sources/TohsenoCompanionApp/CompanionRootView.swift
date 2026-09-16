@@ -45,6 +45,9 @@ public struct CompanionRootView: View {
                 PublicationApprovalView(model: model, request: request)
             }
         }
+        .sheet(item: $model.linkedGitHubApp) { app in
+            GitHubLinkSheet(model: model, app: app)
+        }
         .sheet(item: $model.linkedPublicRelease) { app in
                 NavigationStack { PublicReleaseDetailView(model: model, app: app) }
         }
@@ -264,14 +267,14 @@ struct CompanionNavigation: View {
                             }
                     }
                 case .discover:
-                    PublicRegistryView(model: model, viewingApp: $viewingPublicApp)
+                    GitHubDiscoverView(model: model)
                 }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if showsHomeChrome {
             HStack(spacing: 24) {
-                tabButton("Shots", symbol: "square.stack", tab: .shots)
+                tabButton("Apps", symbol: "square.stack", tab: .shots)
                 Button {
                     selectedTab = .shots
                     model.openCreate()
@@ -298,7 +301,7 @@ struct CompanionNavigation: View {
         .background(Tohseno.void.ignoresSafeArea())
         .preferredColorScheme(.light)
         .sheet(isPresented: $showsProfile) {
-            BuilderProfileView(model: model)
+            MenloProfileView(model: model)
         }
         .sheet(isPresented: $showsUpdates) {
             KeeperInboxView(model: model)
@@ -810,6 +813,29 @@ private struct ClaimGestureView: View {
     }
 }
 
+private struct MenloProfileView: View {
+    @Bindable var model: CompanionModel
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("GitHub is your public identity") {
+                    Text("Connect GitHub in MENLO on your Mac to deploy your apps. Every app links directly to its maker’s GitHub profile and source.")
+                    Link("Your GitHub profile ↗", destination: URL(string: "https://github.com")!)
+                    Text("Trying a public app does not require another account.").font(.caption)
+                }
+                Section("Your Mac") {
+                    Label(model.connection == .connected ? "Connected privately" : "Waiting for your Mac",
+                          systemImage: "desktopcomputer")
+                    Text("Keep your Mac awake to prepare apps and check GitHub for updates. Open Companion to sync the latest status.")
+                }
+                Section("Earlier releases") {
+                    NavigationLink("Historical Registry profile and receipts") { BuilderProfileView(model: model) }
+                }
+            }.navigationTitle("MENLO")
+        }
+    }
+}
+
 private struct BuilderProfileView: View {
     @Bindable var model: CompanionModel
 
@@ -1084,6 +1110,9 @@ struct YourAppsView: View {
                                         }
                                             .font(.headline)
                                             .foregroundStyle(Tohseno.bone)
+                                        if let github = shot.github, github.hasUpdate {
+                                            Text(github.updateSummary).font(.caption.weight(.semibold)).foregroundStyle(Tohseno.orange)
+                                        }
                                         Text(model.presentation(for: shot).headline)
                                             .font(.subheadline)
                                             .foregroundStyle(Tohseno.ash)
@@ -1449,7 +1478,9 @@ struct AppView: View {
 
     var body: some View {
         Group {
-            if observingWork || (currentShot.execution != nil && currentShot.execution?.state != .accepted) {
+            if let github = currentShot.github {
+                GitHubInstalledAppView(model: model, status: github)
+            } else if observingWork || (currentShot.execution != nil && currentShot.execution?.state != .accepted) {
                 LiveAppActivityView(model: model, shot: currentShot)
             } else {
                 IntentComposerView(model: model, heading: "What do you want to change?",
@@ -1468,7 +1499,7 @@ struct AppView: View {
                 ToolbarItem(placement: .primaryAction) {
                     if observingWork && currentShot.execution?.state.isTerminal == true {
                         Button("Give feedback") { observingWork = false }.tint(Tohseno.orange)
-                    } else if currentShot.execution?.state.isTerminal != false {
+                    } else if currentShot.github == nil && currentShot.execution?.state.isTerminal != false {
                         ComposerSendButton(title: "Evolve App", enabled: model.canEvolve, busy: model.busy) {
                             Task { await model.evolve() }
                         }

@@ -585,6 +585,10 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
 
     /// Ask the paired Mac to resolve and verify one exact immutable release.
     /// No arbitrary URL crosses the private command boundary.
+    public func requestGitHubApp(slug: String, repositoryID: UInt64, commit: String, commandID: String) async throws -> CommandReceipt {
+        try await queue(commandID: commandID, payload: .githubAppInstall(slug: slug, repositoryID: repositoryID, commit: commit))
+    }
+
     public func requestNetworkRelease(
         action: NetworkReleaseAction,
         shotID: String,
@@ -1596,7 +1600,7 @@ private extension ShotSummary {
     ) -> Self {
         Self(
             shotID: shotID, displayName: displayName, bundleIdentifier: bundleIdentifier,
-            kind: kind, sourceState: sourceState, icon: icon, iconRevision: iconRevision,
+            kind: kind, sourceState: sourceState, github: github, icon: icon, iconRevision: iconRevision,
             expressionID: expressionID ?? self.expressionID,
             latestVersionID: versionID ?? latestVersionID,
             latestVersionOrdinal: versionOrdinal ?? latestVersionOrdinal,

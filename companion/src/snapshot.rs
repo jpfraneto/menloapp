@@ -156,6 +156,22 @@ impl ExecutionSummary {
     }
 }
 
+/// Private observation of a GitHub app; not a protocol release or installation receipt.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GitHubAppStatus {
+    pub slug: String,
+    pub repository_id: u64,
+    pub repository: String,
+    pub commit: String,
+    pub installed_commit: Option<String>,
+    pub head_commit: Option<String>,
+    pub commits_behind: Option<u64>,
+    pub comparison_status: String,
+    pub checked_at: Option<String>,
+    pub delivery_status: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ShotSummary {
@@ -166,6 +182,8 @@ pub struct ShotSummary {
     pub kind: ShotKind,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_state: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub github: Option<GitHubAppStatus>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<IconDescriptor>,
     pub icon_revision: u64,
@@ -191,6 +209,39 @@ impl ShotSummary {
     pub fn validate(&self) -> Result<()> {
         validate_identifier("Shot ID", &self.shot_id)?;
         validate_text("Shot display name", &self.display_name, 256)?;
+        if let Some(github) = &self.github {
+            require(
+                self.kind == ShotKind::AdoptedProject,
+                "GitHub metadata belongs to adopted apps",
+            )?;
+            require(
+                github.repository_id > 0 && github.repository_id <= 9_007_199_254_740_991,
+                "Invalid GitHub repository ID",
+            )?;
+            validate_text("GitHub slug", &github.slug, 64)?;
+            validate_text("GitHub repository", &github.repository, 140)?;
+            validate_text("GitHub delivery status", &github.delivery_status, 64)?;
+            for commit in [
+                Some(&github.commit),
+                github.installed_commit.as_ref(),
+                github.head_commit.as_ref(),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                require(
+                    commit.len() == 40
+                        && commit
+                            .bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+                    "Invalid GitHub commit",
+                )?;
+            }
+            if let Some(checked) = &github.checked_at {
+                parse_timestamp(checked)?;
+            }
+        }
+
         if let Some(bundle_identifier) = &self.bundle_identifier {
             validate_text("bundle identifier", bundle_identifier, 255)?;
             require(
@@ -425,6 +476,7 @@ mod tests {
                 bundle_identifier: None,
                 kind,
                 source_state: (kind == ShotKind::AdoptedProject).then(|| "state_fixture".into()),
+                github: None,
                 icon: None,
                 icon_revision: 1,
                 expression_id: None,

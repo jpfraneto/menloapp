@@ -225,6 +225,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
     public let bundleIdentifier: String?
     public let kind: ShotKind
     public let sourceState: String?
+    public let github: GitHubAppStatus?
     public let icon: IconDescriptor?
     public let iconRevision: UInt64
     public let expressionID: String?
@@ -242,7 +243,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
         case shotID = "shot_id"
         case displayName = "display_name"
         case bundleIdentifier = "bundle_identifier"
-        case kind, icon
+        case kind, icon, github
         case sourceState = "source_state"
         case iconRevision = "icon_revision"
         case expressionID = "expression_id"
@@ -261,6 +262,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
         bundleIdentifier: String? = nil,
         kind: ShotKind,
         sourceState: String? = nil,
+        github: GitHubAppStatus? = nil,
         icon: IconDescriptor? = nil,
         iconRevision: UInt64,
         expressionID: String? = nil,
@@ -279,6 +281,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
         self.bundleIdentifier = bundleIdentifier
         self.kind = kind
         self.sourceState = sourceState
+        self.github = github
         self.icon = icon
         self.iconRevision = iconRevision
         self.expressionID = expressionID
@@ -301,7 +304,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
         ]
         let optionals: [(CodingKeys, String)] = [
             (.bundleIdentifier, "bundle_identifier"), (.icon, "icon"),
-            (.sourceState, "source_state"),
+            (.sourceState, "source_state"), (.github, "github"),
             (.expressionID, "expression_id"), (.latestVersionID, "latest_version_id"),
             (.latestVersionOrdinal, "latest_version_ordinal"),
             (.latestVersionCreatedAt, "latest_version_created_at"), (.execution, "execution"),
@@ -314,6 +317,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
         bundleIdentifier = try container.decodeIfPresent(String.self, forKey: .bundleIdentifier)
         kind = try container.decode(ShotKind.self, forKey: .kind)
         sourceState = try container.decodeIfPresent(String.self, forKey: .sourceState)
+        github = try container.decodeIfPresent(GitHubAppStatus.self, forKey: .github)
         icon = try container.decodeIfPresent(IconDescriptor.self, forKey: .icon)
         iconRevision = try container.decode(UInt64.self, forKey: .iconRevision)
         expressionID = try container.decodeIfPresent(String.self, forKey: .expressionID)
@@ -357,6 +361,7 @@ public struct ShotSummary: Codable, Equatable, Sendable {
         }
         if let expressionID { try requireIdentifier(expressionID, field: "expression_id") }
         if let sourceState { try requireIdentifier(sourceState, field: "source_state") }
+        try github?.validate()
         if let latestVersionID { try requireIdentifier(latestVersionID, field: "latest_version_id") }
         if let latestVersionOrdinal, latestVersionOrdinal == 0 {
             throw TohsenoCompanionError.invalidEncoding("Version ordinal must be positive")

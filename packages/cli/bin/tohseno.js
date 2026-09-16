@@ -6,8 +6,14 @@ import { NPM_CLI_VERSION, PRODUCT_VERSION } from "../src/constants.js";
 import { delegate, installedNative } from "../src/native.js";
 import { installAuthorizedNative } from "../src/installer.js";
 import { startProduct } from "../src/start.js";
+import { deploy } from "../src/github.js";
 
 async function main() {
+  const raw = process.argv.slice(2);
+  const commandIndex = raw[0] === "--json" ? 1 : 0;
+  if (raw[commandIndex] === "deploy" && !raw.includes("--legacy-registry")) {
+    return deploy([...raw.slice(0, commandIndex), ...raw.slice(commandIndex + 1)]);
+  }
   const command = parseCommand(process.argv.slice(2));
   if (command.kind === "help") { console.log(HELP); return 0; }
   if (command.kind === "version") { console.log(`tohseno ${NPM_CLI_VERSION}`); return 0; }

@@ -106,6 +106,7 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
         shotID: String,
         releaseDigest: String
     )
+    case githubAppInstall(slug: String, repositoryID: UInt64, commit: String)
     case builderFollowSet(builderID: String, followed: Bool)
     case privateUpdateUpsert(update: PrivateUpdateItem)
     case privateUpdateReadSet(updateID: String, read: Bool)
@@ -119,12 +120,14 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
         case .projectEvolveRequest: .shotEvolve
         case .shotCreateRequest: .shotCreate
         case .builderIdentityAnnounce, .publicationApprove: .publicationAuthorize
-        case .networkReleaseRequest: .networkReceive
+        case .networkReleaseRequest, .githubAppInstall: .networkReceive
         case .builderFollowSet, .privateUpdateUpsert, .privateUpdateReadSet: .preferenceWrite
         }
     }
 
     private enum Keys: String, CodingKey {
+        case slug, commit
+        case repositoryID = "repository_id"
         case commandKind = "command_kind"
         case shotID = "shot_id"
         case expressionID = "expression_id"
@@ -165,6 +168,7 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
         case workspaceSnapshot = "workspace.snapshot.request"
         case builderIdentity = "builder.identity.announce"
         case publicationApprove = "publication.approve"
+        case githubAppInstall = "github.app.install"
         case networkRelease = "network.release.request"
         case builderFollow = "builder.follow.set"
         case privateUpdateUpsert = "private.update.upsert"
@@ -261,6 +265,9 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
                 shotID: container.decode(String.self, forKey: .shotID),
                 releaseDigest: container.decode(String.self, forKey: .releaseDigest)
             )
+        case .githubAppInstall:
+            try requireExactKeys(decoder, ["command_kind", "slug", "repository_id", "commit"])
+            self = try .githubAppInstall(slug: container.decode(String.self, forKey: .slug), repositoryID: container.decode(UInt64.self, forKey: .repositoryID), commit: container.decode(String.self, forKey: .commit))
         case .builderFollow:
             try requireExactKeys(decoder, ["command_kind", "builder_id", "followed"])
             self = try .builderFollowSet(
@@ -336,6 +343,11 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
             try container.encode(action, forKey: .action)
             try container.encode(shotID, forKey: .shotID)
             try container.encode(releaseDigest, forKey: .releaseDigest)
+        case let .githubAppInstall(slug, repositoryID, commit):
+            try container.encode(Kind.githubAppInstall, forKey: .commandKind)
+            try container.encode(slug, forKey: .slug)
+            try container.encode(repositoryID, forKey: .repositoryID)
+            try container.encode(commit, forKey: .commit)
         case let .builderFollowSet(builderID, followed):
             try container.encode(Kind.builderFollow, forKey: .commandKind)
             try container.encode(builderID, forKey: .builderID)
@@ -407,6 +419,12 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
                   let release = BuilderDeviceAnnouncement.hex32(releaseDigest),
                   shot.contains(where: { $0 != 0 }), release.contains(where: { $0 != 0 })
             else { throw TohsenoCompanionError.invalidEncoding("invalid network release identity") }
+        case let .githubAppInstall(slug, repositoryID, commit):
+            guard slug.count >= 2, slug.count <= 64,
+                  slug.range(of: #"^[a-z0-9]+(?:-[a-z0-9]+)*$"#, options: .regularExpression) != nil,
+                  repositoryID > 0, repositoryID <= 9_007_199_254_740_991,
+                  commit.range(of: #"^[a-f0-9]{40}$"#, options: .regularExpression) != nil
+            else { throw TohsenoCompanionError.invalidEncoding("invalid GitHub commit identity") }
         case let .builderFollowSet(builderID, _):
             guard builderID.range(
                 of: #"^eip155:4663:0x[0-9a-f]{40}$"#,
@@ -493,6 +511,8 @@ public enum CompanionCommandPayload: Codable, Equatable, Sendable {
                 "release_digest": .string(releaseDigest),
                 "shot_id": .string(shotID),
             ])
+        case let .githubAppInstall(slug, repositoryID, commit):
+            return .object(["command_kind": .string("github.app.install"), "slug": .string(slug), "repository_id": .unsigned(repositoryID), "commit": .string(commit)])
         case let .builderFollowSet(builderID, followed):
             return .object([
                 "builder_id": .string(builderID),

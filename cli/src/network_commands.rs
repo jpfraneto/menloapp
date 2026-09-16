@@ -490,6 +490,7 @@ pub async fn init(
         scheme,
         harness: None,
         model: None,
+        github_origin: None,
         network_origin: None,
     };
     let project = adopt_with_progress(&service, &request, bus).await?;
@@ -516,7 +517,7 @@ pub async fn init(
     Ok(())
 }
 
-async fn xcode_request<T: Serialize, R: serde::de::DeserializeOwned>(
+pub(crate) async fn xcode_request<T: Serialize, R: serde::de::DeserializeOwned>(
     service: &ServiceClient,
     path: &str,
     request: &T,
@@ -704,6 +705,7 @@ pub async fn receive(
             scheme: Some(evidence.signed_manifest.release.build.scheme.clone()),
             harness: None,
             model: None,
+            github_origin: None,
             network_origin: Some(NetworkProjectOrigin {
                 kind: match kind {
                     ReceiveKind::Install => NetworkImportKind::Install,
@@ -875,6 +877,7 @@ pub async fn deploy(
                         scheme: scheme.map(str::to_owned),
                         harness: None,
                         model: None,
+                        github_origin: None,
                         network_origin: None,
                     },
                     bus,
@@ -2250,7 +2253,7 @@ fn verify_artifact(path: &Path, expected: Bytes32, expected_length: u64) -> Resu
     Ok(())
 }
 
-fn read_private_json<T: for<'de> Deserialize<'de>>(
+pub(crate) fn read_private_json<T: for<'de> Deserialize<'de>>(
     path: &Path,
     maximum: u64,
 ) -> Result<T, BoxError> {
@@ -2269,7 +2272,7 @@ fn read_bounded_file(path: &Path, maximum: u64) -> Result<Vec<u8>, BoxError> {
     Ok(fs::read(path)?)
 }
 
-fn write_replace_private(path: &Path, bytes: &[u8]) -> Result<(), BoxError> {
+pub(crate) fn write_replace_private(path: &Path, bytes: &[u8]) -> Result<(), BoxError> {
     ensure_private_directory(path.parent().ok_or("publication state has no parent")?)?;
     if fs::symlink_metadata(path)
         .is_ok_and(|metadata| metadata.file_type().is_symlink() || !metadata.is_file())
@@ -3067,7 +3070,7 @@ fn canonical_now() -> Result<String, BoxError> {
         .format(&Rfc3339)?)
 }
 
-fn ensure_private_directory(path: &Path) -> Result<(), BoxError> {
+pub(crate) fn ensure_private_directory(path: &Path) -> Result<(), BoxError> {
     fs::create_dir_all(path)?;
     let metadata = fs::symlink_metadata(path)?;
     if metadata.file_type().is_symlink() || !metadata.is_dir() {
@@ -3081,7 +3084,7 @@ fn ensure_private_directory(path: &Path) -> Result<(), BoxError> {
     Ok(())
 }
 
-fn write_new_private(path: &Path, bytes: &[u8]) -> Result<(), BoxError> {
+pub(crate) fn write_new_private(path: &Path, bytes: &[u8]) -> Result<(), BoxError> {
     use std::io::Write;
     let mut options = fs::OpenOptions::new();
     options.create_new(true).write(true);

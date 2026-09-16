@@ -75,6 +75,22 @@ pub struct EvolutionHistorySummary {
     pub installation_summary: Option<String>,
 }
 
+/// Private observation of a GitHub app; not a protocol release or installation receipt.
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GitHubAppStatus {
+    pub slug: String,
+    pub repository_id: u64,
+    pub repository: String,
+    pub commit: String,
+    pub installed_commit: Option<String>,
+    pub head_commit: Option<String>,
+    pub commits_behind: Option<u64>,
+    pub comparison_status: String,
+    pub checked_at: Option<String>,
+    pub delivery_status: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ShotSummary {
@@ -87,6 +103,8 @@ pub struct ShotSummary {
     /// Expression or Version identifier.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_state: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub github: Option<GitHubAppStatus>,
     pub icon: IconDescriptor,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub expression_id: Option<ExpressionId>,
@@ -192,6 +210,7 @@ pub fn build_workspace_snapshot(
             bundle_identifier: (kind == ShotKind::FactoryShot).then_some(app.bundle_id),
             kind,
             source_state: None,
+            github: None,
             icon,
             expression_id,
             latest_version_id,

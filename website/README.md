@@ -1,29 +1,26 @@
-# TOHSENO website, Registry, and encrypted relays
+# MENLO website and app directory
 
-The Bun site owns the public shipping page, public Registry/catalog and
-content-addressed source transport, the constrained generation-0.8 transaction
-relayer, the separately activated Claims index/relayer, and the retained
-encrypted browser-intention relay. The private Companion relay remains a
-separate service.
+The Bun production site serves MENLO's GitHub-first landing page, stable app
+links, and `/api/menlo/v1/`. Public repository metadata and append-only
+registration events live in SQLite; source stays on GitHub. The API validates
+GitHub identity and repository push authority for deployment, tracks default
+branch heads, and returns exact-commit comparisons without a chain write.
 
-The landing page leads with “Ship iPhone apps. Person to person.” and the real
-builder path:
-
-```text
-npm install --global tohseno
+```sh
+npm i -g tohseno
 cd YourApp
-tohseno init
-tohseno deploy --app-slug your-app
+tohseno deploy
 ```
 
-The npm install owns only the CLI launcher and has no postinstall side effects.
-Interactive `init` explains one fact at a time and waits for Enter before the
-real Xcode adoption begins.
+Set `MENLO_ROOT` to durable storage (defaults to `$REGISTRY_ROOT/menlo`),
+`GITHUB_CLIENT_ID` for device authorization, and optional `GITHUB_READ_TOKEN`
+for dedicated read-only server requests. See
+[setup and physical acceptance](../docs/runbooks/MENLO_GITHUB_DISTRIBUTION.md).
+No developer access tokens or source archives are stored by this directory.
+The existing private Companion relay is unchanged.
 
-It describes the exact boundary: another person's Mac downloads verified
-source, builds with Xcode, signs locally, and installs on their iPhone. It does
-not claim Tohseno bypasses Apple signing, provisioning, Trust, Developer Mode,
-or operating-system security.
+The following Registry services remain for historical, explicitly requested
+chain-based releases. They do not gate GitHub distribution.
 
 ## Public Registry
 

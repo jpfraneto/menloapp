@@ -1513,6 +1513,35 @@ impl CompanionCoordinator {
                     rejection_code: None,
                 }
             }
+            CommandPayload::GitHubAppInstall {
+                slug,
+                repository_id,
+                commit,
+            } => {
+                if crate::github_commands::enqueue(
+                    &self.service_root,
+                    &command_id,
+                    crate::github_commands::GitHubInstallRequest {
+                        slug,
+                        repository_id,
+                        commit: commit.clone(),
+                        approve_mac_review: false,
+                    },
+                )
+                .is_err()
+                {
+                    return Ok(rejection(&command_id, "github_request_invalid"));
+                }
+                CommandReceipt {
+                    schema: "tohseno.companion-command-receipt/1".into(),
+                    command_id,
+                    state: ReceiptState::Accepted,
+                    shot_id: None,
+                    execution_id: None,
+                    result_id: Some(commit),
+                    rejection_code: None,
+                }
+            }
             CommandPayload::NetworkReleaseRequest {
                 action,
                 shot_id,
@@ -3117,6 +3146,10 @@ fn convert_snapshot(
             bundle_identifier: shot.bundle_identifier,
             kind,
             source_state: shot.source_state,
+            github: shot
+                .github
+                .map(|value| serde_json::from_value(serde_json::to_value(value)?))
+                .transpose()?,
             icon: Some(icon),
             icon_revision,
             expression_id: shot.expression_id.map(|value| value.to_string()),
@@ -4787,6 +4820,7 @@ mod tests {
             bundle_identifier: Some("org.tohseno.genesis.fixture".into()),
             kind: ShotKind::FactoryShot,
             source_state: None,
+            github: None,
             icon: None,
             icon_revision: 1,
             expression_id: None,

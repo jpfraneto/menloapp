@@ -24,6 +24,15 @@ Do not turn ordinary product work into release ceremony.
 
 2. **`docs/adr/`** — accepted architectural decisions.
 
+   ADR 0040 supersedes the normal consumer publication/acquisition path with
+   MENLO's GitHub identity, public-repository distribution, automatic commit
+   discovery, and off-chain registration ledger. `tohseno deploy` and
+   `menlo deploy` return the app link without Registry gas, Claim, or Companion
+   publication approval. Exact source, explicit recipient build consent,
+   recipient Apple signing, and intended-iPhone boundaries remain. Earlier
+   Registry authority below applies to historical releases and the explicit
+   `--legacy-registry` compatibility path.
+
    ADR 0039 governs the One Shot living workshop projection across the native
    Mac and Companion products: one Mac factory, intended iPhone, Tohseno as
    workshop keeper, Companion as the paired human authority, real app objects,

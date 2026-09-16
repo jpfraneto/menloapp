@@ -135,6 +135,13 @@ pub enum CommandPayload {
         shot_id: String,
         release_digest: String,
     },
+    /// GitHub updates pin repository identity and commit; no arbitrary URLs or code cross this channel.
+    #[serde(rename = "github.app.install")]
+    GitHubAppInstall {
+        slug: String,
+        repository_id: u64,
+        commit: String,
+    },
     /// Mutate only the owner's private Builder-follow projection. This never
     /// creates a public edge or follower count.
     #[serde(rename = "builder.follow.set")]
@@ -157,7 +164,9 @@ impl CommandPayload {
             Self::BuilderIdentityAnnounce { .. } | Self::PublicationApprove { .. } => {
                 CapabilityAction::PublicationAuthorize
             }
-            Self::NetworkReleaseRequest { .. } => CapabilityAction::NetworkReceive,
+            Self::NetworkReleaseRequest { .. } | Self::GitHubAppInstall { .. } => {
+                CapabilityAction::NetworkReceive
+            }
             Self::BuilderFollowSet { .. } => CapabilityAction::PreferenceWrite,
             Self::PrivateUpdateUpsert { .. } | Self::PrivateUpdateReadSet { .. } => {
                 CapabilityAction::PreferenceWrite
@@ -280,6 +289,26 @@ impl CommandPayload {
             Self::BuilderFollowSet { builder_id, .. } => require(
                 valid_builder_id(builder_id),
                 "Builder follow requires one exact BuilderID",
+            ),
+            Self::GitHubAppInstall {
+                slug,
+                repository_id,
+                commit,
+            } => require(
+                (2..=64).contains(&slug.len())
+                    && !slug.starts_with('-')
+                    && !slug.ends_with('-')
+                    && !slug.contains("--")
+                    && slug
+                        .bytes()
+                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+                    && *repository_id > 0
+                    && *repository_id <= 9_007_199_254_740_991
+                    && commit.len() == 40
+                    && commit
+                        .bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+                "GitHub installation requires an exact repository and commit",
             ),
             Self::PrivateUpdateUpsert { update } => update.validate(),
             Self::PrivateUpdateReadSet { update_id, .. } => {
@@ -550,6 +579,44 @@ mod tests {
             },
         )
         .unwrap()
+    }
+
+    #[test]
+    fn github_command_pins_source_and_requires_network_capability() {
+        let payload = CommandPayload::GitHubAppInstall {
+            slug: "test-app".into(),
+            repository_id: 12,
+            commit: "a".repeat(40),
+        };
+        payload.validate().unwrap();
+        assert_eq!(
+            payload.required_capability(),
+            CapabilityAction::NetworkReceive
+        );
+        let expected = format!(
+            r#"{{"command_kind":"github.app.install","commit":"{}","repository_id":12,"slug":"test-app"}}"#,
+            "a".repeat(40)
+        );
+        assert_eq!(
+            String::from_utf8(canonical::to_vec(&payload).unwrap()).unwrap(),
+            expected
+        );
+        let (_, identity) = CompanionIdentity::from_entropy([40_u8; 16]).unwrap();
+        let mut body = fixture_command(&identity).body;
+        body.payload = payload;
+        let mut command = CompanionCommand::sign(&identity, body).unwrap();
+        let time = crate::parse_timestamp("2026-08-15T12:01:00Z").unwrap();
+        command
+            .verify(&identity.signing_public_key(), identity.device_id(), time)
+            .unwrap();
+        command.body.payload = CommandPayload::GitHubAppInstall {
+            slug: "test-app".into(),
+            repository_id: 12,
+            commit: "b".repeat(40),
+        };
+        assert!(command
+            .verify(&identity.signing_public_key(), identity.device_id(), time)
+            .is_err());
     }
 
     #[test]

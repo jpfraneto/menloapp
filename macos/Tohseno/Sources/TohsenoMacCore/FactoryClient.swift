@@ -18,6 +18,9 @@ public enum FactoryClientError: Error, LocalizedError, Equatable, Sendable {
 }
 
 public protocol FactoryServing: Sendable, WorkshopHostAuthorizing {
+    func resolveGitHubApp(slug: String) async throws -> GitHubApp
+    func installGitHubApp(slug: String, repositoryID: UInt64, commit: String, approveMacReview: Bool) async throws -> GitHubInstallResult
+    func deployGitHubApp(projectID: String) async throws -> GitHubApp
     func workspace() async throws -> WorkspaceSnapshot
     func factoryDefaults() async throws -> FactoryDefaults
     func readiness() async throws -> ReadinessView
@@ -59,6 +62,10 @@ public protocol FactoryServing: Sendable, WorkshopHostAuthorizing {
 }
 
 public extension FactoryServing {
+    func resolveGitHubApp(slug: String) async throws -> GitHubApp { throw FactoryClientError.transport("GitHub apps are unavailable in this client") }
+    func installGitHubApp(slug: String, repositoryID: UInt64, commit: String, approveMacReview: Bool) async throws -> GitHubInstallResult { throw FactoryClientError.transport("GitHub apps are unavailable in this client") }
+    func deployGitHubApp(projectID: String) async throws -> GitHubApp { throw FactoryClientError.transport("GitHub apps are unavailable in this client") }
+
     func authorizeWorkshopHost(
         sessionID _: WorkshopSessionID,
         challenge _: Data
@@ -369,12 +376,27 @@ public actor LoopbackFactoryClient: FactoryServing {
             throw FactoryClientError.invalidConfiguration("Choose at most eight local screenshots.")
         }
         var arguments = [
-            "--json", "deploy", "--project-id", projectID,
+            "--json", "deploy", "--legacy-registry", "--project-id", projectID,
         ]
         for path in screenshotPaths {
             arguments.append("--screenshot=\(path)")
         }
         return try await helperJSON(arguments)
+    }
+
+    public func resolveGitHubApp(slug: String) async throws -> GitHubApp {
+        try await helperJSON(["--json", "github", "resolve", slug])
+    }
+
+    public func installGitHubApp(slug: String, repositoryID: UInt64, commit: String, approveMacReview: Bool) async throws -> GitHubInstallResult {
+        var arguments = ["--json", "github", "install", slug, "--repository-id", String(repositoryID), "--commit", commit]
+        if approveMacReview { arguments.append("--approve-mac-review") }
+        return try await helperJSON(arguments)
+    }
+
+    public func deployGitHubApp(projectID: String) async throws -> GitHubApp {
+        try validateToken(projectID, label: "project ID")
+        return try await helperJSON(["--json", "deploy", "--project-id", projectID])
     }
 
     public func receiveNetworkRelease(

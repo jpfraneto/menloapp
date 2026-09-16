@@ -1,0 +1,129 @@
+# MENLO GitHub distribution
+
+Authority: [ADR 0040](../adr/0040-menlo-github-distribution.md). This is the normal
+public-repository path; the historical Registry and Claim path remains separate.
+
+## What is ready, and what still needs a human
+
+Implementation targets npm/native CLI 1.3.0 and Mac 1.3.0-rc.1 (10012).
+The website, app-link API, local exact-commit build path, and Companion update
+projection are implemented. Release evidence is appended below as each actual
+publication succeeds. No new physical installation/update or clean-Mac
+acceptance is claimed by source tests.
+
+Two credentials were absent during implementation:
+
+- The production website has no `GITHUB_CLIENT_ID`. Existing `gh auth login`
+  sessions can deploy; the native GitHub sign-in button explains this setup gap.
+- `npm whoami` returns 401. The owner must run `npm login` before publishing the
+  prepared `tohseno@1.3.0` package. Until then the unversioned npm command still
+  resolves to the earlier release. Use the exact prepared package for testing.
+
+## GitHub setup
+
+Create a GitHub App for MENLO, enable **Device Flow**, and allow the intended
+public repositories. Use repository **Contents: read** and **Metadata: read**;
+MENLO checks the authorizing user's actual repository role before registering
+an app. Give the website the public **Client ID** as `GITHUB_CLIENT_ID`.
+A client secret is not required for device authorization. User tokens remain
+on the developer's machine; the server uses them only for the current deploy
+request and stores no credentials in the directory or ledger.
+
+If using an OAuth App instead, device authorization requests `read:user
+public_repo`; this grants broader public-repository access than the read-only
+GitHub App. Prefer the GitHub App. User tokens can expire; sign in again when
+prompted. The first version does not persist refresh tokens or implement
+installation webhooks.
+
+For production reads, provision a dedicated **read-only** GitHub credential as
+`GITHUB_READ_TOKEN`. Public unauthenticated reads work, but GitHub's shared
+rate limit is small. Never reuse an operator's broad write credential as the
+server's read token. The website caches GitHub responses for 60 seconds.
+
+The Railway `tohseno` production service stores `github-apps.sqlite` under
+`MENLO_ROOT`, or under `$REGISTRY_ROOT/menlo` when omitted. Keep that directory
+on the existing persistent volume. A single repository has one stable app
+link. Renames require redeploy; ownership transfers require explicit operator
+review. Do not edit the append-only registration ledger to impersonate a deploy.
+
+Official references:
+[GitHub device authorization](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps),
+[GitHub App user tokens](https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-a-user-access-token-for-a-github-app),
+[repository permissions](https://docs.github.com/en/rest/collaborators/collaborators),
+[commit comparisons](https://docs.github.com/en/rest/commits/commits).
+
+## The first real handoff
+
+1. Install the exact MENLO Mac candidate. Open it and finish Apple's account,
+   Trust, Developer Mode, and Companion pairing steps with the intended iPhone.
+   Those are physical authority, not something an agent or fixture can accept.
+2. In a public GitHub iOS app, commit and push to its default branch. Run
+   `tohseno deploy` (or `menlo deploy`). Choose `--project` and `--scheme` only
+   if the repo has more than one app. Keep the returned root URL.
+3. Open that URL on the recipient's Mac or paired Companion. **Open in MENLO**
+   reviews the pinned commit. Choose **Build for my iPhone** on the Mac or
+   **Prepare on my Mac** on Companion. Build scripts and dependencies can stop
+   for a second explicit source review on the Mac; Companion cannot bypass it.
+4. The Mac fetches directly from GitHub, checks numeric repository identity and
+   commit ancestry, verifies the Git checkout, and builds/signs with the
+   recipient's Apple identity. Once ready, connect/unlock the intended phone.
+   Another visible phone must never receive the app.
+5. Confirm the real app launches. Send feedback through its GitHub Issues link.
+   Record device/build/commit evidence without publishing private device IDs.
+6. Push a small visible change to GitHub. No new MENLO deploy should be needed.
+   With the Mac awake, allow about five minutes and sync Companion. Confirm the
+   installed app says **N commits behind**, then choose **Update**. Confirm the
+   second commit reaches the same app on the intended phone and its data survives.
+
+Installation records advance only after a successful device installation and
+bundle inventory verification. A source download, successful build, signed
+command receipt, or animation does not count as installation. Failed updates
+retain the previous installed-commit record and source. Diverged/rewritten
+history displays an explicit review state rather than inventing a count.
+
+## Current limits
+
+Public repos only; checked-in Xcode projects/workspaces and an iOS app scheme
+are required. This does not generate missing native projects for other toolchains.
+Submodules and symlinks need source/layout work before import. Uncommitted edits
+and extra local files are preserved and rejected for exact-source builds.
+Downloaded commits live separately under `~/Developer/Menlo/`; moving an edited
+checkout aside permits a clean retry without deleting those edits.
+
+Xcode's provisioning, free-team device/app limits, entitlements, and expiration
+still apply. The download is not an App Store installation. Dependencies must
+be pinned and supported by the existing build safety checks.
+
+The Mac service checks GitHub about every five minutes. Companion notices
+synchronize while it is active; background APNs delivery is not implemented.
+GitHub feedback links use the repository's Issues page; its owner controls
+whether Issues is enabled. Private repos, webhooks, and GitHub refresh-token
+management remain follow-ups after the first real handoff.
+
+## Release integrity
+
+For this GitHub path, the old contract activation, Claim, sponsored-upload,
+and chain-specific lifecycle gates are not prerequisites. Build from a
+recorded clean `main` commit. Keep exact source metadata, Developer ID,
+hardened runtime, notarization, stapling, Gatekeeper, immutable download
+length/SHA-256, and downloaded-byte agreement. Public Mac builds remain
+explicit release candidates until the exact physical acceptance is observed.
+
+The Node deploy command is independent of the native runtime. Preserve the
+native manifest's fail-closed version and signature checks for recipient commands.
+The owner npm publication step is:
+
+```sh
+cd packages/cli
+npm login
+npm publish --access public
+npm view tohseno@1.3.0 version
+```
+
+Do not replace already published version bytes. Normal website deployment is
+the existing Railway production service from reviewed `main`.
+
+## Observed release evidence
+
+Pending packaging and production checks; this section is updated with actual
+artifact identities and deployment results, not inferred from implementation.

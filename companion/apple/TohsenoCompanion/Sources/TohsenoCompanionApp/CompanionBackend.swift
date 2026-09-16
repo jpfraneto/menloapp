@@ -26,6 +26,7 @@ public protocol CompanionBackend: Sendable, WorkshopClientAuthorizing {
         approvedAt: String,
         commandID: String
     ) async throws -> CommandReceipt
+    func requestGitHubApp(slug: String, repositoryID: UInt64, commit: String, commandID: String) async throws -> CommandReceipt
     func requestNetworkRelease(
         action: NetworkReleaseAction,
         shotID: String,
@@ -45,6 +46,10 @@ public protocol CompanionBackend: Sendable, WorkshopClientAuthorizing {
 }
 
 public extension CompanionBackend {
+    func requestGitHubApp(slug: String, repositoryID: UInt64, commit: String, commandID: String) async throws -> CommandReceipt {
+        throw TohsenoCompanionError.invalidEncoding("Update Companion to use GitHub apps")
+    }
+
     func workshopPairing() async throws -> WorkshopClientPairing {
         throw WorkshopRuntimeError.unpairedDevice
     }

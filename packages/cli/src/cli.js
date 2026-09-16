@@ -1,27 +1,28 @@
 import { NPM_CLI_VERSION } from "./constants.js";
 
-export const HELP = `TOHSENO ${NPM_CLI_VERSION}
+export const HELP = `MENLO (tohseno ${NPM_CLI_VERSION})
 
 Usage:
-  tohseno                 Show where to start
-  tohseno init [path]     Connect an existing Xcode app, one step at a time
-  tohseno deploy          Ship the connected app after Companion approval
-  tohseno open            Open the installed TOHSENO
-  tohseno doctor          Check this Mac without changing it
+  tohseno deploy [path]   Connect a public GitHub app and get a shareable link
+  menlo deploy [path]     The same command, with MENLO's name
+  tohseno github install <slug>   Build a GitHub app for your iPhone
+  tohseno init [path]     Connect local source to your Mac workshop
+  tohseno open            Open MENLO on your Mac
+  tohseno doctor          Check this Mac
   tohseno --version       Print the npm CLI version
-  tohseno --help          Show this help
 
-The command runtime is downloaded only when a real command needs it, then its
-exact bytes and Apple Developer ID signature are verified before execution.`;
+Commit and push your app, then deploy once. Its link follows GitHub's default
+branch. No Companion setup, native runtime download, or gas is needed to deploy.
+Testers use Xcode and their own Apple signing identity on their Mac.`;
 
-export const GUIDE = `TOHSENO CLI ${NPM_CLI_VERSION} is installed.
+export const GUIDE = `MENLO CLI ${NPM_CLI_VERSION} is installed.
 
-Start with an existing Xcode project:
+From your app's public GitHub repository:
   cd /path/to/YourApp
-  tohseno init
   tohseno deploy
 
-\`tohseno init\` walks through the real setup one line at a time.`;
+Share the link. Keep pushing code. Your testers choose when to update.
+Use --scheme <name> if the app has multiple Xcode schemes.`;
 
 export function parseCommand(args) {
   if (!args.length) return { kind: "guide", args: [] };

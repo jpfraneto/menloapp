@@ -1,10 +1,11 @@
 {
   "name": "tohseno",
-  "version": "1.2.1",
-  "description": "Install the TOHSENO CLI and publish Xcode apps person to person",
+  "version": "1.3.0",
+  "description": "MENLO: share living iOS apps from GitHub and try them on your own iPhone",
   "type": "module",
   "bin": {
-    "tohseno": "bin/tohseno.js"
+    "tohseno": "bin/tohseno.js",
+    "menlo": "bin/tohseno.js"
   },
   "files": [
     "bin/tohseno.js",

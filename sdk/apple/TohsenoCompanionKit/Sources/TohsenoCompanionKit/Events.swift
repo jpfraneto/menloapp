@@ -115,6 +115,8 @@ public enum PrivateUpdateKind: String, Codable, CaseIterable, Sendable {
     case aliasApproved = "alias_approved"
     case publicationApproval = "publication_approval"
     case evolutionFinished = "evolution_finished"
+    case githubAppUpdated = "github_app_updated"
+    case githubPreparation = "github_preparation"
 }
 
 public struct PrivateUpdateItem: Codable, Equatable, Identifiable, Sendable {

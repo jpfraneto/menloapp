@@ -60,6 +60,7 @@ public struct AppSummary: Codable, Equatable, Identifiable, Sendable {
     public let displayName: String
     public let bundleIdentifier: String?
     public var sourceState: String? = nil
+    public var github: GitHubAppStatus? = nil
     public let icon: IconDescriptor
     public let expressionID: String?
     public let latestVersionID: String?
@@ -75,7 +76,7 @@ public struct AppSummary: Codable, Equatable, Identifiable, Sendable {
     public var id: String { shotID }
 
     /// Source adoption alone is not a device build or installation receipt.
-    public var deliveryUnconfirmed: Bool { sourceState != nil && execution == nil }
+    public var deliveryUnconfirmed: Bool { sourceState != nil && execution == nil && github == nil }
     public var deliveryHeadline: String {
         deliveryUnconfirmed ? "Source on Mac · installation unconfirmed" : presentation.headline
     }
@@ -487,6 +488,8 @@ public enum PrivateUpdateKind: String, Codable, Sendable {
     case aliasApproved = "alias_approved"
     case publicationApproval = "publication_approval"
     case evolutionFinished = "evolution_finished"
+    case githubAppUpdated = "github_app_updated"
+    case githubPreparation = "github_preparation"
 }
 
 public struct PrivateUpdateItem: Codable, Equatable, Identifiable, Sendable {

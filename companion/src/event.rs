@@ -27,6 +27,8 @@ pub enum PrivateUpdateKind {
     AliasApproved,
     PublicationApproval,
     EvolutionFinished,
+    GithubAppUpdated,
+    GithubPreparation,
 }
 
 impl PrivateUpdateKind {
@@ -40,6 +42,8 @@ impl PrivateUpdateKind {
             Self::AliasApproved => "alias_approved",
             Self::PublicationApproval => "publication_approval",
             Self::EvolutionFinished => "evolution_finished",
+            Self::GithubAppUpdated => "github_app_updated",
+            Self::GithubPreparation => "github_preparation",
         }
     }
 }

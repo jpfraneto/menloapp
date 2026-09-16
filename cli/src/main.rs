@@ -3,6 +3,7 @@ mod cable_genesis;
 mod companion_service;
 mod companion_simulator;
 mod device_readiness;
+mod github_commands;
 mod identity_commands;
 mod installation_commands;
 mod intent_commands;
@@ -118,38 +119,52 @@ enum Command {
     },
     /// Publish an existing Xcode app and get a shareable link.
     Deploy {
+        /// Explicit compatibility path for historical chain-backed releases.
+        #[arg(long, hide = true)]
+        legacy_registry: bool,
         /// Xcode project, workspace, or containing folder. Defaults to this directory.
         #[arg(value_name = "PATH", conflicts_with = "project_id")]
         path: Option<PathBuf>,
         /// Choose the app scheme when the project has several app targets.
         #[arg(long, value_name = "SCHEME", conflicts_with = "project_id")]
         scheme: Option<String>,
-        /// Return after preparing approval; publication continues in the background.
+        /// Xcode container path relative to the GitHub repository root.
+        #[arg(long = "project", conflicts_with = "project_id")]
+        project_file: Option<String>,
+        /// Public app name; defaults to the selected scheme.
         #[arg(long)]
+        name: Option<String>,
+        /// Historical publication background behavior.
+        #[arg(long, hide = true)]
         no_wait: bool,
-        /// Inspect and package without requesting approval or publishing.
+        /// Inspect the local GitHub project without publishing.
         #[arg(long)]
         dry_run: bool,
         #[arg(long, hide = true)]
         project_id: Option<String>,
         /// Pin the immutable first-Ship Claim Edition policy.
-        #[arg(long, value_enum)]
+        #[arg(long, value_enum, hide = true)]
         claim_edition: Option<ClaimEditionArgument>,
         /// Maximum identities for a limited first-Ship Claim Edition.
-        #[arg(long, value_name = "COUNT")]
+        #[arg(long, value_name = "COUNT", hide = true)]
         max_claims: Option<u64>,
         /// RFC 3339 closing time for a timed first-Ship Claim Edition.
-        #[arg(long, value_name = "TIMESTAMP")]
+        #[arg(long, value_name = "TIMESTAMP", hide = true)]
         closes_at: Option<String>,
-        /// Human app slug signed into this release (for example, anky).
+        /// Stable MENLO app link slug (for example, anky).
         #[arg(long, value_name = "SLUG")]
         app_slug: Option<String>,
         /// Add a public PNG/JPEG screenshot to this exact release. Repeat up to eight times.
-        #[arg(long = "screenshot", value_name = "PATH")]
+        #[arg(long = "screenshot", value_name = "PATH", hide = true)]
         screenshots: Vec<PathBuf>,
     },
     /// Show this project's local, Companion, and public network readiness.
     Status,
+    /// MENLO apps follow GitHub; installs always pin one exact commit.
+    Github {
+        #[command(subcommand)]
+        command: GithubCommand,
+    },
     /// Verify, locally sign, and install one exact public Shot release.
     Install {
         /// Canonical Shot link, tohseno:// install link, or 32-byte ShotID.
@@ -412,6 +427,22 @@ enum Command {
     Shot {
         #[command(subcommand)]
         command: ShotExecutionCommand,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum GithubCommand {
+    /// Inspect the latest GitHub app before choosing to run its code.
+    Resolve { slug: String },
+    /// Download one commit, build locally, and install on your intended iPhone.
+    Install {
+        slug: String,
+        #[arg(long)]
+        commit: Option<String>,
+        #[arg(long)]
+        repository_id: Option<u64>,
+        #[arg(long)]
+        approve_mac_review: bool,
     },
 }
 
@@ -770,8 +801,11 @@ async fn dispatch(
         }
         Command::Init { path, scheme } => network_commands::init(path, scheme, json, bus).await?,
         Command::Deploy {
+            legacy_registry,
             path,
-            scheme,
+            mut scheme,
+            project_file,
+            name,
             no_wait,
             dry_run,
             project_id,
@@ -781,6 +815,72 @@ async fn dispatch(
             app_slug,
             screenshots,
         } => {
+            if !legacy_registry {
+                if no_wait
+                    || claim_edition.is_some()
+                    || max_claims.is_some()
+                    || closes_at.is_some()
+                    || !screenshots.is_empty()
+                {
+                    return Err("MENLO deploy follows GitHub. Historical Claim/screenshot publication requires --legacy-registry.".into());
+                }
+                let mut args = Vec::new();
+                if json {
+                    args.push("--json".into());
+                }
+                if dry_run {
+                    args.push("--dry-run".into());
+                }
+                let path = if let Some(id) = project_id {
+                    let service = service_client::ServiceClient::ensure_running()
+                        .await
+                        .map_err(|e| -> Box<dyn std::error::Error> { e })?;
+                    let response: Value = service
+                        .get("/api/v1/projects")
+                        .await
+                        .map_err(|e| -> Box<dyn std::error::Error> { e })?;
+                    let project = response
+                        .get("projects")
+                        .and_then(Value::as_array)
+                        .and_then(|items| {
+                            items.iter().find(|p| {
+                                p.get("project_id").and_then(Value::as_str) == Some(id.as_str())
+                            })
+                        })
+                        .ok_or("Unknown project")?;
+                    if scheme.is_none() {
+                        scheme = project
+                            .get("scheme")
+                            .and_then(Value::as_str)
+                            .map(str::to_owned);
+                    }
+                    Some(PathBuf::from(
+                        project
+                            .get("container_path")
+                            .and_then(Value::as_str)
+                            .ok_or("Project source unavailable")?,
+                    ))
+                } else {
+                    path
+                };
+                if let Some(path) = path {
+                    args.push(path.display().to_string());
+                }
+                if let Some(scheme) = scheme {
+                    args.extend(["--scheme".into(), scheme]);
+                }
+                if let Some(slug) = app_slug {
+                    args.extend(["--app-slug".into(), slug]);
+                }
+                if let Some(project) = project_file {
+                    args.extend(["--project".into(), project]);
+                }
+                if let Some(name) = name {
+                    args.extend(["--name".into(), name]);
+                }
+                return github_commands::deploy(&args)
+                    .map_err(|e| -> Box<dyn std::error::Error> { e });
+            }
             network_commands::deploy(
                 network_commands::DeployOptions {
                     path: path.as_deref(),
@@ -800,6 +900,31 @@ async fn dispatch(
             .await?
         }
         Command::Status => network_commands::status(json, bus).await?,
+        Command::Github { command } => match command {
+            GithubCommand::Resolve { slug } => {
+                let app = github_commands::resolve(&slug)
+                    .await
+                    .map_err(|e| -> Box<dyn std::error::Error> { e })?;
+                println!("{}", serde_json::to_string(&app)?);
+            }
+            GithubCommand::Install {
+                slug,
+                commit,
+                repository_id,
+                approve_mac_review,
+            } => {
+                github_commands::receive(
+                    &slug,
+                    commit.as_deref(),
+                    repository_id,
+                    approve_mac_review,
+                    json,
+                    bus,
+                )
+                .await
+                .map_err(|e| -> Box<dyn std::error::Error> { e })?;
+            }
+        },
         Command::Install {
             shot,
             release,

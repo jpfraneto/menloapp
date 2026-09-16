@@ -53,6 +53,16 @@ public struct TohsenoPresentation: Equatable, Sendable {
 
     /// Derive the presentation for one app in the synchronized snapshot.
     public static func of(_ shot: ShotSummary) -> Self {
+        if let github = shot.github {
+            let state: TohsenoPresentedState = switch github.deliveryStatus {
+                case "installed": .installed
+                case "ready_for_iphone": .readyForPhone
+                case "building": .building
+                case "failed": .failed
+                default: .waiting
+            }
+            return Self(state: state, headline: github.updateSummary, isWorking: github.deliveryStatus == "building")
+        }
         if shot.execution == nil, shot.kind != .factoryShot {
             return Self(
                 state: .waiting,

@@ -85,6 +85,7 @@ public final class CompanionModel {
     public private(set) var networkNotice: String?
     public private(set) var pendingPublication: PublicationApprovalRequest?
     public var linkedPublicRelease: PublicAppRelease?
+    public var linkedGitHubApp: LinkedGitHubApp?
     public var profileDisplayName = ""
     public var profileHandle = ""
     public var requestedAlias = ""
@@ -692,7 +693,25 @@ public final class CompanionModel {
         }
     }
 
+    public func requestGitHubApp(slug: String, repositoryID: UInt64, commit: String) async {
+        guard !busy else { return }
+        busy = true
+        defer { busy = false }
+        do {
+            let receipt = try await backend.requestGitHubApp(slug: slug, repositoryID: repositoryID, commit: commit, commandID: UUID().uuidString.lowercased())
+            guard receipt.state != .rejected else { throw TohsenoCompanionError.invalidEncoding("Your Mac could not accept this GitHub update. Sync and try again.") }
+            networkNotice = "Requested commit \(commit.prefix(7)). Your Mac will prepare it when connected. Build scripts may need review on your Mac."
+            linkedGitHubApp = nil
+            await syncNow()
+        } catch { networkNotice = error.localizedDescription }
+    }
+
     public func handleIncomingURL(_ url: URL) async {
+        if let link = GitHubAppLink(url) {
+            do { linkedGitHubApp = try await LinkedGitHubApp.resolve(link) }
+            catch { networkNotice = error.localizedDescription }
+            return
+        }
         if url.host?.lowercased() == "pair" {
             await bootstrapFromCable(url)
             return

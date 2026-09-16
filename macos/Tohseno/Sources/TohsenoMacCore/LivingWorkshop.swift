@@ -188,7 +188,7 @@ struct WorkshopDestinationBar: View {
                 .accessibilityIdentifier("create-app.workshop")
             Button("Network") { model.route = .registry }
                 .accessibilityIdentifier("registry.workshop")
-            Button("Keeper") { model.route = .profile }
+            Button("GitHub") { model.route = .profile }
                 .accessibilityIdentifier("profile.workshop")
             SettingsLink { Image(systemName: "gearshape") }
                 .accessibilityLabel("Workshop settings")
@@ -203,7 +203,7 @@ struct WorkshopDestinationBar: View {
         switch model.route {
         case .library: "Living workshop"
         case .registry: "Network threshold"
-        case .profile: "Keeper and authority"
+        case .profile: "Your GitHub account"
         case .create: "One Shot options"
         case .app: model.selectedApp?.displayName ?? "App workbench"
         }
@@ -1069,7 +1069,7 @@ private struct WorkshopListFallback: View {
                 Section("Workshop places") {
                     Button("One Shot") { isPresented = false }
                     Button("Network threshold") { isPresented = false; model.route = .registry }
-                    Button("Keeper and authority") { isPresented = false; model.route = .profile }
+                    Button("GitHub account") { isPresented = false; model.route = .profile }
                 }
             }
             .navigationTitle("Workshop list")
