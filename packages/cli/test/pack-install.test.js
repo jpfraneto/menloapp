@@ -34,7 +34,7 @@ test("npm pack installs into an isolated prefix without network or native mutati
       const run = spawnSync(executable, args, { encoding: "utf8" });
       assert.equal(run.status, 0, run.stderr);
       assert.match(run.stdout, /TOHSENO|tohseno/);
-      if (args[0] === "--version") assert.equal(run.stdout, "tohseno 1.3.0\n");
+      if (args[0] === "--version") assert.equal(run.stdout, `tohseno ${metadata.version}\n`);
     }
   } finally {
     await rm(temporary, { recursive: true, force: true });
@@ -85,6 +85,10 @@ test("a fresh global install installs only the CLI launcher", async () => {
     const alias = spawnSync(path.join(prefix, "bin", "menlo"), ["deploy", "--help"], { encoding: "utf8", env: { ...process.env, HOME: home } });
     assert.equal(alias.status, 0, alias.stderr);
     assert.match(alias.stdout, /GitHub/);
+    const typo = spawnSync(path.join(prefix, "bin", "menlo"), ["deplpy"], { encoding: "utf8", env: { ...process.env, HOME: home } });
+    assert.equal(typo.status, 1);
+    assert.match(typo.stderr, /Did you mean menlo deploy/);
+    assert.ok(!typo.stdout.includes("Installing"));
     await assert.rejects(access(path.join(home, ".tohseno")));
   } finally {
     await rm(temporary, { recursive: true, force: true });

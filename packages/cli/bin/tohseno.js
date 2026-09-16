@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { spawnSync } from "node:child_process";
-import { GUIDE, HELP, parseCommand, redact } from "../src/cli.js";
+import { GUIDE, HELP, parseCommand, redact, suggestedCommand } from "../src/cli.js";
 import { NPM_CLI_VERSION, PRODUCT_VERSION } from "../src/constants.js";
 import { delegate, installedNative } from "../src/native.js";
 import { installAuthorizedNative } from "../src/installer.js";
@@ -11,6 +11,8 @@ import { deploy } from "../src/github.js";
 async function main() {
   const raw = process.argv.slice(2);
   const commandIndex = raw[0] === "--json" ? 1 : 0;
+  const suggestion = suggestedCommand(raw[commandIndex]);
+  if (suggestion) throw new Error(`Unknown command: ${raw[commandIndex]}. Did you mean menlo ${suggestion}?`);
   if (raw[commandIndex] === "deploy" && !raw.includes("--legacy-registry")) {
     return deploy([...raw.slice(0, commandIndex), ...raw.slice(commandIndex + 1)]);
   }
@@ -50,6 +52,6 @@ async function main() {
 }
 
 main().then((code) => { process.exitCode = code; }).catch((error) => {
-  console.error(`tohseno: ${redact(error.message)}`);
+  console.error(`menlo: ${redact(error.message)}`);
   process.exitCode = 1;
 });

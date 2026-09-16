@@ -5,19 +5,21 @@ description: Connect a public GitHub app, share its MENLO link, and prepare exac
 
 ## Share your app
 
-Commit and push your iOS project to a public GitHub repository. During the 1.3.0 preview, install the exact preview package:
+Commit and push your iOS project to GitHub. Install the preview CLI:
 
 ```sh
-npm i -g https://github.com/jpfraneto/tohseno/releases/download/v1.3.0-rc.1/tohseno-1.3.0.tgz
+npm i -g https://github.com/jpfraneto/tohseno/releases/download/cli-v1.3.1/tohseno-1.3.1.tgz
 cd YourApp
 menlo deploy
 ```
 
-The package remains named `tohseno`; `tohseno deploy` works too. Once 1.3.0 is published on npm, the normal installer is `npm i -g tohseno`. npm installation does not start a service or install native software.
+The package remains named `tohseno`; `tohseno deploy` works too. Once 1.3.1 is published on npm, the normal installer is `npm i -g tohseno`. npm installation does not start a service or install native software.
 
-Deploy reuses `gh auth login` or a MENLO GitHub sign-in. Device authorization currently awaits the operator's GitHub Client ID, so use your existing GitHub CLI session for the preview. MENLO proves write access to the repository and returns **tohseno.com/your-app**. No `init`, Companion publication approval, wallet, gas, or source upload is required.
+Deploy verifies your GitHub sign-in and offers browser login through GitHub CLI if needed. Without GitHub CLI, it gives installation instructions until MENLO's own device sign-in is configured. MENLO proves write access to the repository and returns **tohseno.com/your-app**. No `init`, Companion publication approval, wallet, gas, or source upload is required.
 
-If your repository has several projects, use `--project path/App.xcodeproj --scheme App`. Choose a link with `--app-slug your-app`. `--dry-run` checks local metadata without publishing.
+Deploy detects committed projects and ignores old or generated project folders. If several apps or schemes remain, choose one in the terminal. If your repository is private, MENLO explains that public source is required, opens GitHub settings with your consent, and continues after you change visibility. Making a repository public exposes its code and history; MENLO never changes visibility for you. If a push is needed, it explains the command and waits for you to finish. Existing repositories retain their app links.
+
+For automation, use `--project path/App.xcodeproj --scheme App` and `--app-slug your-app`. `--json` never prompts; `--dry-run` checks local metadata without publishing.
 
 ## Try someone else's app
 

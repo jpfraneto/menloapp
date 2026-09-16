@@ -5,7 +5,7 @@ public-repository path; the historical Registry and Claim path remains separate.
 
 ## What is ready, and what still needs a human
 
-Implementation targets npm/native CLI 1.3.0 and Mac 1.3.0-rc.1 (10012).
+Implementation targets npm CLI 1.3.1, native CLI 1.3.0, and Mac 1.3.0-rc.1 (10012).
 The website, app-link API, local exact-commit build path, and Companion update
 projection are implemented. Release evidence is appended below as each actual
 publication succeeds. No new physical installation/update or clean-Mac
@@ -16,7 +16,7 @@ Two credentials were absent during implementation:
 - The production website has no `GITHUB_CLIENT_ID`. Existing `gh auth login`
   sessions can deploy; the native GitHub sign-in button explains this setup gap.
 - `npm whoami` returns 401. The owner must run `npm login` before publishing the
-  prepared `tohseno@1.3.0` package. Until then the unversioned npm command still
+  prepared `tohseno@1.3.1` package. Until then the unversioned npm command still
   resolves to the earlier release. Use the exact prepared package for testing.
 
 ## GitHub setup
@@ -66,8 +66,14 @@ Official references:
    existing app preserves pairing. The candidate bundles this project and SDK
    under `Tohseno.app/Contents/Resources/FactoryRelease/share/` as well.
 2. In a public GitHub iOS app, commit and push to its default branch. Run
-   `tohseno deploy` (or `menlo deploy`). Choose `--project` and `--scheme` only
-   if the repo has more than one app. Keep the returned root URL.
+   `menlo deploy` (or `tohseno deploy`). It verifies authentication, offers
+   GitHub CLI browser sign-in, detects committed app projects, and prompts for
+   genuine project/scheme ambiguity. Ignored or abandoned Xcode directories
+   are excluded. Private-repository guidance opens GitHub settings; only the
+   user changes visibility, with the public-source consequence stated first.
+   It resumes after a visibility change or push and reuses the repository's
+   existing app link. Noninteractive/JSON runs give exact next steps without
+   waiting for input. Keep the returned root URL.
 3. Open that URL on the recipient's Mac or paired Companion. **Open in MENLO**
    reviews the pinned commit. Choose **Build for my iPhone** on the Mac or
    **Prepare on my Mac** on Companion. Build scripts and dependencies can stop
@@ -125,7 +131,7 @@ The owner npm publication step is:
 cd packages/cli
 npm login
 npm publish --access public
-npm view tohseno@1.3.0 version
+npm view tohseno@1.3.1 version
 ```
 
 Do not replace already published version bytes. Normal website deployment is

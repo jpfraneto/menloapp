@@ -7,6 +7,7 @@ import { validateArchivePaths } from "../src/archive.js";
 import { verifyArtifactBytes } from "../src/download.js";
 import { ensureInstallerMarker, verifyAppleSignature } from "../src/installer.js";
 import { startProduct } from "../src/start.js";
+import { NPM_CLI_VERSION } from "../src/constants.js";
 import { createHash } from "node:crypto";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -78,6 +79,10 @@ test("npm 1.3.0 refuses a stale native release manifest", () => {
   );
 });
 
+test("the deploy-only npm update keeps using the exact signed native 1.3.0 release", () => {
+  assert.equal(validateManifest(manifest(), NPM_CLI_VERSION, "arm64").artifact.target, "aarch64-apple-darwin");
+});
+
 test("manifest rejects duplicate architectures, sizes, digests, and extra fields", () => {
   const duplicate = manifest();
   duplicate.artifacts[1].architecture = "arm64";
@@ -113,6 +118,7 @@ test("archive paths cannot traverse or escape", () => {
 test("diagnostic text redacts secret-shaped query values and provider keys", () => {
   const output = redact("https://tohseno.com/c?nonce=private-value sk_live_abcdef");
   assert.equal(output, "https://tohseno.com/c?nonce=[redacted] [redacted]");
+  assert.equal(redact("ghp_example123 github_pat_example456"), "[redacted] [redacted]");
 });
 
 test("artifact bytes require exact size and SHA-256", () => {
