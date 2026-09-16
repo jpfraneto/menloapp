@@ -196,3 +196,29 @@ at `cli-v1.json`. Downloading through `https://tohseno.com/download/macos`
 returned exactly 53,474,187 bytes with the pinned DMG digest above. The live
 homepage contains the preview command and persisted `hello-menlo` app card;
 the directory still resolves the current GitHub commit after redeployment.
+
+### Guided deploy CLI 1.3.1
+
+Source `94533a7` fixes the real Logos project-discovery failure and adds the
+guided authentication, visibility, project/scheme choice, push, existing-link,
+and collision paths. The package is published at
+[CLI 1.3.1](https://github.com/jpfraneto/tohseno/releases/tag/cli-v1.3.1).
+Its 17,348-byte `tohseno-1.3.1.tgz` has SHA-256
+`fca0b5fa9261080067346112ec503dd1ed81e063ddc9bdd85984c240386e4761`;
+the public download matched. It is installed in the owner's existing npm
+prefix. Native release pins remain at their exact previously signed 1.3.0
+artifacts; the npm-only change does not relabel or rebuild those artifacts.
+
+Verification passed: 39 CLI tests including packed installation, 28 relevant
+website tests and typecheck, and the docs build/link verifier. The real Logos
+repository automatically selected `Logos.xcodeproj` and `Logos`, authenticated
+the owner, and reached the explicit private-repository step. Terminal Ctrl+C
+cancelled cleanly. The repository remained private. A real no-flags sample
+deployment reused `https://tohseno.com/hello-menlo`; the installed package also
+completed deployment against production. No physical installation is implied.
+
+Railway deployment `c9ef7c4c-d603-4c93-8447-b0f77c84143e` serves the new landing
+installer URL; it and the sample's real app/deep link were observed over HTTP.
+Cloudflare docs deployment `5da8ced2` serves the updated guided quickstart.
+The npm registry still serves 1.2.1 and npm authentication still returned 401;
+the direct preview package works while the owner renews npm authentication.
