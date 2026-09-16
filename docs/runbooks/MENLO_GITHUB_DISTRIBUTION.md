@@ -169,3 +169,16 @@ matched every published SHA-256. The DMG is 53,474,187 bytes, SHA-256
 `b5509689a96611d549f53488edad6664295e455c9aa8adc70f05a098a90d5656`.
 The preview npm package SHA-256 is
 `645015fbdcfef8103048df9c284e8b18e8fd2f74c7c27f7a31fd08baffcaaa65`.
+
+
+The updated documentation is live at [docs.tohseno.com](https://docs.tohseno.com/)
+(Cloudflare Pages deployment `e3e1838c`, source `6326679`). Astro check, the
+static build, and the 40-page/link/search/feed verifier passed. The published
+preview npm URL installed successfully into a temporary prefix; its `menlo`
+alias and GitHub dry-run worked. The downloaded native archive passed its
+closed-file manifest and Developer ID checks and resolved the current live
+sample commit.
+
+The final Railway rollout from `6326679` is
+`3d753785-bce2-4b49-bebf-a19525e15cf6`; it applies the verified 1.3.0-rc.1
+Mac pin and versioned CLI manifest while preserving the older CLI manifest.
