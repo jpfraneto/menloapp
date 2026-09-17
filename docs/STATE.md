@@ -6,7 +6,7 @@ something below stops being true, update this file in the same change.
 
 ## App listings, discovery feed and automatic previews (September 17)
 
-Current source makes `/` and `/apps` the app activity feed. Public app pages
+Production serves `/` and `/apps` as the app activity feed. Public app pages
 show an app-store listing: icon, title, subtitle, creator avatar/username and
 GitHub link, a recording-first gallery, and description. Activity projects the
 existing publication ledger and checked public GitHub commits. It does not
@@ -26,8 +26,25 @@ website checks, and the native embedded-launcher regression. A real Codex-guided
 capture built sample commit `63012d3ab2284e6ce85d3f5718826515dea88c8b`, tapped its
 button, observed the counter change from zero to one, and produced a playable
 four-second H.264 preview. Desktop/mobile layout and feed navigation passed in
-isolated Chrome. These are local observations; publication is recorded below
-when complete. Native signing/install authority is unchanged.
+isolated Chrome. Website source `dd2cf1c65854c5c8a2e0ef255dc5b83574845e5c` was deployed to the
+existing production service as Railway deployment
+`353914dd-7814-49d1-ba7f-60396f6d8190`. The live feed, app listing, avatar loading,
+recording playback and navigation passed at desktop and mobile widths; the
+served stylesheet matches source. The native manifest remains reachable.
+
+An installation of the prepared 1.5.0 npm tarball then ran plain `menloapp deploy`
+on an updated public sample. It built source
+`bca6b4472cb00c1b9b4af3210ef86f03eb7ca1c0`, used Codex to tap the app, captured a
+new preview and screenshot, committed/pushed those assets, retained the existing
+`hello-menlo` URL, and committed the confirmed GitHub and MENLO links. Public sample commit `00dab9045d9061b7277e3d10cd4715ee8d0c2eef` contains the
+result. Both served assets match their committed bytes, and the four-second
+video plays on the live page. No capture flags or manual Simulator interaction
+were used. Native signing/install authority
+is unchanged; no new physical recipient installation is claimed.
+
+npm 1.5.0 is prepared and verified, but its publication attempt expired while
+waiting for npm's owner account verification. The registry still serves 1.4.0
+until that verification and publication complete.
 
 ## menloapp launch and public presentation (September 17)
 

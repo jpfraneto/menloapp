@@ -9,7 +9,33 @@ This change implements the owner's September 16 naming and public-media
 extension to [ADR 0040](../adr/0040-menlo-github-distribution.md). It does not
 publish a new native artifact, change Apple signing, or activate a contract.
 
-## Live launch: September 17, 2026
+## App-store listing and automatic deploy: September 17
+
+The live website runs source `dd2cf1c65854c5c8a2e0ef255dc5b83574845e5c`, uploaded
+from main in Railway deployment `353914dd-7814-49d1-ba7f-60396f6d8190`. The
+homepage is the network activity feed. App pages show creator identity and a
+recording-first gallery. Live desktop/mobile navigation, image loading and video
+playback passed, and the served stylesheet matches the commit.
+
+The prepared `menloapp@1.5.0` tarball has integrity
+`sha512-A+du2BPKToqdiwpweraNz7/j+WEGy/dAYzGeDSxIsgQ/Cz05BIBxIOyzI60gInMQ6vyHMWklSZejGaXC6is6Cg==`.
+Its 47 npm checks, 34 focused website checks, website typecheck and native
+embedded-module regression passed. Installed from that tarball, plain
+`menloapp deploy` built public sample source
+`bca6b4472cb00c1b9b4af3210ef86f03eb7ca1c0`, automatically recorded real Codex
+interaction, created a screenshot, committed/pushed the presentation and then
+wrote confirmed `githubRepo` and `menloLink` values. The existing public URL was
+retained. Sample commit `00dab9045d9061b7277e3d10cd4715ee8d0c2eef` contains
+the result; public media match the Git bytes, and the four-second recording
+plays on the live listing. The temporary Simulator was removed.
+
+Version 1.5.0 publication requires completion of npm's browser account
+verification. The first challenge expired without approval; 1.4.0 remains the
+published registry version until the new attempt succeeds. The exact reviewed
+tarball is retained at `dist/menloapp-1.5.0/menloapp-1.5.0.tgz`; publish that file
+without rebuilding it. No native artifact is changed by this npm update.
+
+## Initial launch: September 17, 2026
 
 - [menloapp@1.4.0](https://www.npmjs.com/package/menloapp) is published. A global
   registry install reports the expected version, and the published tarball
@@ -27,7 +53,7 @@ publish a new native artifact, change Apple signing, or activate a contract.
   `www.tohseno.com` is no longer a Railway custom domain.
 
 The September 16 npm-login and custom-domain-limit blockers are resolved.
-No further DNS or npm setup is needed for this launch. GitHub device-flow
+No further DNS setup is needed. Later npm publications can require fresh account verification. GitHub device-flow
 credentials and a dedicated GitHub read token remain unconfigured; developers
 can deploy with an existing `gh auth login` session. Physical recipient
 installation and update remain separate, unobserved acceptance steps.
@@ -127,8 +153,9 @@ menloapp --version
 menloapp deploy --help
 ```
 
-Version 1.4.0 is already published. For a future CLI change, update the package
-version, run its relevant checks, and commit/push the source before publishing:
+Version 1.4.0 is published; 1.5.0 is prepared as described above. For a future CLI
+change, update the package version, run its relevant checks, and commit/push the
+source before publishing:
 
 ```sh
 cd /Users/kithkui/code/menloapp/packages/cli
@@ -141,7 +168,7 @@ Use `npm login` if the session has expired, and complete any browser/2FA prompt
 yourself. A package name/version is immutable once published, so a later fix
 needs a new version. See [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish/).
 No postinstall script runs. Publishing this JavaScript package does not rebuild
-or relabel the signed native runtime; 1.4.0 retains the exact 1.3.0 runtime pin.
+or relabel the signed native runtime; both 1.4.0 and 1.5.0 retain the exact 1.3.0 runtime pin.
 
 ## 4. Deploy and try an app
 
