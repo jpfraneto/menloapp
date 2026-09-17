@@ -226,6 +226,27 @@ The recipient reviews exact source, builds with their own Mac, Xcode and Apple
 signing identity, and installs on their intended iPhone. A Simulator preview is
 not evidence of physical installation.
 
+## When Get app does not open MENLO
+
+Get app expands an installation panel with Open MENLO, a Mac download/update
+link and a Terminal alternative. The browser handoff needs the desktop app's
+registered `menlo://` handler. An npm installation provides the command and its
+native runtime; it does not install or update the desktop app.
+
+Install the currently pinned Mac download, open MENLO from Applications, and
+try Open MENLO again. The link pins the displayed GitHub commit and repository
+identity. It opens a source-review sheet; Build for my iPhone remains the
+recipient's explicit action. With the npm command installed, the alternative is:
+
+```sh
+menloapp try https://menloapp.lol/logos
+```
+
+On the owner's Mac, 1.2.0 supported only `tohseno://`. The verified public
+1.3.0-rc.1 app installed at `/Applications/Menlo.app` registered `menlo://` and
+opened the real Logos source-review sheet. The older app was preserved. This
+verified the browser-to-desktop boundary, not a physical iPhone installation.
+
 ## Verification and evidence
 
 Before launch, all 42 npm launcher/presentation checks passed, including packed

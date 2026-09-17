@@ -4,6 +4,22 @@ Written 2026-07-30, amended through 2026-09-17. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Browser Get app handoff (September 17)
+
+The Get app control now opens an installation panel before an external-app
+handoff. It offers the exact-commit Open MENLO link, the verified Mac download,
+and the `menloapp try` alternative. It works without JavaScript. The npm command
+and native runtime do not themselves register the desktop app's `menlo://` URL
+handler; visitors need the current desktop app for the browser-to-app handoff.
+
+The owner's Mac had desktop app 1.2.0 and no handler for that scheme. The existing
+public 1.3.0-rc.1 DMG matched its production SHA-256, passed signature and
+Gatekeeper checks, and was installed as `/Applications/Menlo.app`, preserving
+the older app. macOS now resolves `menlo://` to that installation. Opening the
+real Logos link reached the native Try Logos review for commit
+`3c5c5cceb5b2dc39bf61001e8ea07b7974e333a3`. It was left at Build for my iPhone;
+no source-build approval or physical installation was performed by the agent.
+
 ## App listings, discovery feed and automatic previews (September 17)
 
 Production serves `/` and `/apps` as the app activity feed. Public app pages

@@ -26,7 +26,7 @@
 .ml-github-link { display:inline-flex; align-items:center; gap:6px; text-decoration:none; }
 .ml-store .ml-creator a { color:var(--ml-muted); }
 .ml-store .ml-creator a:hover { color:var(--ml-green); text-decoration:underline; }
-.ml-get-app { display:flex; flex-direction:column; align-items:center; gap:10px; }
+.ml-get-app { display:flex; flex-direction:column; align-items:center; gap:10px; position:relative; }
 .ml-store .ml-get-button { min-width:128px; border:0; border-radius:999px; padding:10px 26px; background:var(--ml-green); font-weight:600; }
 .ml-store .ml-get-help { color:var(--ml-muted); font-size:12px; text-decoration:none; }
 .ml-store .ml-get-help:hover { text-decoration:underline; }
@@ -110,3 +110,16 @@
 .ml-store .ml-deploy-instructions p { font-size:13px; }
 .ml-app-links { display:flex; flex-wrap:wrap; gap:12px 24px; font-size:13px; padding-top:12px; color:var(--ml-muted); }
 .ml-app-links code { overflow-wrap:anywhere; }
+.ml-install-options > summary { list-style:none; cursor:pointer; display:inline-flex; justify-content:center; }
+.ml-install-options > summary::-webkit-details-marker { display:none; }
+.ml-install-options[open] > summary { background:var(--ml-ink); }
+.ml-install-panel { position:absolute; z-index:5; top:calc(100% + 14px); right:0; width:360px; max-width:calc(100vw - 40px); box-sizing:border-box; padding:24px; background:var(--ml-surface); border:1px solid var(--ml-line); border-radius:18px; box-shadow:0 12px 40px rgb(36 40 32 / 14%); text-align:left; }
+.ml-install-panel h2 { font:700 21px/1.25 var(--ml-ui); letter-spacing:-.025em; margin:0 0 12px; overflow-wrap:anywhere; }
+.ml-store .ml-install-panel p { font-size:14px; line-height:1.5; margin:0 0 18px; }
+.ml-install-panel .ml-open-app { border-radius:999px; margin-bottom:18px; }
+.ml-store .ml-install-panel .ml-install-help { color:var(--ml-muted); font-size:13px; }
+.ml-terminal-option { border-top:1px solid var(--ml-line); padding-top:14px; font-size:13px; }
+.ml-terminal-option summary { cursor:pointer; color:var(--ml-green); padding-bottom:12px; }
+.ml-terminal-option pre { padding:12px; border-radius:8px; background:var(--ml-paper); white-space:pre-wrap; overflow-wrap:anywhere; font-size:12px; user-select:all; }
+.ml-store .ml-terminal-option p { font-size:12px; margin-bottom:8px; }
+@media(max-width:900px) { .ml-install-panel { left:0; right:auto; } }

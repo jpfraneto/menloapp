@@ -150,6 +150,11 @@ test("app pages and API use committed metadata and pin every asset to that commi
   expect(page).toContain(`/media/${sha}/menloapp/icon.png`);
   expect(page.match(/alt="Committed App screenshot/g)?.length).toBe(3);
   expect(page).not.toContain("Ignored request name");
+  expect(page).toContain('<details class="ml-install-options"><summary class="ml-button ml-get-button">Get app</summary>');
+  expect(page).toContain('aria-label="Install Committed App"');
+  expect(page).toContain(`href="menlo://app/test-app?commit=${sha}&amp;repository=12">Open MENLO</a>`);
+  expect(page).toContain('href="/download/macos">Install or update MENLO for Mac');
+  expect(page).toContain('menloapp try https://menloapp.lol/test-app');
   addPresentation(f.files, "Next name"); f.state.head = next; f.restart();
   const updated = await (await f.request("GET", "apps/test-app"))!.json();
   expect(updated.name).toBe("Next name");
