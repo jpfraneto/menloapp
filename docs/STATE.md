@@ -19,6 +19,14 @@ the older app. macOS now resolves `menlo://` to that installation. Opening the
 real Logos link reached the native Try Logos review for commit
 `3c5c5cceb5b2dc39bf61001e8ea07b7974e333a3`. It was left at Build for my iPhone;
 no source-build approval or physical installation was performed by the agent.
+The website fix from main commit `8c3c4be06a358a10aaa12b9ff7d9a7e83a5ad614`
+was deployed as Railway deployment `e9880f1d-0bb4-4d3a-8230-3d0421cf2c18`.
+All 34 focused website checks and typechecking passed. The live Logos panel
+opened and closed at desktop/mobile widths with JavaScript both enabled and
+disabled, preserving the exact-commit native link and the Terminal alternative.
+During owner use, the native flow then reported its additional source-review
+requirement for Swift packages/plugins and another Xcode target; that authority
+was not bypassed. A temporary public GitHub lookup failure also recovered.
 
 ## App listings, discovery feed and automatic previews (September 17)
 
