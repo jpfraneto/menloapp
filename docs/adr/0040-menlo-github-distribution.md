@@ -53,10 +53,12 @@ Bounded cached polling while the products are running is sufficient. GitHub
 device authorization supports people without an existing GitHub CLI session.
 User tokens are not stored by the public directory or written to its ledger.
 
-The landing page explains centralized distribution now and possible
-decentralized witnessing in v1/v2 when it earns its cost. That roadmap is not a
-promise of a scheduled contract migration. Existing Apple signing, notarized
-Mac-download pins, source-integrity, and physical-device boundaries remain.
+The public homepage is the app activity feed. App pages use a store listing:
+icon, title, subtitle, maker avatar/username, GitHub link, one gallery with the
+recording first, and the description. A prominent Discover Other Apps control
+opens the feed. Public copy describes the commands and current behavior directly.
+Existing Apple signing, notarized Mac-download pins, source integrity and
+physical-device boundaries remain.
 
 ## Acceptance
 
@@ -74,17 +76,30 @@ Git files and are read from the same full commit as the app page. Later pushes
 update presentation through the existing default-branch discovery mechanism.
 Registration establishes identity and recipe; it is not a second media editor.
 
-`menloapp init` scaffolds the folder. A first deploy offers that same scaffold
-and requires review, commit and push before registration. Installing the npm
-package globally or as a project dependency does not run a setup or upload hook.
+The owner’s September 17 instruction adds optional `website` and `tokenAddress`
+(CAIP-19 ERC-20 asset identifier), plus automatically derived `githubRepo` and
+`menloLink` fields. GitHub identity and the registered MENLO link are derived by
+the server; a supplied metadata URL cannot replace those identities.
 
-`menloapp deploy --record` explicitly builds an isolated copy of the committed
-app for one selected, booted iPhone Simulator, launches it, and records a bounded
-walkthrough. The resulting MP4 is selected in the manifest and stops for review
-before a subsequent commit/push/deploy makes it public. No private existing
-capture is automatically selected. The source commit actually built remains
-attached to the preview, even when a later commit contains the video file.
+The ordinary commands are `menloapp deploy` and `menloapp try <link>`. Deploy
+creates missing presentation metadata and commits/pushes only the metadata and
+captures it generates; unrelated owner edits must already be committed. It fills
+the actual GitHub and MENLO links after registration. `init` and explicit project,
+scheme, slug and recording controls remain optional advanced tools.
 
-A Simulator recording is a recorded demonstration, not an interactive app,
-physical installation, recipient acceptance or verification report. Manually
-supplied screen/device recordings are labeled as supplied by the maker.
+Deploy can generate an automatic preview using a signed-in local Codex CLI and
+Simulator capture tools. It builds the exact committed source, creates a fresh
+iPhone Simulator by default, and uses bounded, structured agent actions targeted
+to that Simulator. The agent receives only the screen and accessibility data;
+it does not receive project source or authority to sign in, purchase, message,
+or authorize account actions. Existing screenshots and videos marked device or
+screen-recording are preserved; Simulator previews refresh after app-source
+changes. Missing capture tools or a failed automatic preview do not prevent
+deployment with existing assets. `--record` regenerates a
+preview, and `--no-preview` skips generation.
+
+A Simulator recording is a demonstration of actual app use. The source commit
+that was built stays attached to it, even when a later commit contains the media.
+The page labels it as a Simulator preview. It is not physical installation,
+recipient acceptance or a verification report. The deploy instruction authorizes
+publication of newly generated preview assets in the public app folder.

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { GUIDE, HELP, parseCommand, redact } from "../src/cli.js";
+import { GUIDE, HELP, parseCommand, redact, tryArguments } from "../src/cli.js";
 import { compareVersions } from "../src/semver.js";
 import { nodeArchitecture, validateManifest, validatedHttpsURL } from "../src/manifest.js";
 import { validateArchivePaths } from "../src/archive.js";
@@ -49,8 +49,8 @@ test("command parsing keeps native commands opaque", () => {
 });
 
 test("the npm CLI makes GitHub deploy the primary path", () => {
-  assert.match(GUIDE, /cd \/path\/to\/YourApp[\s\S]*menloapp deploy/);
-  assert.match(GUIDE, /Keep pushing code/);
+  assert.match(GUIDE, /menloapp deploy/);
+  assert.match(GUIDE, /menloapp try https:\/\/menloapp.lol/);
   assert.match(HELP, /menloapp init \[path\]/);
   assert.match(HELP, /menloapp deploy/);
   assert.ok(HELP.indexOf("menloapp init") < HELP.indexOf("menloapp open"));
@@ -223,4 +223,11 @@ test("redirects follow only an exact allowlisted HTTPS chain", async () => {
   } finally {
     globalThis.fetch = original;
   }
+});
+
+test("try accepts a MENLO link or slug and preserves explicit native review controls", () => {
+  assert.deepEqual(tryArguments(["https://menloapp.lol/hello-menlo"]), ["github", "install", "hello-menlo"]);
+  assert.deepEqual(tryArguments(["hello-menlo", "--approve-mac-review"]), ["github", "install", "hello-menlo", "--approve-mac-review"]);
+  for (const value of ["https://evil.test/app", "https://user@menloapp.lol/app", "https://menloapp.lol/app?token=secret", "../app", "--helpful"]) assert.throws(() => tryArguments([value]));
+  assert.equal(tryArguments(["--help"]), null);
 });

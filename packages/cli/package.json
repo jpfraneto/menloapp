@@ -1,6 +1,6 @@
 {
   "name": "menloapp",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "MENLO: share living iOS apps from GitHub and try them on your own iPhone",
   "type": "module",
   "bin": {

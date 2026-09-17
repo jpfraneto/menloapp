@@ -20,6 +20,12 @@ async function repository(t, files = appFiles("App")) {
   const git = (...args) => execFileSync("git", ["-C", root, "-c", "user.name=MENLO Test", "-c", "user.email=menlo@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
   git("init", "-q", "--initial-branch=main");
   git("remote", "add", "origin", "https://github.com/maker/App.git");
+  git("config", "user.name", "MENLO Test"); git("config", "user.email", "menlo@example.invalid");
+  git("config", "commit.gpgsign", "false"); git("config", "core.hooksPath", "/dev/null");
+  const remote = await mkdtemp(path.join(os.tmpdir(), "menlo-push-"));
+  t.after(() => rm(remote, { recursive: true, force: true }));
+  execFileSync("git", ["init", "--bare", "-q", remote]);
+  git("config", "remote.origin.pushurl", remote);
   git("add", "."); git("commit", "-qm", "Initial app");
   return { root, git, commit: git("rev-parse", "HEAD") };
 }
@@ -151,12 +157,22 @@ test("private source requires the human's visibility action and then resumes to 
   const ui = interfaceFor(["", ""]);
   let reads = 0;
   const network = requests(commit, { repoRead: () => ({ private: reads++ === 0, default_branch: "main" }) });
-  assert.equal(await deploy([root], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } }), 0);
+  assert.equal(await deploy([root, "--no-preview"], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } }), 0);
   assert.deepEqual(ui.opened, ["https://github.com/maker/App/settings#danger-zone"]);
   assert.match(ui.logs.join("\n"), /code and history public/);
   assert.match(ui.output.join("\n"), /Your app is live:\nhttps:\/\/menloapp.lol\/app/);
   assert.equal(network.calls.filter(call => call.init.method === "POST").length, 1);
   assert.ok(!network.calls.some(call => call.init.method === "PATCH"));
+});
+
+test("ordinary deploy attempts the automatic preview and still returns its link when capture is unavailable", async t => {
+  const { root, commit } = await repository(t);
+  const ui = interfaceFor([], false);
+  let attempted = false;
+  await deploy([root, "--json"], { ui, ...requests(commit), env: { GH_TOKEN: "fixture-secret" }, previewTools: () => [], recordExperience: async () => { attempted = true; throw new Error("Simulator unavailable"); } });
+  assert.equal(attempted, true);
+  assert.equal(JSON.parse(ui.output[0]).menloLink, "https://menloapp.lol/app");
+  assert.match(ui.logs.join("\n"), /Simulator unavailable/);
 });
 
 test("cancelling private visibility never publishes or changes the GitHub repo", async t => {
@@ -191,7 +207,7 @@ test("an unpushed commit explains the push and can continue without restarting d
   const ui = interfaceFor([() => { pushed = true; return ""; }]);
   const network = requests(commit);
   const fetcher = (url, init) => url.endsWith("/commits/main") && !pushed ? Response.json({ sha: "0".repeat(40) }) : network.fetcher(url, init);
-  await deploy([root], { ui, fetcher, env: { GH_TOKEN: "fixture-secret" } });
+  await deploy([root, "--no-preview"], { ui, fetcher, env: { GH_TOKEN: "fixture-secret" } });
   assert.match(ui.logs.join("\n"), /git push origin main/);
   assert.match(ui.output.join("\n"), /Your app is live/);
 });
@@ -204,7 +220,7 @@ test("repeat deploy finds the existing stable app link without requiring a slug 
     return body.slug === "existing-app" ? Response.json({ public_url: "https://menloapp.lol/existing-app" }) : Response.json({ error: "This repository already has a link: https://menloapp.lol/existing-app. Use --app-slug existing-app." }, { status: 409 });
   } });
   const ui = interfaceFor([], false);
-  await deploy([root, "--json"], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } });
+  await deploy([root, "--json", "--no-preview"], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } });
   assert.deepEqual(registered.map(body => body.slug), ["app", "existing-app"]);
   assert.equal(JSON.parse(ui.output[0]).public_url, "https://menloapp.lol/existing-app");
 });
@@ -214,7 +230,7 @@ test("link collisions are resolved in the same deploy without changing repositor
   const ui = interfaceFor(["", "my-app"]);
   let count = 0;
   const network = requests(commit, { post: body => ++count < 3 ? Response.json({ error: "That app link belongs to another repository. Choose --app-slug with another name." }, { status: 409 }) : Response.json({ public_url: `https://menloapp.lol/${body.slug}` }) });
-  await deploy([root], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } });
+  await deploy([root, "--no-preview"], { ui, ...network, env: { GH_TOKEN: "fixture-secret" } });
   assert.match(ui.output.join("\n"), /https:\/\/menloapp.lol\/my-app/);
 });
 

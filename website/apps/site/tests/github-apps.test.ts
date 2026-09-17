@@ -13,7 +13,7 @@ const metadata = { repository: "maker/TestApp", slug: "test-app", name: "Test Ap
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "menlo-github-"));
   const files = new Map<string, Buffer>();
-  const state = { id: 12, owner: 4, push: true, omitPermissions: false, private: false, head: sha, status: "ahead", ahead: 3, fail: false, fileMode: "100644", folderMode: "040000" };
+  const state = { id: 12, owner: 4, push: true, omitPermissions: false, private: false, head: sha, commits: [] as any[], status: "ahead", ahead: 3, fail: false, fileMode: "100644", folderMode: "040000" };
   const hash = (bytes: Buffer) => createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
   const fetcher = async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input));
@@ -27,6 +27,7 @@ async function fixture() {
     if (url.pathname === "/user") return Response.json({ id: 4, login: "maker" });
     if (url.pathname.includes("/collaborators/")) return Response.json({ permission: state.push ? "write" : "read", user: { id: 4 } });
     if (url.pathname.includes("/compare/")) return Response.json({ status: state.status, ahead_by: state.ahead });
+    if (url.pathname.endsWith("/commits")) return Response.json(state.commits);
     if (url.pathname.includes("/commits/")) return Response.json({ sha: state.head });
     if (url.pathname.includes("/git/trees/")) {
       const folder = "c".repeat(40);
@@ -144,7 +145,7 @@ test("app pages and API use committed metadata and pin every asset to that commi
   const page = (await f.router.render("test-app"))!;
   expect(page).toContain("Committed App");
   expect(page).toContain("A useful app");
-  expect(page).toContain("Simulator recording");
+  expect(page).toContain("Simulator preview");
   expect(page).toContain("<video controls playsinline");
   expect(page).toContain(`/media/${sha}/menloapp/icon.png`);
   expect(page.match(/alt="Committed App screenshot/g)?.length).toBe(3);
@@ -191,4 +192,39 @@ test("public presentation rejects symbolic links even when Contents API would fo
   expect((await f.request("POST", "apps", metadata))!.status).toBe(422);
   f.state.fileMode = "100644"; f.state.folderMode = "120000";
   expect((await f.request("POST", "apps", metadata))!.status).toBe(422);
+});
+
+test("discovery orders real publications, redeployments and later public commits without writing activity", async () => {
+  const f = await fixture(); addPresentation(f.files);
+  await f.request("POST", "apps", metadata);
+  await f.request("POST", "apps", metadata);
+  f.state.commits = [
+    { sha: next, author: { id: 8, login: "contributor" }, commit: { committer: { date: "2090-01-02T12:00:00Z" }, message: "A useful improvement\nPrivate-looking extra line" } },
+    { sha, author: null, commit: { committer: { date: "2020-01-01T00:00:00Z" }, message: "Before MENLO" } },
+  ];
+  const feed = await (await f.request("GET", "activity"))!.json();
+  expect(feed.events.map((event: any) => event.kind)).toEqual(["commit", "deployed", "published"]);
+  expect(feed.events[0].message).toBe("A useful improvement");
+  expect(feed.events[0].actor.login).toBe("contributor");
+  const page = await f.router.renderIndex();
+  expect(page).toContain("Latest activity");
+  expect(page).toContain("published an app");
+  expect(page).toContain("deployed an update");
+  expect(page).toContain(`https://github.com/maker/TestApp/commit/${next}`);
+  expect(page).not.toContain("Before MENLO");
+  const db = new Database(join(f.root, "github-apps.sqlite"));
+  expect((db.query("SELECT count(*) n FROM registration_events").get() as any).n).toBe(2);
+  db.close();
+});
+
+test("discovery keeps actual publication history when GitHub is unavailable and rejects replacement commits", async () => {
+  const f = await fixture();
+  await f.request("POST", "apps", metadata);
+  f.state.id = 99;
+  const feed = await (await f.request("GET", "activity"))!.json();
+  expect(feed.updates_unavailable).toBe(true);
+  expect(feed.events.length).toBe(1);
+  expect(feed.events[0].kind).toBe("published");
+  expect(feed.apps[0].listing).toBeUndefined();
+  expect(await f.router.renderIndex()).toContain("Some GitHub updates are unavailable");
 });

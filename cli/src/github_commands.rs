@@ -567,6 +567,10 @@ pub fn deploy(args: &[String]) -> Result<(), BoxError> {
             "record.js",
             include_str!("../../packages/cli/src/record.js"),
         ),
+        (
+            "experience-agent.js",
+            include_str!("../../packages/cli/src/experience-agent.js"),
+        ),
     ] {
         std::fs::write(modules.path().join(name), source)?;
     }

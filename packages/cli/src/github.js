@@ -4,8 +4,9 @@ import path from "node:path";
 import process from "node:process";
 import { choose, continueAfter, deployUI, openBrowser, shellQuote } from "./deploy-ui.js";
 
-import { setupPresentation, readCommittedPresentation } from "./project-presentation.js";
+import { setupPresentation, readCommittedPresentation, updatePresentationLinks, commitPresentation, previewNeedsRefresh } from "./project-presentation.js";
 import { recordExperience } from "./record.js";
+import { previewTools } from "./experience-agent.js";
 
 export const MENLO_ORIGIN = "https://menloapp.lol";
 const SHA = /^[a-f0-9]{40}$/;
@@ -25,6 +26,7 @@ export function deployOptions(args) {
     const arg = args[i];
     if (arg === "--json") options.json = true;
     else if (arg === "--record") options.record = true;
+    else if (arg === "--no-preview") options.noPreview = true;
     else if (arg === "--dry-run") options.dryRun = true;
     else if (arg === "--help" || arg === "-h") options.help = true;
     else if (["--scheme", "--app-slug", "--project", "--name", "--simulator", "--seconds"].includes(arg)) {
@@ -37,6 +39,7 @@ export function deployOptions(args) {
   }
   options.seconds = Number(options.seconds);
   if (!Number.isInteger(options.seconds) || options.seconds < 3 || options.seconds > 60) throw new Error("Choose --seconds from 3 to 60.");
+  if (options.record && options.noPreview) throw new Error("Choose --record or --no-preview.");
   if (options.dryRun && options.record) throw new Error("Choose --dry-run or --record, not both.");
   return options;
 }
@@ -229,19 +232,11 @@ export async function deploy(args, dependencies = {}) {
   const ui = dependencies.ui || deployUI(options);
   const fetcher = dependencies.fetcher || fetch;
   if (options.help) {
-    ui.print("MENLO deploy\n\nmenloapp deploy [path]\n\nSign in to GitHub, choose your app if needed, and get a production app link.\nMENLO guides you through each step. Later pushes appear automatically.\n\nOptions: --project path/App.xcodeproj, --scheme Name, --app-slug your-app,\n         --name Name, --dry-run (local checks only), --json (no prompts)\n         --record (build and record, then review/commit before publishing),\n         --seconds 3–60, --simulator UDID");
+    ui.print("MENLO deploy\n\nmenloapp deploy [path]\n\nSign in to GitHub, choose your app if needed, and get a production app link.\nMENLO guides you through each step. Later pushes appear automatically.\n\nOptions: --project path/App.xcodeproj, --scheme Name, --app-slug your-app,\n         --name Name, --dry-run (local checks only), --json (no prompts)\n         --record (regenerate the automatic preview), --no-preview,\n         --seconds 3–60, --simulator UDID");
     return 0;
   }
   if (options.dryRun) { ui.print(JSON.stringify(await inspectProject(options, ui), null, 2)); return 0; }
   const local = await inspectRepository(options);
-  if (await setupPresentation(local.root, options.name || local.repository.split("/")[1])) {
-    await continueAfter(ui, "Created menloapp/app.json and asset instructions. Edit your public app details, add your icon and up to three screenshots, then commit and push menloapp/.");
-  }
-  if (options.record) {
-    const project = await inspectProject(options, ui);
-    await recordExperience(local.root, project, options, ui);
-    return 0;
-  }
   ui.log(`MENLO deploy\nRepository: ${local.repository}`);
   const { credential } = await authenticate(ui, { ...dependencies, fetcher });
   const repo = await publicRepository(local.repository, credential, ui, fetcher);
@@ -256,6 +251,26 @@ export async function deploy(args, dependencies = {}) {
       ? `Push your committed changes: git push origin ${shellQuote(branch)}\nIf GitHub has newer commits, bring them in first: git pull --ff-only origin ${shellQuote(branch)}`
       : `MENLO follows ${repo.default_branch}. Merge your changes into that branch and push it, then switch this checkout to ${repo.default_branch}.`;
     await continueAfter(ui, `Your local commit ${project.commit.slice(0, 7)} is not the latest commit on GitHub's ${repo.default_branch} branch.\n${instruction}`);
+  }
+  const generated = [];
+  if (await setupPresentation(local.root, project.name)) generated.push("menloapp/app.json", "menloapp/README.md");
+  const presentation = await readCommittedPresentation(local.root, project.commit);
+  if (!options.noPreview && (options.record || previewNeedsRefresh(local.root, project.commit, presentation))) {
+    const missing = (dependencies.previewTools || previewTools)();
+    if (missing.length && !options.record) ui.log(`Sharing without a generated preview. Automatic previews need ${missing.join(", ")}; see menloapp deploy --help.`);
+    else {
+      try {
+        const captures = await (dependencies.recordExperience || recordExperience)(local.root, project, options, ui);
+        generated.push("menloapp/app.json", ...captures);
+      } catch (error) {
+        if (options.record) throw error;
+        ui.log(`Automatic preview was unavailable: ${error.message}\nSharing with your existing app assets. Use --record to retry the preview.`);
+      }
+    }
+  }
+  if (generated.length) {
+    (dependencies.commitPresentation || commitPresentation)(local.root, [...new Set(generated)], repo.default_branch);
+    project = await inspectProject(options, ui);
   }
   ui.log(`App: ${project.name}\nProject: ${project.project} · ${project.scheme}\nConnecting this app to MENLO…`);
   let result;
@@ -291,6 +306,11 @@ export async function deploy(args, dependencies = {}) {
     }
   }
   if (result.public_url !== `${MENLO_ORIGIN}/${project.slug}`) throw new Error("MENLO did not confirm the expected app link. Run menloapp deploy again to verify it.");
+  if (await updatePresentationLinks(local.root, project.repository, result.public_url)) {
+    (dependencies.commitPresentation || commitPresentation)(local.root, ["menloapp/app.json"], repo.default_branch);
+    ui.log("Saved your GitHub and MENLO links to menloapp/app.json.");
+  }
+  result = { ...result, githubRepo: `https://github.com/${project.repository}`, menloLink: result.public_url };
   if (options.json) ui.print(JSON.stringify(result));
   else ui.print(`\nYour app is live:\n${result.public_url}\n\nShare this link. Testers open it in MENLO to build and run the app on their iPhone.\nKeep pushing to ${repo.default_branch}; this link follows your code automatically.\n`);
   return 0;

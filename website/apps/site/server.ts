@@ -11,7 +11,6 @@ import { createClaimsRouter } from "./src/claims.ts";
 import { createBuyRouter } from "./src/buy.ts";
 import type { RegistryRouter } from "./src/registry.ts";
 import { createGitHubApps } from "./src/github-apps.ts";
-import { menloHome } from "./src/menlo-home.ts";
 
 const PUBLIC_DIRECTORY = join(import.meta.dir, "public");
 
@@ -604,7 +603,7 @@ export async function createApplication(
 
     if (pathname === "/apps") {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
-      return headResponse(html(githubApps.renderIndex()), method);
+      return headResponse(html(await githubApps.renderIndex()), method);
     }
     if (pathname === "/docs") {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
@@ -626,7 +625,7 @@ export async function createApplication(
         || pathname.startsWith("/claims/") || isGlobalAliasPath(pathname)) {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
       let content: string | undefined;
-      if (pathname === "/") content = menloHome(githubApps.cards(), "", "Live source on GitHub. Centralized discovery today.");
+      if (pathname === "/") content = await githubApps.renderIndex();
       else if (pathname === "/registry") content = await registry.renderRegistry(url.searchParams.get("q") ?? undefined);
       else if (/^\/claims\/[1-9]\d*$/.test(pathname)) content = await claims.renderReceipt(pathname.slice(8));
       else if (/^\/s\/[0-9a-f]{64}$/.test(pathname)) content = await registry.renderShot(`0x${pathname.slice(3)}`);

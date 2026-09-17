@@ -1,29 +1,36 @@
 import { NPM_CLI_VERSION } from "./constants.js";
 
-export const HELP = `MENLO (menloapp ${NPM_CLI_VERSION})
+export const HELP = `MENLO · menloapp ${NPM_CLI_VERSION}
 
-Usage:
-  menloapp init [path]            Create your public app metadata folder
-  menloapp deploy [path]          Connect a public GitHub app and get its link
-  menloapp deploy --record        Record the app in Simulator for review
-  menloapp github install <slug>  Build a GitHub app for your iPhone
-  menloapp open                   Open MENLO on your Mac
-  menloapp doctor                 Check this Mac
-  menloapp --version              Print the npm CLI version
+  menloapp deploy [path]     Share your app. Get a live URL.
+  menloapp try <link>        Install an app on your iPhone.
 
-Commit and push your app and menloapp/ assets, then deploy. Its link follows
-GitHub's default branch. Testers use Xcode and their own Apple signing identity.`;
+  menloapp init [path]       Edit your app page before deploying
+  menloapp open              Open MENLO on your Mac
+  menloapp doctor            Check this Mac
+  menloapp --version         Print the installed version
 
-export const GUIDE = `MENLO CLI ${NPM_CLI_VERSION} is installed.
+Run menloapp deploy --help for advanced options.`;
 
-From your app's public GitHub repository:
-  cd /path/to/YourApp
-  menloapp init
-  # Edit menloapp/app.json, then commit and push.
+export const GUIDE = `Share your app:
   menloapp deploy
 
-Share the link. Keep pushing code. Your testers choose when to update.
-Deploy guides you through GitHub sign-in and choosing an app if needed.`;
+Try an app:
+  menloapp try https://menloapp.lol/hello-menlo
+
+Discover apps at https://menloapp.lol`;
+
+export function tryArguments(args) {
+  if (!args.length || args.includes("--help") || args.includes("-h")) return null;
+  let slug = args[0];
+  if (slug.startsWith("https://")) {
+    const url = new URL(slug);
+    if (url.origin !== "https://menloapp.lol" || url.username || url.password || url.search || url.hash) throw new Error("Use a menloapp.lol app link.");
+    slug = url.pathname.replace(/^\/|\/$/g, "");
+  }
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 2 || slug.length > 64) throw new Error("Use menloapp try https://menloapp.lol/your-app");
+  return ["github", "install", slug, ...args.slice(1)];
+}
 
 export function suggestedCommand(value) {
   if (!value || value === "deploy") return null;

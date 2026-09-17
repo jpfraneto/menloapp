@@ -4,6 +4,31 @@ Written 2026-07-30, amended through 2026-09-17. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## App listings, discovery feed and automatic previews (September 17)
+
+Current source makes `/` and `/apps` the app activity feed. Public app pages
+show an app-store listing: icon, title, subtitle, creator avatar/username and
+GitHub link, a recording-first gallery, and description. Activity projects the
+existing publication ledger and checked public GitHub commits. It does not
+create synthetic installation or usage events.
+
+The npm 1.5.0 source adds `menloapp try <link>`, optional `website` and CAIP-19
+`tokenAddress`, and automatic `githubRepo`/`menloLink` metadata. Normal deploy
+creates missing presentation and uses signed-in local Codex, AXe and FFmpeg to
+capture a fresh Simulator experience. Only generated presentation is committed
+and pushed; unrelated work is preserved. Missing tools or failed automatic
+capture do not block sharing with existing assets. Source changes refresh
+Simulator previews; device/screen-recording videos remain maker-controlled.
+The exact recorded source stays attached to every generated preview.
+
+Local verification passed: 47 npm checks, website typechecking and 34 focused
+website checks, and the native embedded-launcher regression. A real Codex-guided
+capture built sample commit `63012d3ab2284e6ce85d3f5718826515dea88c8b`, tapped its
+button, observed the counter change from zero to one, and produced a playable
+four-second H.264 preview. Desktop/mobile layout and feed navigation passed in
+isolated Chrome. These are local observations; publication is recorded below
+when complete. Native signing/install authority is unchanged.
+
 ## menloapp launch and public presentation (September 17)
 
 GitHub is `jpfraneto/menloapp`; the local checkout is

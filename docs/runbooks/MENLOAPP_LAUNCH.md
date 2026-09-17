@@ -1,7 +1,7 @@
 # Launch menloapp on npm and menloapp.lol
 
 The GitHub repository is `https://github.com/jpfraneto/menloapp`, on `main`.
-The intended local checkout is `/Users/kithkui/code/menloapp`.
+The local checkout is `/Users/kithkui/code/menloapp`.
 The npm package is published as `menloapp@1.4.0`; its only executable is
 `menloapp`. Existing `tohseno`/`menlo` installations can coexist with it.
 
@@ -143,72 +143,61 @@ needs a new version. See [npm publish](https://docs.npmjs.com/cli/v11/commands/n
 No postinstall script runs. Publishing this JavaScript package does not rebuild
 or relabel the signed native runtime; 1.4.0 retains the exact 1.3.0 runtime pin.
 
-## 4. Exercise one real app page
+## 4. Deploy and try an app
 
-In the app's public GitHub repository:
-
-```sh
-menloapp init
-```
-
-Edit `menloapp/app.json` and add real assets. The [package README](../../packages/cli/README.md#your-app-page)
-contains the complete format. Keep only the basic presentation fields there;
-repository identity, version, source, build recipe and feedback are handled by
-the existing GitHub and recipient flows.
-
-```text
-YourApp/
-  YourApp.xcodeproj/
-  menloapp/
-    app.json
-    README.md
-    icon.png
-    screenshot-1.png
-    screenshot-2.png
-    screenshot-3.png
-    preview-....mp4       optional
-```
-
-`init` creates the JSON and README; it does not fabricate image or video files.
-Commit and push the reviewed folder. Then:
+In your app's public GitHub repository, with app changes committed and pushed:
 
 ```sh
-menloapp deploy --app-slug your-app
+menloapp deploy
 ```
 
-The expected link is `https://menloapp.lol/your-app`. Open it and check the name,
-subtitle, description, icon and three screenshots. App slugs use lowercase
-letters, numbers and single hyphens. Later default-branch pushes update the same
-page, with up to 60 seconds of cache delay.
+The command creates missing `menloapp/app.json`, generates an automatic preview
+when capture tools are available, commits and pushes its generated presentation,
+and returns `https://menloapp.lol/your-app`. It writes the confirmed `menloLink`
+and `githubRepo` back to `app.json`. The [package README](../../packages/cli/README.md#your-app-page)
+contains the complete metadata format, including optional `website` and
+CAIP-19 `tokenAddress` fields. `menloapp init` is optional when preparing custom
+metadata and artwork before the first deploy.
 
-To add a real preview, open an iPhone Simulator and run:
+The listing shows the app icon, name, subtitle, maker avatar and username,
+GitHub link, description, and a gallery with the recording first. The homepage
+and Discover Other Apps button open the network activity feed. Later pushes
+update the same page, with up to 60 seconds of cache delay.
+
+Automatic previews require full Xcode with an iPhone Simulator runtime, a
+signed-in Codex CLI, AXe and FFmpeg. Install these once:
 
 ```sh
-menloapp deploy --record --seconds 20
+npm i -g @openai/codex
+codex login
+brew install cameroncooke/axe/axe ffmpeg
 ```
 
-The command builds and launches the committed app, records while you use it,
-and saves a new MP4 with its source commit in `app.json`. Review the recording,
-commit/push the folder, then run `menloapp deploy`. Video and screenshots are
-read from the public commit; no local capture is published merely by recording.
-The page's controls play the MP4 before someone chooses to build the app.
-A Simulator preview is not evidence of physical installation.
+Normal `menloapp deploy` then builds committed source in a fresh Simulator.
+Codex chooses bounded interactions from real screenshots; capture omits the
+agent's thinking time. Only generated metadata and media are committed and
+pushed. Existing screenshots and device/screen-recording videos are preserved;
+Simulator previews refresh after app-source changes. Preview failures preserve
+existing media and do not block the app link. `--record` explicitly regenerates
+a preview and reports failures; `--no-preview` skips generation.
 
-For a project dependency instead of a global tool:
+For a project dependency:
 
 ```sh
 npm install menloapp
-npx menloapp init
-# Review, commit and push package.json, package-lock.json, and menloapp/.
+# Commit package.json and package-lock.json; keep node_modules/ ignored.
 npx menloapp deploy
 ```
 
-Keep `/node_modules/` in the project’s `.gitignore`; do not commit installed
-dependencies.
+To try a shared app:
 
-A recipient still reviews the exact source, builds with Xcode and their own
-Apple signing identity, and installs on their intended iPhone. A browser page
-or recording does not remove those native requirements.
+```sh
+menloapp try https://menloapp.lol/hello-menlo
+```
+
+The recipient reviews exact source, builds with their own Mac, Xcode and Apple
+signing identity, and installs on their intended iPhone. A Simulator preview is
+not evidence of physical installation.
 
 ## Verification and evidence
 

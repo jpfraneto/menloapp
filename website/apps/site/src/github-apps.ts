@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { HttpError } from "./security.ts";
+import { renderAppListing, renderAppDirectory, type AppDirectory, type AppActivity } from "./menlo-listings.ts";
 import { PRESENTATION_PATH, MAX_PRESENTATION_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, validatePresentation, presentationFiles, mediaType, validateMediaBytes } from "../../../../packages/cli/src/presentation.js";
 
 export interface GitHubAppsConfig {
@@ -84,6 +85,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       CREATE TRIGGER IF NOT EXISTS immutable_registration_deletes BEFORE DELETE ON registration_events BEGIN SELECT RAISE(ABORT, 'registration ledger is append-only'); END;`);
   }
   const cache = new Map<string, { until: number; value: Promise<any> }>();
+  let directoryCache: { until: number; value: Promise<AppDirectory> } | undefined;
   let rateWindow = Date.now(), reads = 0, writes = 0;
   function rateLimit(write: boolean) {
     if (Date.now() - rateWindow >= 60_000) { rateWindow = Date.now(); reads = 0; writes = 0; }
@@ -172,7 +174,9 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
   }
   async function presented(app: Awaited<ReturnType<typeof current>>) {
     const media = await presentation(app.repository, app.head_commit);
-    return { ...app, name: media?.name ?? app.name, description: media?.description ?? app.description, subtitle: media?.subtitle ?? "", presentation: media };
+    return { ...app, name: media?.name ?? app.name, description: media?.description ?? app.description, subtitle: media?.subtitle ?? "",
+      website: media?.website ?? null, tokenAddress: media?.tokenAddress ?? null, githubRepo: app.github_url, menloLink: app.public_url,
+      presentation: media ? { ...media, githubRepo: app.github_url, menloLink: app.public_url } : null };
   }
   function mediaURL(app: GitHubApp, commit: string, file: string) {
     return `${config.baseUrl}/api/menlo/v1/apps/${app.slug}/media/${commit}/${file}`;
@@ -204,6 +208,52 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     verifyBlob(info, bytes);
     try { validateMediaBytes(file, bytes); } catch (error) { throw new HttpError(422, (error as Error).message); }
     return new Response(request.method === "HEAD" ? null : Uint8Array.from(bytes.subarray(start, end + 1)).buffer, { status: range ? 206 : 200, headers });
+  }
+  async function directory(): Promise<AppDirectory> {
+    if (directoryCache && directoryCache.until > Date.now()) return directoryCache.value;
+    const value = (async () => {
+      const records = (db?.query("SELECT record FROM apps ORDER BY rowid DESC").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record) as GitHubApp);
+      const rows = db?.query("SELECT sequence, kind, record, occurred_at FROM registration_events ORDER BY occurred_at DESC, sequence DESC LIMIT 50").all() as { sequence: number; kind: string; record: string; occurred_at: string }[] ?? [];
+      const events: AppActivity[] = rows.map(row => {
+        const app = JSON.parse(row.record) as GitHubApp;
+        return { id: `deployment-${row.sequence}`, kind: row.kind === "registered" ? "published" : "deployed", occurred_at: row.occurred_at, app, actor: app.publisher };
+      });
+      const apps: AppDirectory["apps"] = [];
+      let updates_unavailable = false;
+      // Share the normal GitHub cache, with at most four repositories loading at
+      // once. The feed projects existing records and public commits; it writes no
+      // synthetic activity or user credentials to the registration ledger.
+      for (let offset = 0; offset < records.length; offset += 4) {
+        const batch = records.slice(offset, offset + 4);
+        const results = await Promise.allSettled(batch.map(async record => {
+          const app = await current(record);
+          const [listing, history] = await Promise.allSettled([
+            presented(app),
+            github(`/repos/${app.repository}/commits?sha=${app.head_commit}&since=${encodeURIComponent(record.created_at)}&per_page=30`, config.readToken, true),
+          ]);
+          if (listing.status === "rejected" || history.status === "rejected") updates_unavailable = true;
+          if (history.status === "fulfilled" && Array.isArray(history.value)) {
+            for (const commit of history.value) {
+              const occurred = commit.commit?.committer?.date;
+              if (!SHA.test(commit.sha) || typeof occurred !== "string" || !Number.isFinite(Date.parse(occurred)) || Date.parse(occurred) < Date.parse(record.created_at)) continue;
+              const author = commit.author;
+              const actor = Number.isSafeInteger(author?.id) && author.id > 0 && typeof author.login === "string" && /^[A-Za-z0-9-]{1,39}$/.test(author.login) ? { id: author.id, login: author.login } : null;
+              events.push({ id: `commit-${record.id}-${commit.sha}`, kind: "commit", occurred_at: new Date(occurred).toISOString(), app: record, actor, commit: commit.sha, message: typeof commit.commit?.message === "string" ? commit.commit.message.split("\n")[0].slice(0, 500) : "Updated the app" });
+            }
+          } else if (history.status === "fulfilled") updates_unavailable = true;
+          return { ...record, ...(listing.status === "fulfilled" ? { listing: listing.value } : {}) };
+        }));
+        results.forEach((result, index) => {
+          if (result.status === "fulfilled") apps.push(result.value);
+          else { updates_unavailable = true; apps.push(batch[index]!); }
+        });
+      }
+      events.sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at) || b.id.localeCompare(a.id));
+      return { apps, events: events.slice(0, 50), updates_unavailable };
+    })();
+    directoryCache = { until: Date.now() + 60_000, value };
+    value.catch(() => { if (directoryCache?.value === value) directoryCache = undefined; });
+    return value;
   }
   async function register(request: Request) {
     if (!db) throw new HttpError(503, "MENLO's app directory is not configured yet");
@@ -258,6 +308,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       return app;
     })();
     cache.clear();
+    directoryCache = undefined;
     return json({ ...result, head_commit: commit.sha, public_url: `${config.baseUrl}/${slug}` }, 201);
   }
   return {
@@ -273,6 +324,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
         const asset = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/media\/([a-f0-9]{40})\/(menloapp\/[A-Za-z0-9_./-]+)$/.exec(url.pathname);
         if (asset && ["GET", "HEAD"].includes(request.method)) return await mediaResponse(request, asset[1]!, asset[2]!, asset[3]!);
         if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
+        if (url.pathname === "/api/menlo/v1/activity") return json(await directory());
         if (url.pathname === "/api/menlo/v1/apps") return json({ apps: (db?.query("SELECT record FROM apps ORDER BY rowid DESC LIMIT 100").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record)) });
         const match = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)(\/compare)?$/.exec(url.pathname);
         if (!match) throw new HttpError(404, "Not found");
@@ -294,19 +346,10 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       if (!record) return undefined;
       let app: Awaited<ReturnType<typeof presented>> | undefined;
       try { app = await presented(await current(record)); } catch { /* No stale install button when GitHub identity cannot be checked. */ }
-      const name = app?.name ?? record.name;
-      const title = `${name} by ${record.repository.split("/")[0]} — MENLO`;
-      const description = (app ? app.description : record.description) || `Try ${name} on your iPhone. Source and updates from GitHub.`;
-      const media = app?.presentation;
-      const assetURL = (file: string) => escape(mediaURL(record, app!.head_commit, file));
-      const icon = media?.icon ? `<img class="ml-detail-icon" src="${assetURL(media.icon)}" width="112" height="112" alt="${escape(name)} app icon">` : "";
-      const gallery = media?.screenshots.length ? `<section aria-label="App screenshots" class="ml-screenshots">${media.screenshots.map((file: string, index: number) => `<img src="${assetURL(file)}" alt="${escape(name)} screenshot ${index + 1}" loading="lazy">`).join("")}</section>` : "";
-      const preview = media?.preview ? `<section class="ml-preview" aria-label="Recorded app experience"><h2>See it in action</h2><video controls playsinline preload="metadata"${media.screenshots[0] ? ` poster="${assetURL(media.screenshots[0])}"` : ""}><source src="${assetURL(media.preview.path)}" type="video/mp4">Your browser cannot play this recording. <a href="${assetURL(media.preview.path)}">Download the preview.</a></video><p class="ml-small">${media.preview.kind === "simulator" ? "Simulator recording" : media.preview.kind === "device" ? "Device recording supplied by the maker" : "Screen recording supplied by the maker"}${media.preview.source_commit ? ` · Recorded source <a href="https://github.com/${escape(record.repository)}/commit/${media.preview.source_commit}">${media.preview.source_commit.slice(0, 7)}</a>` : ""}. A recorded preview, not an interactive app.</p></section>` : "";
-      return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)}</title><meta name="description" content="${escape(description)}"><meta property="og:title" content="${escape(title)}"><meta property="og:description" content="${escape(description)}"><meta property="og:url" content="${escape(config.baseUrl)}/${record.slug}">${media?.icon ? `<meta property="og:image" content="${assetURL(media.icon)}">` : ""}<meta name="twitter:card" content="summary"><link rel="canonical" href="${escape(config.baseUrl)}/${record.slug}"><link rel="icon" href="/menlo/favicon.svg?v=1"><link rel="stylesheet" href="/menlo/tokens.css?v=1"><link rel="stylesheet" href="/menlo/home.css?v=3"></head><body class="menlo-landing"><header class="ml-container ml-header"><a class="ml-wordmark" href="/">menlo</a><a href="https://github.com/${escape(record.repository)}">View on GitHub ↗</a></header><main class="ml-container ml-section"><p class="ml-eyebrow">FROM GITHUB TO YOUR IPHONE</p>${icon}<h1 class="ml-display ml-h1">${escape(name)}</h1>${app?.subtitle ? `<p class="ml-body">${escape(app.subtitle)}</p>` : ""}<p class="ml-body">${escape(description)}</p><p>By <a href="https://github.com/${escape(record.repository.split("/")[0]!)}">@${escape(record.repository.split("/")[0]!)}</a> · <a href="https://github.com/${escape(record.repository)}">${escape(record.repository)}</a></p>${preview}${gallery}${app ? `<p>Latest on ${escape(app.branch)} · <a href="https://github.com/${escape(app.repository)}/commit/${app.head_commit}"><code>${app.head_commit.slice(0, 7)}</code></a></p><p><a class="ml-button" href="${escape(app.open_url)}">Open in MENLO</a></p><p class="ml-small">Review the source, then build on your Mac and install on your own iPhone. Updates follow GitHub.</p><pre class="ml-code">menloapp github install ${record.slug} --commit ${app.head_commit}</pre>` : `<p role="status">GitHub or the committed app presentation is unavailable, or this repository changed. Installation is paused until its identity can be verified.</p>`}<p><a href="/download/macos">Get MENLO for Mac</a> · Requires Xcode, your Apple signing identity, and a paired iPhone.</p><p>Have feedback? <a href="https://github.com/${escape(record.repository)}/issues">Talk to the maker on GitHub ↗</a></p></main></body></html>`;
+      return renderAppListing(config.baseUrl, record, app);
     },
-    renderIndex(): string {
-      const apps = (db?.query("SELECT record FROM apps ORDER BY rowid DESC LIMIT 100").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record) as GitHubApp);
-      return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Apps to try — MENLO</title><meta name="description" content="Try real iOS apps from GitHub and give their makers hands-on feedback."><link rel="stylesheet" href="/menlo/tokens.css?v=1"><link rel="stylesheet" href="/menlo/home.css?v=3"></head><body class="menlo-landing"><header class="ml-container ml-header"><a class="ml-wordmark" href="/">menlo</a><a href="/#install">Deploy your app ↗</a></header><main class="ml-container ml-section"><h1 class="ml-display ml-h1">Apps to try.</h1><p class="ml-body">Open a link, review the source, and build for your iPhone.</p><div class="ml-app-grid">${apps.length ? apps.map(app => `<a class="ml-app" href="/${app.slug}"><h2>${escape(app.name)}</h2><p>${escape(app.description || app.repository)}</p><span>${escape(app.repository)}</span></a>`).join("") : `<p>The first GitHub apps will appear here. <a href="/#install">Deploy yours.</a></p>`}</div><p><a href="/registry">Historical Registry releases ↗</a></p></main></body></html>`;
+    async renderIndex(): Promise<string> {
+      return renderAppDirectory(config.baseUrl, await directory());
     },
     cards(): string {
       const apps = (db?.query("SELECT record FROM apps ORDER BY rowid DESC LIMIT 6").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record) as GitHubApp);

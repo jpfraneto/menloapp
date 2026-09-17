@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { spawnSync } from "node:child_process";
-import { GUIDE, HELP, parseCommand, redact, suggestedCommand } from "../src/cli.js";
+import { GUIDE, HELP, parseCommand, redact, suggestedCommand, tryArguments } from "../src/cli.js";
 import { NPM_CLI_VERSION, PRODUCT_VERSION } from "../src/constants.js";
 import { delegate, installedNative } from "../src/native.js";
 import { installAuthorizedNative } from "../src/installer.js";
@@ -18,11 +18,14 @@ async function main() {
   if (raw[commandIndex] === "deploy" && !raw.includes("--legacy-registry")) {
     return deploy([...raw.slice(0, commandIndex), ...raw.slice(commandIndex + 1)]);
   }
-  const command = parseCommand(process.argv.slice(2));
+  const trying = raw[commandIndex] === "try";
+  const installArgs = trying ? tryArguments(raw.slice(commandIndex + 1)) : null;
+  if (trying && !installArgs) { console.log("menloapp try <link>\n\nInstall an app on your iPhone using your Mac and Xcode.\nExample: menloapp try https://menloapp.lol/hello-menlo"); return 0; }
+  const command = parseCommand(trying ? [...raw.slice(0, commandIndex), ...installArgs] : raw);
   if (command.kind === "help") { console.log(HELP); return 0; }
   if (command.kind === "version") { console.log(`menloapp ${NPM_CLI_VERSION}`); return 0; }
   if (command.kind === "guide") { console.log(GUIDE); return 0; }
-  if (process.platform !== "darwin") throw new Error("TOHSENO installs on macOS only.");
+  if (process.platform !== "darwin") throw new Error("Trying an iPhone app requires macOS and Xcode.");
   let installed = await installedNative(PRODUCT_VERSION);
   if (command.kind === "doctor") {
     const diagnosticNative = installed ?? await installedNative();
@@ -35,16 +38,16 @@ async function main() {
     console.log(`Xcode command-line tools: ${tools.status === 0 ? "ready" : "not ready"}`);
     console.log(`Xcode: ${xcode.status === 0 ? xcode.stdout.split("\n", 1)[0] : "not installed"}`);
     if (!diagnosticNative) {
-      console.log("native TOHSENO: not installed");
+      console.log("MENLO runtime: not installed");
       console.log("release manifest: checked during install");
       console.log("Local Workspace Service: unavailable until native install");
-      console.log("Companion and entitlement: unavailable until native install");
+      console.log("iPhone delivery: unavailable until runtime installation");
       return 0;
     }
     return delegate(["doctor"]);
   }
   if (!installed) {
-    console.log("Installing the verified TOHSENO CLI runtime…");
+    console.log("Installing the verified MENLO runtime…");
     await installAuthorizedNative();
     installed = await installedNative(PRODUCT_VERSION);
     if (!installed) throw new Error("the verified native release did not activate safely");
