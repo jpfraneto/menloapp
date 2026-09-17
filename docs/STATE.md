@@ -12,7 +12,7 @@ GitHub link, a recording-first gallery, and description. Activity projects the
 existing publication ledger and checked public GitHub commits. It does not
 create synthetic installation or usage events.
 
-The npm 1.5.0 source adds `menloapp try <link>`, optional `website` and CAIP-19
+npm 1.5.0 adds `menloapp try <link>`, optional `website` and CAIP-19
 `tokenAddress`, and automatic `githubRepo`/`menloLink` metadata. Normal deploy
 creates missing presentation and uses signed-in local Codex, AXe and FFmpeg to
 capture a fresh Simulator experience. Only generated presentation is committed
@@ -42,9 +42,10 @@ video plays on the live page. No capture flags or manual Simulator interaction
 were used. Native signing/install authority
 is unchanged; no new physical recipient installation is claimed.
 
-npm 1.5.0 is prepared and verified, but its publication attempt expired while
-waiting for npm's owner account verification. The registry still serves 1.4.0
-until that verification and publication complete.
+`menloapp@1.5.0` is published as npm latest after owner account verification.
+The public-registry tarball matches the reviewed package byte for byte. A global
+registry installation reports `menloapp 1.5.0`; deploy and try help both pass.
+The signed native runtime remains pinned to the existing 1.3.0 artifact.
 
 ## menloapp launch and public presentation (September 17)
 

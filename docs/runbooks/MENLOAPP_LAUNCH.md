@@ -2,7 +2,7 @@
 
 The GitHub repository is `https://github.com/jpfraneto/menloapp`, on `main`.
 The local checkout is `/Users/kithkui/code/menloapp`.
-The npm package is published as `menloapp@1.4.0`; its only executable is
+The npm package is published as `menloapp@1.5.0`; its only executable is
 `menloapp`. Existing `tohseno`/`menlo` installations can coexist with it.
 
 This change implements the owner's September 16 naming and public-media
@@ -17,7 +17,7 @@ homepage is the network activity feed. App pages show creator identity and a
 recording-first gallery. Live desktop/mobile navigation, image loading and video
 playback passed, and the served stylesheet matches the commit.
 
-The prepared `menloapp@1.5.0` tarball has integrity
+The published `menloapp@1.5.0` tarball has integrity
 `sha512-A+du2BPKToqdiwpweraNz7/j+WEGy/dAYzGeDSxIsgQ/Cz05BIBxIOyzI60gInMQ6vyHMWklSZejGaXC6is6Cg==`.
 Its 47 npm checks, 34 focused website checks, website typecheck and native
 embedded-module regression passed. Installed from that tarball, plain
@@ -29,11 +29,12 @@ retained. Sample commit `00dab9045d9061b7277e3d10cd4715ee8d0c2eef` contains
 the result; public media match the Git bytes, and the four-second recording
 plays on the live listing. The temporary Simulator was removed.
 
-Version 1.5.0 publication requires completion of npm's browser account
-verification. The first challenge expired without approval; 1.4.0 remains the
-published registry version until the new attempt succeeds. The exact reviewed
-tarball is retained at `dist/menloapp-1.5.0/menloapp-1.5.0.tgz`; publish that file
-without rebuilding it. No native artifact is changed by this npm update.
+npm published the exact 1.5.0 tarball after owner browser account verification
+and registry processing. It is the latest version. Downloaded registry bytes
+match the reviewed tarball, and a global registry install reports
+`menloapp 1.5.0`; deploy and try help both pass. The reviewed tarball remains at
+`dist/menloapp-1.5.0/menloapp-1.5.0.tgz`. No native artifact is changed by this
+npm update.
 
 ## Initial launch: September 17, 2026
 
@@ -153,9 +154,8 @@ menloapp --version
 menloapp deploy --help
 ```
 
-Version 1.4.0 is published; 1.5.0 is prepared as described above. For a future CLI
-change, update the package version, run its relevant checks, and commit/push the
-source before publishing:
+Version 1.5.0 is published. For a future CLI change, update the package version,
+run its relevant checks, and commit/push the source before publishing:
 
 ```sh
 cd /Users/kithkui/code/menloapp/packages/cli
