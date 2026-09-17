@@ -25,9 +25,12 @@ Simulator and saves a real preview for review, commit and publication. See the
 [CLI guide](packages/cli/README.md) for the folder format and project dependency
 usage (`npm install menloapp`, then `npx menloapp deploy`).
 
-The `menloapp` package and domain cutover are prepared in source; see the
-[deployment instructions](docs/runbooks/MENLOAPP_LAUNCH.md) for the remaining
-npm login and custom-domain setup. These are not yet a live launch claim.
+[menloapp@1.4.0](https://www.npmjs.com/package/menloapp) is published and
+[menloapp.lol](https://menloapp.lol) is live. The
+[Hello MENLO sample](https://menloapp.lol/hello-menlo) includes a committed
+screenshot and a playable Simulator recording. See the
+[deployment instructions](docs/runbooks/MENLOAPP_LAUNCH.md) for operating the
+service, publishing later CLI versions, and preparing your own app page.
 
 The link opens MENLO into a review of one exact commit. The recipient explicitly
 chooses to build; their Mac checks GitHub identity, downloads and verifies that

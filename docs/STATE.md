@@ -1,28 +1,40 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-16. This is the plain-language
+Written 2026-07-30, amended through 2026-09-17. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
-## menloapp naming and public presentation (September 16)
+## menloapp launch and public presentation (September 17)
 
-GitHub is now `jpfraneto/menloapp`. Source prepares npm `menloapp@1.4.0`, the
-`menloapp` command and `https://menloapp.lol/<slug>`. `menloapp init` scaffolds a
-public `menloapp/app.json`; name, subtitle, description, icon, up to three
-screenshots and a preview are read from the exact Git commit. The server checks
-regular Git file modes, bounded media and blob-byte agreement. `deploy --record`
-builds and launches the committed app in an explicitly selected iPhone Simulator,
-then saves a source-bound MP4 for review and a later commit/push/deploy.
+GitHub is `jpfraneto/menloapp`; the local checkout is
+`/Users/kithkui/code/menloapp`. npm `menloapp@1.4.0` is published and
+`https://menloapp.lol` serves the new website from source
+`f59f08d0570f54ed19b6effd3f729f74b517cde9`. Railway deployment
+`4af21e10-2d07-4c70-bb3b-cb978bdefd9d` built the root Dockerfile and preserved the
+existing production volume. The service is now named `menloapp`, with
+`BASE_URL=https://menloapp.lol`. The owner's Namecheap changes resolved DNS;
+HTTPS and the live API passed. `tohseno.com` was restored as a compatibility
+domain, and the exact pinned native runtime manifest remains available there.
+The optional `www.tohseno.com` alias is no longer configured in Railway.
 
-Launch is not active yet: npm authentication returns 401, and Railway refused
-the third custom domain because of the current service's domain limit. Existing
-`tohseno.com` and `www.tohseno.com` domains occupy the two slots. No domain was
-removed, plan upgraded or package published. The root Dockerfile packages the
-website and its shared presentation validator for the existing production
-service. A real sample build and recorded preview passed in a temporary Simulator;
-the local page loaded all images and played the video in desktop/mobile Chrome
-checks. Native artifact and protocol pins are unchanged. See the
-[launch instructions](runbooks/MENLOAPP_LAUNCH.md).
+A global install from npm reported version 1.4.0; the downloaded package matched
+the prepared tarball exactly. That installed command deployed the real public
+[Hello MENLO sample](https://menloapp.lol/hello-menlo), then built and recorded
+committed source `4ac9c0e6a7fe26eacdcde8781e7e7c239b447ab4` in a temporary iPhone
+Simulator. Sample commit `63012d3ab2284e6ce85d3f5718826515dea88c8b` adds the reviewed
+six-second H.264 preview and one real screenshot. The public API reads that
+commit, including the preview's original source commit. The served media match
+the committed bytes; the live page loads the screenshot and plays the video at
+desktop and mobile widths without horizontal page overflow.
+
+`menloapp init` scaffolds public `menloapp/app.json`; name, subtitle, description,
+icon, up to three screenshots and a preview are read from the exact Git commit.
+The server checks regular Git file modes, bounded media and blob-byte agreement.
+`deploy --record` saves a source-bound MP4 for review and a later commit/push/deploy.
+GitHub CLI authentication works for deployment. Production GitHub device-flow
+credentials and a dedicated read token remain unconfigured. Native artifact and
+protocol pins are unchanged; no new physical recipient installation or update is
+claimed. See the [launch instructions](runbooks/MENLOAPP_LAUNCH.md).
 
 ## MENLO GitHub distribution (September 16)
 
