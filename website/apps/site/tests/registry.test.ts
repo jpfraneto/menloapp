@@ -314,7 +314,7 @@ describe("public Registry trust bridge", () => {
       address: `0x${"aa".repeat(20)}`,
       async advance() { throw new Error("media must be staged before relaying"); },
     });
-    const icon = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
+    const icon = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV1sAAAAASUVORK5CYII=", "base64"));
     const screenshot = Uint8Array.from([0xff, 0xd8, 0xff, 0xe0, 1]);
     const mediaRelease = structuredClone(release) as Record<string, unknown>;
     mediaRelease.schema = "tohseno.catalog-release/2";
@@ -382,11 +382,16 @@ describe("public Registry trust bridge", () => {
     const shot = await router.renderShot(String(mediaRelease.shot_id));
     expect(shot).toContain("Prayer Lock app icon");
     expect(shot).toContain("Screenshot 1");
+    expect(shot).toContain("builds and signs its own copy with your Apple identity");
+    const share = await router.fetch(new Request(`http://localhost/api/registry/v1/releases/${releaseDigest}/og.png`));
+    expect(share.status).toBe(200);
+    expect(share.headers.get("content-type")).toBe("image/png");
+    const shareBytes = Buffer.from(await share.arrayBuffer());
+    expect([shareBytes.readUInt32BE(16), shareBytes.readUInt32BE(20)]).toEqual([1200, 630]);
     const home = await router.renderHome();
     expect(home).toContain("SHIPPED");
     expect(home).toContain("CLAIMED");
     expect(home).toContain("Someone claimed this exact release.");
-    expect(home).toContain("build and sign it on their Mac");
     expect(home).not.toContain("SHOT.UPDATED");
   });
 
@@ -889,6 +894,17 @@ describe("public Registry trust bridge", () => {
       shot_id: release.shot_id, request_id: claim.request_id,
     });
     const aliasPage = await router.renderHumanRoute("/prayer");
+    expect(aliasPage).toContain('<meta property="og:title" content="Prayer Lock">');
+    expect(aliasPage).toContain('<meta property="og:description" content="A small daily ritual, made native.">');
+    expect(aliasPage).toContain('<meta property="og:url" content="http://localhost:3000/prayer">');
+    expect(aliasPage).toContain('<meta name="twitter:card" content="summary_large_image">');
+    const shareURL = `http://localhost/api/registry/v1/releases/${envelope.authorization.digest}/og.png?v=1`;
+    const share = await router.fetch(new Request(shareURL));
+    expect(share.status).toBe(200);
+    expect(share.headers.get("content-type")).toBe("image/png");
+    const image = Buffer.from(await share.arrayBuffer());
+    expect([image.readUInt32BE(16), image.readUInt32BE(20)]).toEqual([1200, 630]);
+    expect(await (await router.fetch(new Request(shareURL, { method: "HEAD" }))).text()).toBe("");
     expect(aliasPage).toContain("Four small steps.");
     expect(aliasPage).toContain("Open this same link on your Mac.");
     expect(aliasPage).toContain("On Mac: download Tohseno");

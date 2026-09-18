@@ -13,10 +13,12 @@ const metadata = { repository: "maker/TestApp", slug: "test-app", name: "Test Ap
 async function fixture() {
   const root = await mkdtemp(join(tmpdir(), "menlo-github-"));
   const files = new Map<string, Buffer>();
+  const requests: string[] = [];
   const state = { id: 12, owner: 4, push: true, omitPermissions: false, private: false, head: sha, commits: [] as any[], status: "ahead", ahead: 3, fail: false, fileMode: "100644", folderMode: "040000" };
   const hash = (bytes: Buffer) => createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex");
   const fetcher = async (input: string | URL | Request, init?: RequestInit) => {
     const url = new URL(String(input));
+    requests.push(url.pathname);
     if (url.origin === "https://raw.githubusercontent.com") {
       expect(init?.headers).toBeUndefined();
       const file = files.get(url.pathname.split("/").slice(4).join("/"));
@@ -51,7 +53,7 @@ async function fixture() {
     method, headers: auth ? { Authorization: "Bearer ghp_testcredential", "Content-Type": "application/json" } : {}, ...(body ? { body: JSON.stringify(body) } : {}),
   }));
   cleanup.push(async () => { router.close(); await rm(root, { recursive: true, force: true }); });
-  return { root, state, files, request, get router() { return router; }, restart() { router.close(); router = createGitHubApps({ root, baseUrl: "https://tohseno.com" }, { fetch: fetcher as typeof fetch }); } };
+  return { root, state, files, requests, request, get router() { return router; }, restart() { router.close(); router = createGitHubApps({ root, baseUrl: "https://tohseno.com" }, { fetch: fetcher as typeof fetch }); } };
 }
 
 test("deploy proves GitHub authority and persists one stable app link without credentials", async () => {
@@ -199,7 +201,7 @@ test("public presentation rejects symbolic links even when Contents API would fo
   expect((await f.request("POST", "apps", metadata))!.status).toBe(422);
 });
 
-test("discovery orders real publications, redeployments and later public commits without writing activity", async () => {
+test("public discovery lists each app once and leaves updates to installed-app comparisons", async () => {
   const f = await fixture(); addPresentation(f.files);
   await f.request("POST", "apps", metadata);
   await f.request("POST", "apps", metadata);
@@ -208,15 +210,19 @@ test("discovery orders real publications, redeployments and later public commits
     { sha, author: null, commit: { committer: { date: "2020-01-01T00:00:00Z" }, message: "Before MENLO" } },
   ];
   const feed = await (await f.request("GET", "activity"))!.json();
-  expect(feed.events.map((event: any) => event.kind)).toEqual(["commit", "deployed", "published"]);
-  expect(feed.events[0].message).toBe("A useful improvement");
-  expect(feed.events[0].actor.login).toBe("contributor");
+  expect(feed.events.map((event: any) => event.kind)).toEqual(["published"]);
+  expect(feed.apps).toHaveLength(1);
+  expect(f.requests.some(path => path.endsWith("/commits"))).toBe(false);
   const page = await f.router.renderIndex();
-  expect(page).toContain("Latest activity");
-  expect(page).toContain("published an app");
-  expect(page).toContain("deployed an update");
-  expect(page).toContain(`https://github.com/maker/TestApp/commit/${next}`);
+  expect(page).toContain("Discover apps.");
+  expect(page.match(/href="\/test-app"/g)).toHaveLength(1);
+  expect(page).not.toContain("Latest activity");
+  expect(page).not.toContain("deployed an update");
+  expect(page).not.toContain("A useful improvement");
+  expect(page).not.toContain("/commit/");
   expect(page).not.toContain("Before MENLO");
+  const comparison = await (await f.request("GET", `apps/test-app/compare?base=${sha}`))!.json();
+  expect(comparison.commits_behind).toBe(3);
   const db = new Database(join(f.root, "github-apps.sqlite"));
   expect((db.query("SELECT count(*) n FROM registration_events").get() as any).n).toBe(2);
   db.close();
@@ -227,9 +233,50 @@ test("discovery keeps actual publication history when GitHub is unavailable and 
   await f.request("POST", "apps", metadata);
   f.state.id = 99;
   const feed = await (await f.request("GET", "activity"))!.json();
-  expect(feed.updates_unavailable).toBe(true);
+  expect(feed.listings_unavailable).toBe(true);
   expect(feed.events.length).toBe(1);
   expect(feed.events[0].kind).toBe("published");
   expect(feed.apps[0].listing).toBeUndefined();
-  expect(await f.router.renderIndex()).toContain("Some GitHub updates are unavailable");
+  expect(await f.router.renderIndex()).toContain("Some app details are temporarily unavailable");
+});
+
+test("app share metadata is server-rendered and serves a real 1200 by 630 PNG to crawlers", async () => {
+  const f = await fixture(); addPresentation(f.files);
+  await f.request("POST", "apps", metadata);
+  const page = (await f.router.render("test-app"))!;
+  expect(page).toContain('<meta property="og:title" content="Committed App">');
+  expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
+  expect(page).toContain(`og.png?v=1&amp;commit=${sha}`);
+  const url = `https://tohseno.com/api/menlo/v1/apps/test-app/og.png?v=1&commit=${sha}`;
+  const image = (await f.router.fetch(new Request(url, { headers: { "User-Agent": "Twitterbot/1.0" } })))!;
+  expect(image.status).toBe(200);
+  expect(image.headers.get("content-type")).toBe("image/png");
+  const bytes = Buffer.from(await image.arrayBuffer());
+  expect(bytes.subarray(0, 8)).toEqual(png.subarray(0, 8));
+  expect([bytes.readUInt32BE(16), bytes.readUInt32BE(20)]).toEqual([1200, 630]);
+  const head = (await f.router.fetch(new Request(url, { method: "HEAD" })))!;
+  expect(head.status).toBe(200);
+  expect(head.headers.get("content-length")).toBe(String(bytes.length));
+  expect(await head.text()).toBe("");
+  expect((await f.router.fetch(new Request(url, { headers: { "If-None-Match": image.headers.get("etag")! } })))!.status).toBe(304);
+  expect((await f.request("GET", "apps/test-app/og.png?commit=main"))!.status).toBe(400);
+});
+
+test("a selected custom share image overrides the generated card and is served only from the pinned public folder", async () => {
+  const f = await fixture(); addPresentation(f.files);
+  const manifest = JSON.parse(f.files.get("menloapp/app.json")!.toString());
+  manifest.ogImage = "menloapp/share.png";
+  f.files.set("menloapp/app.json", Buffer.from(JSON.stringify(manifest)));
+  expect((await f.request("POST", "apps", metadata))!.status).toBe(404);
+  f.files.set("menloapp/share.png", png);
+  expect((await f.request("POST", "apps", metadata))!.status).toBe(201);
+  const page = (await f.router.render("test-app"))!;
+  const imageURL = `https://tohseno.com/api/menlo/v1/apps/test-app/media/${sha}/menloapp/share.png`;
+  expect(page).toContain(`<meta property="og:image" content="${imageURL}">`);
+  expect(page).toContain(`<meta name="twitter:image" content="${imageURL}">`);
+  expect(page).not.toContain('og:image:width');
+  expect(page).not.toContain('og.png?');
+  const image = (await f.router.fetch(new Request(imageURL)))!;
+  expect(image.status).toBe(200);
+  expect(Buffer.from(await image.arrayBuffer())).toEqual(png);
 });

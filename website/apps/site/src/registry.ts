@@ -1,5 +1,7 @@
 import { reserveUploadSubsidy } from "./upload-subsidy.ts";
 import { menloHome } from "./menlo-home.ts";
+import { renderSocialCard, socialCardResponse, socialMetadata, type SocialMetadata } from "./social-cards.ts";
+import { legacyShareIcon } from "./legacy-share-icon.ts";
 import { lstat, mkdir, open, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { p256 } from "@noble/curves/p256";
@@ -264,6 +266,23 @@ export async function createRegistryRouter(
     return records[0];
   };
 
+  async function shareDetails(record: CatalogRecord): Promise<SocialMetadata> {
+    const release = releaseOf(record);
+    const display = object(release.display, "display");
+    let route = canonicalRoute(release);
+    // Prefer an existing approved public alias, including Anky's original link.
+    for (const file of (await readdir(directories.aliases)).sort()) {
+      if (!/^[a-z0-9]+(?:-[a-z0-9]+)*\.json$/.test(file)) continue;
+      const alias = await readJSON<JsonObject>(join(directories.aliases, file));
+      if (alias?.schema === "tohseno.global-alias/1" && alias.shot_id === release.shot_id && alias.builder_id === release.builder_id) {
+        route = `/${file.slice(0, -5)}`;
+        break;
+      }
+    }
+    return { title: String(display.name), description: String(display.description), url: `${config.baseUrl}${route}`,
+      image: `${config.baseUrl}/api/registry/v1/releases/${record.releaseDigest}/og.png?v=1`, imageType: "image/png", generated: true };
+  }
+
   const reviewableAliasRequest = async (requestID: Hex) => {
     const claimRecord = await readJSON<AliasClaimRecord>(
       join(directories.aliasClaims, `${requestID.slice(2)}.json`),
@@ -469,6 +488,33 @@ export async function createRegistryRouter(
         .filter((record) => releaseOf(record).shot_id === shotID), claims);
       if (!events.length) throw new HttpError(404, "Published Shot not found");
       return head(json(timelinePage(events, url)), method);
+    }
+    if (parts.length === 6 && parts.slice(0, 4).join("/") === "api/registry/v1/releases"
+        && parts[5] === "og.png" && (method === "GET" || method === "HEAD")) {
+      const digest = normalizeDigest(parts[4]);
+      const record = await readJSON<CatalogRecord>(join(directories.releases, `${digest.slice(2)}.json`));
+      if (!record || record.schema !== RECORD_SCHEMA || record.releaseDigest !== digest || !(await discoverable([record])).length) throw new HttpError(404, "Public app release not found");
+      const details = await shareDetails(record);
+      return socialCardResponse(request, `registry:${details.url}:${digest}:v1`, async () => {
+        const release = releaseOf(record);
+        const display = object(release.display, "display");
+        let icon;
+        if (display.icon_sha256) {
+          const locator = blobLocator([record], normalizeDigest(display.icon_sha256));
+          if (locator) {
+            const metadata = await blobStore.metadata(locator);
+            if (metadata.byteLength > MAX_ICON_BYTES) throw new HttpError(422, "App icon is too large");
+            const blob = await blobStore.read(locator);
+            const bytes = Buffer.from(await new Response(blob.stream).arrayBuffer());
+            if (bytes.length !== metadata.byteLength || `0x${new Bun.CryptoHasher("sha256").update(bytes).digest("hex")}` !== display.icon_sha256) throw new HttpError(502, "App icon bytes do not match the release");
+            icon = { bytes, type: "image/png" };
+          }
+        } else {
+          const bytes = await legacyShareIcon(digest, object(release.source, "source").sha256);
+          if (bytes) icon = { bytes, type: "image/png" };
+        }
+        return renderSocialCard({ ...details, icon });
+      });
     }
     if (parts.length === 5 && parts.slice(0, 4).join("/") === "api/registry/v1/releases"
         && (method === "GET" || method === "HEAD")) {
@@ -903,7 +949,7 @@ export async function createRegistryRouter(
       const record = await discoverableShot(shotID as Hex);
       if (!record) return undefined;
       const edition = await claims?.editionForDisplay(shotID as Hex);
-      return shotHTML(publicRecord(record), edition);
+      return shotHTML(publicRecord(record), edition, await shareDetails(record));
     },
     renderBuilder: async (builder) => {
       const id = decodeURIComponent(builder);
@@ -940,7 +986,7 @@ export async function createRegistryRouter(
         if (!record) return undefined;
         return shotHTML(publicRecord(record), await claims?.editionForDisplay(
           normalizeHex32(releaseOf(record).shot_id),
-        ));
+        ), await shareDetails(record));
       }
       const alias = pathname.match(/^\/([a-z0-9]+(?:-[a-z0-9]+)*)$/)?.[1];
       if (!alias || alias.length > 64) return undefined;
@@ -950,7 +996,7 @@ export async function createRegistryRouter(
       if (!target) return undefined;
       return shotHTML(publicRecord(target), await claims?.editionForDisplay(
         normalizeHex32(releaseOf(target).shot_id),
-      ));
+      ), await shareDetails(target));
     },
     currentClaimContext: async (shotID, releaseDigest) => {
       const current = await discoverableShot(normalizeHex32(shotID));
@@ -1985,6 +2031,7 @@ function registryHTML(
 function shotHTML(
   record: JsonObject,
   edition?: { opened: boolean; maxClaims: bigint; totalClaims: bigint; closesAt: bigint; closed: boolean },
+  social?: SocialMetadata,
 ): string {
   const release = object(record.release, "release");
   const display = object(release.display, "display");
@@ -2091,7 +2138,7 @@ function shotHTML(
       <p>One birth, permanent Updates, and canonical Claim evidence for this Shot.</p>
       <a href="/api/registry/v1/shots/${release.shot_id}/timeline">View exact timeline evidence</a>
     </section>
-  `);
+  `, "registry", social);
 }
 function builderHTML(builder: string, records: JsonObject[], profile?: JsonObject): string { const title = profile ? String(profile.display_name) : builder; const handle = profile?.handle ? `<p class="eyebrow">@${escapeHTML(String(profile.handle))}</p>` : ""; const address = builder.split(":").at(-1)!; return page("Builder", `<a class="back" href="/registry">← Registry</a><header><p class="eyebrow">BUILDER</p><h1>${escapeHTML(title)}</h1>${handle}<p class="lead">A public track record assembled from a DeviceKey-signed profile, signed releases, and current chain authority.</p><p class="eyebrow">${escapeHTML(builder)}</p><div class="actions"><a class="primary" href="tohseno://follow/${escapeHTML(address)}">Follow privately in Tohseno</a></div><p>Follow state stays on your Mac and paired Companion. There is no public follower count.</p></header>${cards(records)}`); }
 function cards(records: JsonObject[], launched = true): string {
@@ -2130,14 +2177,15 @@ function humanBuildClassification(value: string): string {
   if (value === "requires_mac_review") return "Requires review on your Mac";
   return "Automatic build unavailable";
 }
-function page(title: string, body: string, current: "home" | "registry" = "registry"): string {
+function page(title: string, body: string, current: "home" | "registry" = "registry", social?: SocialMetadata): string {
   return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#f7f4ee">
-  <meta name="description" content="${current === "home" ? "Tohseno connects your Mac and iPhone into a personal software workshop—and opens a door to everyone else’s. Build, discover, and make native apps your own." : "Discover native Apple software moving person to person on Tohseno."}">
+  <meta name="description" content="${social ? escapeHTML(social.description) : current === "home" ? "Tohseno connects your Mac and iPhone into a personal software workshop—and opens a door to everyone else’s. Build, discover, and make native apps your own." : "Discover native Apple software moving person to person on Tohseno."}">
+  ${social ? socialMetadata(social) : ""}
   <link rel="icon" href="/tohseno-logo.png" type="image/png">
   <link rel="preload" href="/landing-assets/network.png" as="image" type="image/png">
   <link rel="stylesheet" href="/landing.css">

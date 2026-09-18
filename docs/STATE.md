@@ -1,8 +1,29 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-17. This is the plain-language
+Written 2026-07-30, amended through 2026-09-18. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## App discovery and share previews (September 18)
+
+The homepage and `/apps` now list apps once, without commit history or update
+announcements. Public discovery no longer fetches GitHub commit histories.
+The existing recipient library still compares installed commits for updates.
+
+App links render Open Graph and Twitter metadata in HTML. The default 1200 × 630
+PNG includes the app icon, title, description, and public MENLO URL. GitHub apps
+can select a custom `ogImage` PNG/JPEG in `menloapp/app.json`; the existing
+commit-pinned, regular-file and selected-media checks apply. Historical Registry
+links also receive share cards. Anky's original link uses its real icon extracted
+from the digest-verified public source archive, without changing its signed
+release. Its description remains the published catalog description.
+
+Local checks passed: website typechecking, 54 focused website checks, and the
+47 npm checks (the version-sensitive package installation checks were rerun after
+updating the CLI constant). CLI 1.5.1 is packaged at
+`dist/menloapp-1.5.1/menloapp-1.5.1.tgz`; npm publication requires renewal of the
+expired owner session. Website deployment and live verification are recorded
+after they occur.
 
 ## Browser Get app handoff (September 17)
 
@@ -30,7 +51,8 @@ was not bypassed. A temporary public GitHub lookup failure also recovered.
 
 ## App listings, discovery feed and automatic previews (September 17)
 
-Production serves `/` and `/apps` as the app activity feed. Public app pages
+At that release, `/` and `/apps` served the app activity feed, superseded by the
+September 18 discovery change above. Public app pages
 show an app-store listing: icon, title, subtitle, creator avatar/username and
 GitHub link, a recording-first gallery, and description. Activity projects the
 existing publication ledger and checked public GitHub commits. It does not

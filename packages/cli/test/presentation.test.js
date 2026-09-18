@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
-import { validatePresentation } from "../src/presentation.js";
+import { validatePresentation, presentationFiles } from "../src/presentation.js";
 import { setupPresentation, readCommittedPresentation, updatePresentationLinks, commitPresentation, previewNeedsRefresh } from "../src/project-presentation.js";
 import { selectSimulator } from "../src/record.js";
 
@@ -38,6 +38,11 @@ test("presentation rejects external assets, traversal, duplicate/excess screensh
   for (const screenshots of [["menloapp/a.png", "menloapp/a.png"], Array.from({ length: 4 }, (_, i) => `menloapp/${i}.png`)]) assert.throws(() => validatePresentation({ version: 1, name: "App", screenshots }));
   assert.throws(() => validatePresentation({ version: 1, name: "App", installed: true }));
   assert.throws(() => validatePresentation({ version: 1, name: "App", preview: { kind: "simulator", path: "menloapp/p.mp4", source_commit: "main" } }));
+  for (const ogImage of ["https://evil.test/share.png", "menloapp/../private.png", "menloapp/share.svg", "menloapp/share.mp4"]) assert.throws(() => validatePresentation({ version: 1, name: "App", ogImage }));
+  const custom = validatePresentation({ version: 1, name: "App", icon: "menloapp/icon.png", ogImage: "menloapp/share.jpg" });
+  assert.equal(custom.ogImage, "menloapp/share.jpg");
+  assert.deepEqual(presentationFiles(custom), ["menloapp/icon.png", "menloapp/share.jpg"]);
+  assert.equal(validatePresentation({ version: 1, name: "App" }).ogImage, null);
 });
 
 test("recording refuses ambiguous or unavailable Simulators", () => {

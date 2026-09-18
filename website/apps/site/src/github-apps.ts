@@ -3,6 +3,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
 import { HttpError } from "./security.ts";
+import { renderSocialCard, socialCardResponse } from "./social-cards.ts";
 import { renderAppListing, renderAppDirectory, type AppDirectory, type AppActivity } from "./menlo-listings.ts";
 import { PRESENTATION_PATH, MAX_PRESENTATION_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, validatePresentation, presentationFiles, mediaType, validateMediaBytes } from "../../../../packages/cli/src/presentation.js";
 
@@ -209,47 +210,50 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     try { validateMediaBytes(file, bytes); } catch (error) { throw new HttpError(422, (error as Error).message); }
     return new Response(request.method === "HEAD" ? null : Uint8Array.from(bytes.subarray(start, end + 1)).buffer, { status: range ? 206 : 200, headers });
   }
+  async function shareImage(request: Request, slug: string) {
+    const record = requireApp(slug);
+    const commit = new URL(request.url).searchParams.get("commit");
+    if (commit !== null && !SHA.test(commit)) throw new HttpError(400, "Share images require a full Git commit");
+    // A page without current GitHub evidence still has its registered title and description.
+    // The usual URL pins the metadata and icon to the commit displayed on the page.
+    const app = commit ? await current(record) : undefined;
+    const selected = app && commit ? await presentation(app.repository, commit) : null;
+    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v1`, async () => {
+      let icon;
+      if (selected?.icon && commit) {
+        const response = await mediaResponse(new Request(mediaURL(record, commit, selected.icon)), slug, commit, selected.icon);
+        icon = { bytes: Buffer.from(await response.arrayBuffer()), type: mediaType(selected.icon) };
+      }
+      return renderSocialCard({ title: selected?.name ?? record.name, description: selected?.description ?? record.description, url: `${config.baseUrl}/${slug}`, icon });
+    });
+  }
   async function directory(): Promise<AppDirectory> {
     if (directoryCache && directoryCache.until > Date.now()) return directoryCache.value;
     const value = (async () => {
       const records = (db?.query("SELECT record FROM apps ORDER BY rowid DESC").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record) as GitHubApp);
-      const rows = db?.query("SELECT sequence, kind, record, occurred_at FROM registration_events ORDER BY occurred_at DESC, sequence DESC LIMIT 50").all() as { sequence: number; kind: string; record: string; occurred_at: string }[] ?? [];
+      const rows = db?.query("SELECT sequence, record, occurred_at FROM registration_events WHERE kind = 'registered' ORDER BY occurred_at DESC, sequence DESC LIMIT 50").all() as { sequence: number; record: string; occurred_at: string }[] ?? [];
       const events: AppActivity[] = rows.map(row => {
         const app = JSON.parse(row.record) as GitHubApp;
-        return { id: `deployment-${row.sequence}`, kind: row.kind === "registered" ? "published" : "deployed", occurred_at: row.occurred_at, app, actor: app.publisher };
+        return { id: `deployment-${row.sequence}`, kind: "published", occurred_at: row.occurred_at, app, actor: app.publisher };
       });
       const apps: AppDirectory["apps"] = [];
-      let updates_unavailable = false;
+      let listings_unavailable = false;
       // Share the normal GitHub cache, with at most four repositories loading at
-      // once. The feed projects existing records and public commits; it writes no
-      // synthetic activity or user credentials to the registration ledger.
+      // once. Public discovery lists apps. Installed-app comparisons belong to
+      // the recipient's private library, never a public commit/update feed.
       for (let offset = 0; offset < records.length; offset += 4) {
         const batch = records.slice(offset, offset + 4);
         const results = await Promise.allSettled(batch.map(async record => {
           const app = await current(record);
-          const [listing, history] = await Promise.allSettled([
-            presented(app),
-            github(`/repos/${app.repository}/commits?sha=${app.head_commit}&since=${encodeURIComponent(record.created_at)}&per_page=30`, config.readToken, true),
-          ]);
-          if (listing.status === "rejected" || history.status === "rejected") updates_unavailable = true;
-          if (history.status === "fulfilled" && Array.isArray(history.value)) {
-            for (const commit of history.value) {
-              const occurred = commit.commit?.committer?.date;
-              if (!SHA.test(commit.sha) || typeof occurred !== "string" || !Number.isFinite(Date.parse(occurred)) || Date.parse(occurred) < Date.parse(record.created_at)) continue;
-              const author = commit.author;
-              const actor = Number.isSafeInteger(author?.id) && author.id > 0 && typeof author.login === "string" && /^[A-Za-z0-9-]{1,39}$/.test(author.login) ? { id: author.id, login: author.login } : null;
-              events.push({ id: `commit-${record.id}-${commit.sha}`, kind: "commit", occurred_at: new Date(occurred).toISOString(), app: record, actor, commit: commit.sha, message: typeof commit.commit?.message === "string" ? commit.commit.message.split("\n")[0].slice(0, 500) : "Updated the app" });
-            }
-          } else if (history.status === "fulfilled") updates_unavailable = true;
-          return { ...record, ...(listing.status === "fulfilled" ? { listing: listing.value } : {}) };
+          return { ...record, listing: await presented(app) };
         }));
         results.forEach((result, index) => {
           if (result.status === "fulfilled") apps.push(result.value);
-          else { updates_unavailable = true; apps.push(batch[index]!); }
+          else { listings_unavailable = true; apps.push(batch[index]!); }
         });
       }
       events.sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at) || b.id.localeCompare(a.id));
-      return { apps, events: events.slice(0, 50), updates_unavailable };
+      return { apps, events: events.slice(0, 50), listings_unavailable };
     })();
     directoryCache = { until: Date.now() + 60_000, value };
     value.catch(() => { if (directoryCache?.value === value) directoryCache = undefined; });
@@ -323,6 +327,8 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
         if (url.pathname === "/api/menlo/v1/apps" && request.method === "POST") return await register(request);
         const asset = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/media\/([a-f0-9]{40})\/(menloapp\/[A-Za-z0-9_./-]+)$/.exec(url.pathname);
         if (asset && ["GET", "HEAD"].includes(request.method)) return await mediaResponse(request, asset[1]!, asset[2]!, asset[3]!);
+        const share = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/og\.png$/.exec(url.pathname);
+        if (share && ["GET", "HEAD"].includes(request.method)) return await shareImage(request, share[1]!);
         if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);
         if (url.pathname === "/api/menlo/v1/activity") return json(await directory());
         if (url.pathname === "/api/menlo/v1/apps") return json({ apps: (db?.query("SELECT record FROM apps ORDER BY rowid DESC LIMIT 100").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record)) });

@@ -19,6 +19,9 @@ export async function setupPresentation(root, name = path.basename(root)) {
 
 Edit app.json and run menloapp deploy from your app's repository.
 Name, subtitle, description, icon and screenshots appear on your public page.
+Shared links get a card with the app icon, title, description and MENLO URL.
+Set ogImage to a PNG/JPEG path such as menloapp/share.png for custom share artwork
+(1200 x 630 recommended), or leave it null to use the automatic card.
 website and tokenAddress are optional. An ERC-20 token uses CAIP-19:
 eip155:CHAIN_ID/erc20:0x followed by the token's 40 hex address characters.
 MENLO fills githubRepo and menloLink automatically when you deploy.

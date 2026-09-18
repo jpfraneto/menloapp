@@ -38,6 +38,7 @@ listing yours:
   "githubRepo": "https://github.com/your-name/your-app",
   "menloLink": "https://menloapp.lol/your-app",
   "icon": "menloapp/icon.png",
+  "ogImage": null,
   "screenshots": [
     "menloapp/screenshot-1.png",
     "menloapp/screenshot-2.png",
@@ -63,6 +64,13 @@ the first item in the gallery, followed by the screenshots.
 The public page reads metadata and media from your Git commit. Media must be
 ordinary files inside `menloapp/`, not symbolic links or Git LFS pointers.
 Only selected files are served. Updates can take up to 60 seconds to appear.
+
+Shared links include a 1200 × 630 image with your app icon, title, description,
+and `menloapp.lol/your-app`. To use your own artwork, set
+`"ogImage": "menloapp/share.png"` (PNG or JPEG, up to 10 MiB; 1200 × 630
+recommended), then commit and push the image and `app.json`. Leave `ogImage`
+absent or `null` for the automatic card. Use menloapp 1.5.1 or later when
+deploying metadata with this field. Social networks may cache older previews.
 
 ## Automatic previews
 

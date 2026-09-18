@@ -43,6 +43,13 @@
 .ml-description h2 { margin:0 0 14px; font-size:21px; letter-spacing:-.025em; }
 .ml-description p { max-width:76ch; font-size:16px; line-height:1.7; white-space:pre-line; overflow-wrap:anywhere; }
 .ml-discovery { padding-block:48px 80px; }
+.ml-store .ml-discover-app { display:flex; flex-direction:column; align-items:flex-start; min-width:0; }
+.ml-discover-app .ml-app-icon { width:80px; height:80px; border-radius:18px; font-size:36px; }
+.ml-discover-app h2 { margin:20px 0 8px; font-size:24px; line-height:1.3; overflow-wrap:anywhere; }
+.ml-store .ml-discover-app p { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; font-size:15px; margin:0 0 20px; }
+.ml-discover-app .ml-author { margin-top:auto; }
+.ml-discover-action { color:var(--ml-green); margin-top:18px; font-size:14px; }
+.ml-discovery .ml-feed-notice { margin-bottom:24px; }
 .ml-discovery-heading { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-bottom:44px; }
 .ml-discovery-heading h1 { font-size:48px; letter-spacing:-.055em; line-height:1.15; margin:0 0 12px; }
 .ml-store .ml-discovery-heading p { margin:0; color:var(--ml-muted); font-size:18px; }

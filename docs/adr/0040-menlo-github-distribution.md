@@ -53,10 +53,14 @@ Bounded cached polling while the products are running is sufficient. GitHub
 device authorization supports people without an existing GitHub CLI session.
 User tokens are not stored by the public directory or written to its ledger.
 
-The public homepage is the app activity feed. App pages use a store listing:
+The owner's September 18 instruction makes the public homepage app discovery.
+It shows each app once, without commits, redeployments, or update notices.
+Updates belong to the existing user's claimed or installed apps in their private
+library; the installed-commit comparison mechanism remains unchanged.
+App pages use a store listing:
 icon, title, subtitle, maker avatar/username, GitHub link, one gallery with the
 recording first, and the description. A prominent Discover Other Apps control
-opens the feed. Public copy describes the commands and current behavior directly.
+opens discovery. Public copy describes the commands and current behavior directly.
 Existing Apple signing, notarized Mac-download pins, source integrity and
 physical-device boundaries remain.
 
@@ -75,6 +79,16 @@ screenshots, and an optional recorded preview. These files are ordinary public
 Git files and are read from the same full commit as the app page. Later pushes
 update presentation through the existing default-branch discovery mechanism.
 Registration establishes identity and recipe; it is not a second media editor.
+
+The owner's September 18 extension adds optional `ogImage`, a PNG or JPEG inside
+the public `menloapp/` folder, under the existing 10 MiB image limit. It uses the
+same commit, regular-file and selected-media checks. Without a custom image,
+shared app links render a 1200 × 630 PNG with the app's icon (or a labeled initial
+when no icon exists), title, description, and public MENLO URL. Open Graph and
+Twitter metadata are server-rendered. Historical Registry app pages also gain
+share cards without changing their signed releases or acquisition semantics.
+Anky's first-release share icon is taken from its verified, already-public source
+archive; it is presentation artwork, not a new signed catalog attachment.
 
 The owner’s September 17 instruction adds optional `website` and `tokenAddress`
 (CAIP-19 ERC-20 asset identifier), plus automatically derived `githubRepo` and

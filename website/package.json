@@ -35,6 +35,7 @@
     "@aws-sdk/client-s3": "^3.1125.0",
     "@noble/curves": "^1.9.7",
     "@noble/hashes": "^1.8.0",
+    "@resvg/resvg-js": "2.6.2",
     "@smithy/node-http-handler": "^4.12.0",
     "viem": "^2.37.6"
   }
