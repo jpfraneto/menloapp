@@ -22,8 +22,14 @@ Local checks passed: website typechecking, 54 focused website checks, and the
 47 npm checks (the version-sensitive package installation checks were rerun after
 updating the CLI constant). CLI 1.5.1 is packaged at
 `dist/menloapp-1.5.1/menloapp-1.5.1.tgz`; npm publication requires renewal of the
-expired owner session. Website deployment and live verification are recorded
-after they occur.
+expired owner session. Desktop/mobile discovery and listing navigation passed
+in an isolated browser, with no page overflow or JavaScript errors.
+
+Source `02bee76` was pushed to main and uploaded to the existing production
+service as Railway deployment `d67c2834-c9cc-4154-b2be-eba877818660`. The initial
+status was INITIALIZING, and the subsequent public Anky check still served the
+previous HTML. Production activation and crawler verification remain pending;
+the local card is not evidence of a live social-network preview.
 
 ## Browser Get app handoff (September 17)
 

@@ -11,7 +11,16 @@ publish a new native artifact, change Apple signing, or activate a contract.
 
 ## App-store listing and automatic deploy: September 17
 
-The live website runs source `dd2cf1c65854c5c8a2e0ef255dc5b83574845e5c`, uploaded
+September 18 follow-up: app discovery and share-card source `02bee76` has been
+uploaded from main in production deployment
+`d67c2834-c9cc-4154-b2be-eba877818660`. Activation/live crawler verification are
+pending. Check `/anky` for server-rendered `og:image`, then request that PNG and
+verify 1200 × 630 dimensions; `/` and `/apps` should show app cards without
+commit/update activity. The CLI 1.5.1 tarball for `ogImage` metadata is prepared
+at `dist/menloapp-1.5.1/menloapp-1.5.1.tgz`, awaiting owner `npm login` before
+publication. Earlier release evidence below remains historical.
+
+The September 17 website ran source `dd2cf1c65854c5c8a2e0ef255dc5b83574845e5c`, uploaded
 from main in Railway deployment `353914dd-7814-49d1-ba7f-60396f6d8190`. The
 homepage is the network activity feed. App pages show creator identity and a
 recording-first gallery. Live desktop/mobile navigation, image loading and video
