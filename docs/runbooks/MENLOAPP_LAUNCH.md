@@ -2,23 +2,30 @@
 
 The GitHub repository is `https://github.com/jpfraneto/menloapp`, on `main`.
 The local checkout is `/Users/kithkui/code/menloapp`.
-The npm package is published as `menloapp@1.5.0`; its only executable is
+The npm package is published as `menloapp@1.5.1`; its only executable is
 `menloapp`. Existing `tohseno`/`menlo` installations can coexist with it.
 
 This change implements the owner's September 16 naming and public-media
 extension to [ADR 0040](../adr/0040-menlo-github-distribution.md). It does not
 publish a new native artifact, change Apple signing, or activate a contract.
 
-## App-store listing and automatic deploy: September 17
+## App discovery and share previews: September 18
 
-September 18 follow-up: app discovery and share-card source `02bee76` has been
-uploaded from main in production deployment
-`d67c2834-c9cc-4154-b2be-eba877818660`. Activation/live crawler verification are
-pending. Check `/anky` for server-rendered `og:image`, then request that PNG and
-verify 1200 × 630 dimensions; `/` and `/apps` should show app cards without
-commit/update activity. The CLI 1.5.1 tarball for `ogImage` metadata is prepared
-at `dist/menloapp-1.5.1/menloapp-1.5.1.tgz`, awaiting owner `npm login` before
-publication. Earlier release evidence below remains historical.
+September 18 follow-up: app discovery and share-card source `02bee76` is live in
+production deployment `d67c2834-c9cc-4154-b2be-eba877818660`. `/anky` includes
+server-rendered Open Graph and Twitter metadata and serves its app-specific
+1200 × 630 PNG to both crawler user agents. `/` and `/apps` show app cards without
+commit/update activity. Live desktop/mobile navigation, image GET/HEAD, health,
+native-manifest compatibility and stylesheet/source agreement passed.
+
+The exact `dist/menloapp-1.5.1/menloapp-1.5.1.tgz` package for `ogImage` metadata
+is published as npm latest after owner login and browser publishing approval.
+The downloaded registry tarball matches the reviewed archive byte for byte.
+A fresh isolated registry installation reports `menloapp 1.5.1` and accepts
+custom `ogImage` metadata. Published integrity:
+`sha512-f1ucB1JDFeM6XUQeq2uc9krmN6LvItNDe/+kf5rstowRKNrNW87PxEWdRqUSbSoEq+rr6XimzO8WsJaTq2Lcwg==`.
+
+## App-store listing and automatic deploy: September 17
 
 The September 17 website ran source `dd2cf1c65854c5c8a2e0ef255dc5b83574845e5c`, uploaded
 from main in Railway deployment `353914dd-7814-49d1-ba7f-60396f6d8190`. The
@@ -39,7 +46,7 @@ the result; public media match the Git bytes, and the four-second recording
 plays on the live listing. The temporary Simulator was removed.
 
 npm published the exact 1.5.0 tarball after owner browser account verification
-and registry processing. It is the latest version. Downloaded registry bytes
+and registry processing. It was latest at that release. Downloaded registry bytes
 match the reviewed tarball, and a global registry install reports
 `menloapp 1.5.0`; deploy and try help both pass. The reviewed tarball remains at
 `dist/menloapp-1.5.0/menloapp-1.5.0.tgz`. No native artifact is changed by this
@@ -163,7 +170,7 @@ menloapp --version
 menloapp deploy --help
 ```
 
-Version 1.5.0 is published. For a future CLI change, update the package version,
+Version 1.5.1 is published. For a future CLI change, update the package version,
 run its relevant checks, and commit/push the source before publishing:
 
 ```sh
@@ -177,7 +184,7 @@ Use `npm login` if the session has expired, and complete any browser/2FA prompt
 yourself. A package name/version is immutable once published, so a later fix
 needs a new version. See [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish/).
 No postinstall script runs. Publishing this JavaScript package does not rebuild
-or relabel the signed native runtime; both 1.4.0 and 1.5.0 retain the exact 1.3.0 runtime pin.
+or relabel the signed native runtime; 1.4.0 and the 1.5.x versions retain the exact 1.3.0 runtime pin.
 
 ## 4. Deploy and try an app
 

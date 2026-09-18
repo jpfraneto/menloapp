@@ -20,16 +20,24 @@ release. Its description remains the published catalog description.
 
 Local checks passed: website typechecking, 54 focused website checks, and the
 47 npm checks (the version-sensitive package installation checks were rerun after
-updating the CLI constant). CLI 1.5.1 is packaged at
-`dist/menloapp-1.5.1/menloapp-1.5.1.tgz`; npm publication requires renewal of the
-expired owner session. Desktop/mobile discovery and listing navigation passed
-in an isolated browser, with no page overflow or JavaScript errors.
+updating the CLI constant). The reviewed CLI 1.5.1 package is at
+`dist/menloapp-1.5.1/menloapp-1.5.1.tgz`. After owner login and npm's separate
+browser publishing approval, version 1.5.1 is published as npm latest. Downloaded
+registry bytes match the reviewed archive exactly. A fresh isolated registry
+installation reports `menloapp 1.5.1` and accepts custom `ogImage` metadata.
+Its integrity is
+`sha512-f1ucB1JDFeM6XUQeq2uc9krmN6LvItNDe/+kf5rstowRKNrNW87PxEWdRqUSbSoEq+rr6XimzO8WsJaTq2Lcwg==`.
 
 Source `02bee76` was pushed to main and uploaded to the existing production
-service as Railway deployment `d67c2834-c9cc-4154-b2be-eba877818660`. The initial
-status was INITIALIZING, and the subsequent public Anky check still served the
-previous HTML. Production activation and crawler verification remain pending;
-the local card is not evidence of a live social-network preview.
+service as Railway deployment `d67c2834-c9cc-4154-b2be-eba877818660`, and is now
+observed live. Anky's public HTML and 74,517-byte PNG return 200 to requests using
+Twitter and Facebook crawler user agents; the image is 1200 × 630 with Anky's
+actual icon and `menloapp.lol/anky`. Image HEAD also passes. The homepage shows
+two distinct app cards without an update feed, and public activity contains only
+publication events. Live desktop/mobile discovery and listing navigation pass
+with no overflow or JavaScript errors, and the served stylesheet matches source.
+Health and the pinned native CLI runtime manifest remain available. These are
+public-origin checks; social platforms may retain previously cached previews.
 
 ## Browser Get app handoff (September 17)
 
