@@ -75,12 +75,12 @@ public final class GitHubAccountModel {
         do {
             let status = try await request("https://tohseno.com/api/menlo/v1/status")
             guard let clientID = status["github_client_id"] as? String, !clientID.isEmpty else {
-                throw FactoryClientError.invalidConfiguration("MENLO’s GitHub sign-in is awaiting configuration. Terminal deployment can use an existing gh auth login session.")
+                throw FactoryClientError.invalidConfiguration("Menlo’s GitHub sign-in is awaiting configuration. Terminal deployment can use an existing gh auth login session.")
             }
             let device = try await request("https://github.com/login/device/code", fields: ["client_id": clientID, "scope": "read:user public_repo"])
             guard let code = device["device_code"] as? String, let visible = device["user_code"] as? String,
                   device["verification_uri"] as? String == "https://github.com/login/device"
-            else { throw FactoryClientError.transport("Enable Device Flow for the MENLO GitHub app, then try again.") }
+            else { throw FactoryClientError.transport("Enable Device Flow for the Menlo GitHub app, then try again.") }
             userCode = visible
             NSWorkspace.shared.open(URL(string: "https://github.com/login/device")!)
             var interval = max(device["interval"] as? Int ?? 5, 5)
@@ -105,24 +105,25 @@ public final class GitHubAccountModel {
     public func signOut() {
         cancelled = true
         SecItemDelete([kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: "github"] as CFDictionary)
-        login = nil; message = "Signed out of MENLO’s GitHub session."
+        login = nil; message = "Signed out of Menlo’s GitHub session."
     }
     public func cancel() { cancelled = true }
 }
 
 struct GitHubAccountView: View {
+    @State private var copied = false
     @Bindable var model: TohsenoAppModel
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 Text("Your GitHub. Your apps.").font(.largeTitle.bold())
-                Text("MENLO uses GitHub for identity and source. Share an app from a repository you can push to, and send its link to a tester.")
+                Text("Menlo uses GitHub for identity and source. Share an app from a repository you can push to, and send its link to a tester.")
                 if let login = model.githubAccount.login {
                     Link("@\(login) ↗", destination: URL(string: "https://github.com/\(login)")!).font(.title2)
                     Button("Sign out") { model.githubAccount.signOut() }
                 } else {
                     Button("Sign in with GitHub") { Task { await model.githubAccount.signIn() } }
-                        .buttonStyle(.borderedProminent).disabled(model.githubAccount.busy)
+                        .buttonStyle(PrimaryActionStyle()).disabled(model.githubAccount.busy)
                 }
                 if let code = model.githubAccount.userCode {
                     Text("Enter this code on GitHub").font(.headline)
@@ -132,7 +133,11 @@ struct GitHubAccountView: View {
                 if let message = model.githubAccount.message { Text(message).foregroundStyle(.secondary) }
                 Divider()
                 Text("Deploy from your app’s repository").font(.headline)
-                Text("npm i -g tohseno\ntohseno deploy").font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                Text("npm i -g menloapp\nmenloapp deploy").font(.system(.body, design: .monospaced)).textSelection(.enabled)
+                Button(copied ? "Copied" : "Copy commands") {
+                    NSPasteboard.general.clearContents()
+                    copied = NSPasteboard.general.setString("npm i -g menloapp\nmenloapp deploy", forType: .string)
+                }
                 Text("Push code as usual. Your app link follows the default branch, and testers choose when to update.")
                 Link("GitHub sign-in permissions", destination: URL(string: "https://github.com/settings/applications")!)
             }.frame(maxWidth: 680, alignment: .leading).padding(36)
@@ -145,7 +150,8 @@ struct GitHubReviewSheet: View {
     let review: GitHubReview
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Try \(review.app.name)").font(.title.bold())
+            MenloWordmark().frame(width: 100)
+            Text("Get \(review.app.name)").font(.title.weight(.semibold))
             Link(review.app.repository, destination: URL(string: "https://github.com/\(review.app.repository)")!)
             Text("Commit \(review.commit.prefix(7)) · \(review.app.scheme)").font(.system(.body, design: .monospaced))
             Text("Your Mac will download this source, build it with Xcode, and sign it for your intended iPhone using your Apple identity.")
@@ -159,8 +165,8 @@ struct GitHubReviewSheet: View {
                 Spacer()
                 Button(review.reasons == nil ? "Build for my iPhone" : "I reviewed this code · build") {
                     Task { await model.installReviewedGitHubApp(approveMacReview: review.reasons != nil) }
-                }.buttonStyle(.borderedProminent).disabled(model.githubBusy)
+                }.buttonStyle(PrimaryActionStyle()).disabled(model.githubBusy)
             }
-        }.padding(28).frame(width: 580).interactiveDismissDisabled(model.githubBusy)
+        }.padding(32).frame(width: 580).background(TohsenoTheme.surface).foregroundStyle(TohsenoTheme.text).interactiveDismissDisabled(model.githubBusy)
     }
 }

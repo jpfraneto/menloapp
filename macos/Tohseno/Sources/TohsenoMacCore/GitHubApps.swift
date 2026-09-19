@@ -17,7 +17,7 @@ public struct GitHubAppStatus: Codable, Equatable, Sendable {
         return installedCommit != headCommit
     }
     public var updateSummary: String {
-        if deliveryStatus == "ready_for_iphone" { return "Ready on your Mac · connect your iPhone" }
+        if deliveryStatus == "ready_for_iphone" { return "Build complete · connect your iPhone" }
         if deliveryStatus == "building" { return "Building on your Mac" }
         if deliveryStatus == "failed" { return "Build needs attention on your Mac" }
         if installedCommit == nil { return "Not installed on your iPhone yet" }

@@ -46,6 +46,7 @@ mkdir -p "$contents/MacOS" "$contents/Helpers" "$contents/Resources" \
 cp "$package_root/Packaging/Info.plist" "$contents/Info.plist"
 cp "$repository_root/brand/menlo/mark.svg" "$contents/Resources/TohsenoLogo.svg"
 cp "$swift_bin" "$contents/MacOS/TohsenoMacApp"
+cp -R "$(dirname -- "$swift_bin")/TohsenoMac_TohsenoMacCore.bundle" "$contents/Resources/"
 lipo -create \
   "$repository_root/target/aarch64-apple-darwin/release/tohseno" \
   "$repository_root/target/x86_64-apple-darwin/release/tohseno" \

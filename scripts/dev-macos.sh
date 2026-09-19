@@ -23,6 +23,7 @@ preview="$(mktemp -d "$repo/dist/local-macos/preview.XXXXXX")"
 app="$preview/Tohseno.app"
 ditto "$base" "$app"
 cp "$bin" "$app/Contents/MacOS/TohsenoMacApp"
+ditto "$(dirname "$bin")/TohsenoMac_TohsenoMacCore.bundle" "$app/Contents/Resources/TohsenoMac_TohsenoMacCore.bundle"
 stamp="$(git -C "$repo" rev-parse --short HEAD)-$(date +%H%M%S)"
 if ! git -C "$repo" diff --quiet -- macos/Tohseno sdk/apple/TohsenoWorkshopKit; then
   stamp="$stamp-dirty"

@@ -17,15 +17,18 @@ struct GitHubExploreView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                Text("Try an app. Help its maker.").font(.largeTitle.bold())
-                Text("Open a MENLO link or find an app below. Your Mac builds the source from GitHub for your own iPhone.")
+                Text("Apps, person to person.").font(.largeTitle.bold())
+                Text("Open a Menlo link or find an app below. Your Mac builds the source from GitHub for your own iPhone.")
                 HStack {
-                    TextField("MENLO app link or slug", text: $entry).textFieldStyle(.roundedBorder)
+                    TextField("Menlo app link or slug", text: $entry).textFieldStyle(.roundedBorder)
                         .onSubmit { openEntry() }
-                    Button("Open app") { openEntry() }.buttonStyle(.borderedProminent).disabled(entry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button("Open app") { openEntry() }.buttonStyle(PrimaryActionStyle()).disabled(entry.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
                 if loading { ProgressView("Checking the app directory…") }
-                if let message { Text(message).foregroundStyle(.secondary) }
+                if let message {
+                    Text(message).foregroundStyle(TohsenoTheme.textMuted)
+                    Button("Try again") { Task { await refresh() } }
+                }
                 ForEach(apps) { app in
                     Button { Task { await model.reviewGitHubApp(slug: app.slug) } } label: {
                         VStack(alignment: .leading, spacing: 8) {
@@ -35,9 +38,9 @@ struct GitHubExploreView: View {
                         }.frame(maxWidth: .infinity, alignment: .leading).padding(18)
                     }.buttonStyle(.bordered)
                 }
-                if apps.isEmpty && !loading && message == nil { Text("No GitHub apps have been registered yet. Share the first one with tohseno deploy.").foregroundStyle(.secondary) }
+                if apps.isEmpty && !loading && message == nil { Text("No GitHub apps have been registered yet. Share the first one with menloapp deploy.").foregroundStyle(.secondary) }
                 Divider()
-                Link("Deploy your app ↗", destination: URL(string: "https://tohseno.com/#install")!)
+                Link("Share your app ↗", destination: URL(string: "https://menloapp.lol/#deploy")!)
                 Link("Historical Registry releases ↗", destination: URL(string: "https://tohseno.com/registry")!).font(.caption)
             }.frame(maxWidth: 820, alignment: .leading).padding(36)
         }.task { await refresh() }
@@ -48,13 +51,15 @@ struct GitHubExploreView: View {
             Task { await model.openNetworkLink(url) }
         } else {
             let slug: String
-            if let url = URL(string: text), url.scheme == "https", url.host == "tohseno.com", url.path.split(separator: "/").count == 1 {
+            if let url = URL(string: text), url.scheme == "https", ["menloapp.lol", "tohseno.com"].contains(url.host ?? ""), url.path.split(separator: "/").count == 1 {
                 slug = String(url.path.dropFirst())
             } else { slug = text }
             Task { await model.reviewGitHubApp(slug: slug) }
         }
     }
     private func refresh() async {
+        loading = true
+        message = nil
         defer { loading = false }
         do {
             let (data, response) = try await URLSession.shared.data(for: URLRequest(url: URL(string: "https://tohseno.com/api/menlo/v1/apps")!, timeoutInterval: 20))

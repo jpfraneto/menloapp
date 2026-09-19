@@ -24,7 +24,7 @@ struct TohsenoMacApp: App {
     var body: some Scene {
         WindowGroup(localWindowTitle, id: "factory") {
             TohsenoRootView(model: model)
-                .frame(minWidth: 860, minHeight: 620)
+                .frame(minWidth: 980, minHeight: 620)
                 .onOpenURL { url in
                     Task { await model.openNetworkLink(url) }
                 }
@@ -94,8 +94,7 @@ private struct TohsenoMenuBarView: View {
 
 @MainActor
 private func menuBarIcon() -> NSImage {
-    let bundled = Bundle.main.url(forResource: "TohsenoLogo", withExtension: "svg")
-        .flatMap(NSImage.init(contentsOf:))
+    let bundled = MenloBrand.image("mark")
     let image = bundled
         ?? NSImage(systemSymbolName: "circle.hexagongrid.fill", accessibilityDescription: "Menlo")
         ?? NSImage(size: NSSize(width: 18, height: 18))

@@ -1,121 +1,135 @@
+import AppKit
+import CoreText
 import SwiftUI
 
+/// Shared Menlo roles; web equivalents live in public/menlo/tokens.css.
 public enum TohsenoTheme {
-    public static let void = Color(red: 246 / 255, green: 243 / 255, blue: 234 / 255)
-    public static let carbon = Color(red: 255 / 255, green: 253 / 255, blue: 247 / 255)
-    public static let graphite = Color(red: 225 / 255, green: 232 / 255, blue: 216 / 255)
-    public static let iron = Color(red: 214 / 255, green: 213 / 255, blue: 201 / 255)
-    public static let ash = Color(red: 97 / 255, green: 100 / 255, blue: 87 / 255)
-    public static let silver = Color(red: 97 / 255, green: 100 / 255, blue: 87 / 255)
-    public static let bone = Color(red: 36 / 255, green: 40 / 255, blue: 32 / 255)
-    public static let amber = Color(red: 49 / 255, green: 91 / 255, blue: 59 / 255)
-    public static let ember = Color(red: 225 / 255, green: 232 / 255, blue: 216 / 255)
+    private static func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
+        Color(nsColor: NSColor(name: nil) { appearance in
+            let value = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? dark : light
+            return NSColor(srgbRed: CGFloat((value >> 16) & 255) / 255,
+                           green: CGFloat((value >> 8) & 255) / 255,
+                           blue: CGFloat(value & 255) / 255, alpha: 1)
+        })
+    }
+
+    public static let canvas = adaptive(0xFAF9F6, 0x19211C)
+    public static let paper = adaptive(0xF3EDDD, 0x252D24)
+    public static let surface = adaptive(0xFFFEFA, 0x222B24)
+    public static let text = adaptive(0x202720, 0xF2F0E6)
+    public static let textMuted = adaptive(0x62695E, 0xB3BBAA)
+    public static let accent = adaptive(0x315F40, 0xA6CBA5)
+    public static let onAccent = adaptive(0xFFFFFF, 0x19291D)
+    public static let accentSoft = adaptive(0xE8EDDE, 0x303E2E)
+    public static let separator = adaptive(0xDCDED3, 0x455042)
+    public static let controlBorder = adaptive(0x858D7E, 0x86947D)
+    public static let warning = adaptive(0x805A13, 0xE6C27A)
+    public static let error = adaptive(0xA3302D, 0xFFB4A9)
+
+    // Retained names keep the workshop's existing projections on one palette.
+    public static let void = canvas
+    public static let carbon = surface
+    public static let graphite = accentSoft
+    public static let iron = separator
+    public static let ash = textMuted
+    public static let silver = textMuted
+    public static let bone = text
+    public static let amber = accent
+    public static let ember = accentSoft
+}
+
+public enum MenloTypography {
+    private static let registered: Bool = {
+        guard let url = MenloBrand.bundle.url(forResource: "MenloApp-Bold", withExtension: "ttf") else { return false }
+        return CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+    }()
+
+    public static func brand(size: CGFloat, relativeTo style: Font.TextStyle = .title) -> Font {
+        _ = registered
+        return .custom("MenloApp-Bold", size: size, relativeTo: style)
+    }
+}
+
+public struct MenloWordmark: View {
+    @Environment(\.colorScheme) private var colorScheme
+    public init() {}
+
+    public var body: some View {
+        if let image = MenloBrand.image("wordmark", dark: colorScheme == .dark) {
+            Image(nsImage: image).resizable()
+                .aspectRatio(3140.0 / 860.0, contentMode: .fit)
+                .accessibilityLabel("Menlo")
+        }
+    }
 }
 
 public struct TohsenoMark: View {
-    private let stroke: Color
-    private let gap: Color
+    @Environment(\.colorScheme) private var colorScheme
 
-    public init(stroke: Color = TohsenoTheme.amber, gap: Color = TohsenoTheme.void) {
-        self.stroke = stroke
-        self.gap = gap
-    }
+    public init(stroke: Color = TohsenoTheme.accent, gap: Color = TohsenoTheme.canvas) {}
 
     public var body: some View {
-        GeometryReader { geometry in
-            Path { path in
-                let scale = min(geometry.size.width, geometry.size.height) / 48
-                path.addRect(CGRect(x: 4 * scale, y: 4 * scale, width: 28 * scale, height: 28 * scale))
-                path.addRect(CGRect(x: 10 * scale, y: 10 * scale, width: 16 * scale, height: 16 * scale))
-            }
-            .fill(stroke, style: FillStyle(eoFill: true))
-            Rectangle().fill(stroke)
-                .frame(width: geometry.size.width / 2, height: geometry.size.height / 2)
-                .offset(x: geometry.size.width * 20 / 48, y: geometry.size.height * 20 / 48)
+        if let image = MenloBrand.image("mark", dark: colorScheme == .dark) {
+            Image(nsImage: image).resizable()
+                .aspectRatio(940.0 / 860.0, contentMode: .fit)
+                .accessibilityHidden(true)
         }
-            .accessibilityHidden(true)
+    }
+}
+
+public enum MenloBrand {
+    // SwiftPM's generated lookup is next to the executable during development.
+    // Signed .app bundles keep their resource bundle in Contents/Resources.
+    static let bundle: Bundle = {
+        if let url = Bundle.main.resourceURL?.appendingPathComponent("TohsenoMac_TohsenoMacCore.bundle"),
+           let packaged = Bundle(url: url) { return packaged }
+        return .module
+    }()
+
+    public static func image(_ name: String, dark: Bool = false) -> NSImage? {
+        guard let url = bundle.url(forResource: "menlo-\(name)-\(dark ? "dark" : "light")", withExtension: "pdf") else { return nil }
+        return NSImage(contentsOf: url)
     }
 }
 
 public struct TohsenoSpinner: View {
     private let size: CGFloat
-    private let stroke: Color
-    private let gap: Color
-    @State private var isSpinning = false
 
-    public init(
-        size: CGFloat = 28,
-        stroke: Color = TohsenoTheme.amber,
-        gap: Color = TohsenoTheme.void
-    ) {
+    public init(size: CGFloat = 28, stroke: Color = TohsenoTheme.accent, gap: Color = TohsenoTheme.canvas) {
         self.size = size
-        self.stroke = stroke
-        self.gap = gap
     }
 
     public var body: some View {
-        TohsenoMark(stroke: stroke, gap: gap)
+        ProgressView().controlSize(.small)
             .frame(width: size, height: size)
-            .rotationEffect(.degrees(isSpinning ? 360 : 0))
-            .animation(.linear(duration: 0.9).repeatForever(autoreverses: false), value: isSpinning)
-            .onAppear { isSpinning = true }
+            .accessibilityLabel("Working")
+    }
+}
+
+/// Identity stays still; actual work uses the system progress indicator.
+public struct TohsenoLivingMark: View {
+    private let size: CGFloat
+
+    public init(size: CGFloat = 96, animated: Bool = true) { self.size = size }
+
+    public var body: some View {
+        TohsenoMark().frame(width: size, height: size)
+            .frame(width: size * 1.4, height: size * 1.4)
             .accessibilityHidden(true)
     }
 }
 
-/// The mark at the product's front door. It breathes instead of spinning so
-/// first contact feels alive without implying that a technical task is stuck.
-public struct TohsenoLivingMark: View {
-    private let size: CGFloat
-    private let animated: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var isBreathing = false
-
-    public init(size: CGFloat = 96, animated: Bool = true) {
-        self.size = size
-        self.animated = animated
-    }
-
-    public var body: some View {
-        ZStack {
-            Circle()
-                .fill(TohsenoTheme.amber.opacity(0.08))
-                .frame(width: size * 1.34, height: size * 1.34)
-                .scaleEffect(isBreathing && animated && !reduceMotion ? 1.08 : 0.94)
-                .opacity(isBreathing && animated && !reduceMotion ? 0.3 : 0.72)
-
-            Circle()
-                .stroke(TohsenoTheme.amber.opacity(0.2), lineWidth: 1)
-                .frame(width: size * 1.16, height: size * 1.16)
-                .scaleEffect(isBreathing && animated && !reduceMotion ? 1.16 : 0.9)
-                .opacity(isBreathing && animated && !reduceMotion ? 0.04 : 0.52)
-
-            TohsenoMark()
-                .frame(width: size, height: size)
-                .rotationEffect(.degrees(isBreathing && animated && !reduceMotion ? 7 : -3))
-                .scaleEffect(isBreathing && animated && !reduceMotion ? 1.025 : 0.985)
-                .shadow(color: TohsenoTheme.amber.opacity(0.2), radius: 18)
-        }
-        .frame(width: size * 1.4, height: size * 1.4)
-        .animation(
-            reduceMotion || !animated
-                ? nil
-                : .easeInOut(duration: 2.8).repeatForever(autoreverses: true),
-            value: isBreathing
-        )
-        .onAppear { isBreathing = true }
-        .accessibilityHidden(true)
-    }
-}
-
 struct PrimaryActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .fontWeight(.semibold)
-            .foregroundStyle(TohsenoTheme.void)
+            .foregroundStyle(TohsenoTheme.onAccent)
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
-            .background(TohsenoTheme.amber.opacity(configuration.isPressed ? 0.78 : 1))
+            .background(TohsenoTheme.accent.opacity(configuration.isPressed ? 0.78 : 1))
             .clipShape(RoundedRectangle(cornerRadius: 8))
+            .opacity(isEnabled ? 1 : 0.5)
     }
 }

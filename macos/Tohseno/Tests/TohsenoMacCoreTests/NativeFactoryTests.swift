@@ -77,6 +77,38 @@ final class NativeFactoryTests: XCTestCase {
     }
 
     @MainActor
+    func testMenloBuildAndInstallationStayDistinctInBothAppearances() async throws {
+        XCTAssertEqual(workshopApp(.readyForPhone).deliveryHeadline, "Build complete")
+        XCTAssertEqual(workshopApp(.installed).deliveryHeadline, "Installed on your iPhone")
+        XCTAssertEqual(workshopApp(.installing).deliveryHeadline, "Installing on your iPhone")
+        for dark in [false, true] {
+            for name in ["wordmark", "mark"] {
+                let image = try XCTUnwrap(MenloBrand.image(name, dark: dark))
+                XCTAssertGreaterThan(image.size.width, 0)
+            }
+        }
+        let suite = "menlo-design-fixture-\(UUID())"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let model = TohsenoAppModel(client: FakeFactory(workspaceShots: [workshopApp(.readyForPhone)]), preferences: preferences)
+        await model.reload()
+        model.route = .app("workshop_ready_for_phone")
+        for scheme in [ColorScheme.light, .dark] {
+            let host = NSHostingView(rootView: TohsenoRootView(model: model)
+                .frame(width: 980, height: 720).environment(\.colorScheme, scheme))
+            host.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
+            host.frame = NSRect(x: 0, y: 0, width: 980, height: 720)
+            host.layoutSubtreeIfNeeded()
+            let bitmap = try XCTUnwrap(host.bitmapImageRepForCachingDisplay(in: host.bounds))
+            host.cacheDisplay(in: host.bounds, to: bitmap)
+            let png = try XCTUnwrap(bitmap.representation(using: .png, properties: [:]))
+            if let directory = ProcessInfo.processInfo.environment["MENLO_DESIGN_FIXTURE_DIR"] {
+                try png.write(to: URL(fileURLWithPath: directory).appendingPathComponent("menlo-ready-\(scheme == .dark ? "dark" : "light").png"), options: .atomic)
+            }
+        }
+    }
+
+    @MainActor
     func testNativeBuildWorkspaceRendersAtTheShippingWindowSize() async throws {
         let suite = "tohseno-render-fixture-\(UUID().uuidString)"
         let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
@@ -472,7 +504,7 @@ final class NativeFactoryTests: XCTestCase {
         let source = try String(contentsOf: root, encoding: .utf8)
 
         for phrase in [
-            "WELCOME TO MENLO",
+            "MenloWordmark()",
             "Your app. Out in the world.",
             "This is where your ideas transform into apps.",
             "Your intention",
@@ -946,7 +978,7 @@ final class NativeFactoryTests: XCTestCase {
             encoding: .utf8
         )
         XCTAssertTrue(app.contains("MenuBarExtra"))
-        XCTAssertTrue(app.contains("TohsenoLogo"))
+        XCTAssertTrue(app.contains("MenloBrand.image(\"mark\")"))
         XCTAssertFalse(app.contains("WindowGroup(\"TOHSENO\""))
         let build = try String(
             contentsOf: package.appendingPathComponent("Packaging/build-app.sh"),

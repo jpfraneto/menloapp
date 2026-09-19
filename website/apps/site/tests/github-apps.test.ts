@@ -152,11 +152,11 @@ test("app pages and API use committed metadata and pin every asset to that commi
   expect(page).toContain(`/media/${sha}/menloapp/icon.png`);
   expect(page.match(/alt="Committed App screenshot/g)?.length).toBe(3);
   expect(page).not.toContain("Ignored request name");
-  expect(page).toContain('<details class="ml-install-options"><summary class="ml-button ml-get-button">Get app</summary>');
-  expect(page).toContain('aria-label="Install Committed App"');
-  expect(page).toContain(`href="menlo://app/test-app?commit=${sha}&amp;repository=12">Open MENLO</a>`);
-  expect(page).toContain('href="/download/macos">Install or update MENLO for Mac');
-  expect(page).toContain('menloapp try https://menloapp.lol/test-app');
+  expect(page).toContain('<summary class="ml-button ml-get-button">Get app</summary>');
+  expect(page).toContain("Get Committed App on your iPhone");
+  expect(page).toContain(`href="menlo://app/test-app?commit=${sha}&amp;repository=12">Open in Menlo</a>`);
+  expect(page).toContain('href="/download/macos">Set up Menlo');
+  expect(page).toContain('menloapp try https://tohseno.com/test-app');
   addPresentation(f.files, "Next name"); f.state.head = next; f.restart();
   const updated = await (await f.request("GET", "apps/test-app"))!.json();
   expect(updated.name).toBe("Next name");
@@ -214,7 +214,7 @@ test("public discovery lists each app once and leaves updates to installed-app c
   expect(feed.apps).toHaveLength(1);
   expect(f.requests.some(path => path.endsWith("/commits"))).toBe(false);
   const page = await f.router.renderIndex();
-  expect(page).toContain("Discover apps.");
+  expect(page).toContain("Apps, person to person.");
   expect(page.match(/href="\/test-app"/g)).toHaveLength(1);
   expect(page).not.toContain("Latest activity");
   expect(page).not.toContain("deployed an update");

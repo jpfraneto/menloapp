@@ -1,4 +1,6 @@
-/** Shared shell for app activity supplied by the Registry renderer. */
+import { menloPage } from "./menlo-shell.ts";
+
+/** Historical Registry home uses the same identity while retaining its events. */
 export function menloHome(apps: string, activity: string, status: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Discover apps — MENLO</title><link rel="stylesheet" href="/menlo/tokens.css?v=1"><link rel="stylesheet" href="/menlo/home.css?v=4"></head><body class="menlo-landing ml-store"><header class="ml-container ml-header"><a class="ml-wordmark" href="/">menlo</a><nav aria-label="Primary"><a class="ml-button ml-discover-button" href="/apps">DISCOVER OTHER APPS ↗</a></nav></header><main class="ml-container ml-discovery"><div class="ml-discovery-heading"><h1>Discover apps.</h1><a href="/#deploy">Share your app ↗</a></div><div class="ml-app-grid">${apps}</div>${activity ? `<section aria-label="Latest activity">${activity}</section>` : ""}<p class="ml-small ml-muted">${status}</p></main></body></html>`;
+  return menloPage("Discover apps", "Apps, person to person.", "/", `<main id="main" class="ml-container ml-discovery"><div class="ml-discovery-heading"><h1>Apps, person to person.</h1><p>Discover apps shared by their makers.</p></div><div class="ml-app-grid">${apps}</div>${activity ? `<details class="ml-technical"><summary>Release activity</summary>${activity}</details>` : ""}<p class="ml-small">${status}</p></main>`);
 }

@@ -20,7 +20,8 @@ let package = Package(
             name: "TohsenoMacCore",
             dependencies: [
                 .product(name: "TohsenoWorkshopKit", package: "TohsenoWorkshopKit"),
-            ]
+            ],
+            resources: [.process("Resources")]
         ),
         .executableTarget(
             name: "TohsenoMacApp",

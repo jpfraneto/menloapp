@@ -78,7 +78,15 @@ public struct AppSummary: Codable, Equatable, Identifiable, Sendable {
     /// Source adoption alone is not a device build or installation receipt.
     public var deliveryUnconfirmed: Bool { sourceState != nil && execution == nil && github == nil }
     public var deliveryHeadline: String {
-        deliveryUnconfirmed ? "Source on Mac · installation unconfirmed" : presentation.headline
+        if deliveryUnconfirmed { return "Source on Mac · installation unconfirmed" }
+        return switch presentation.state {
+        case .waiting: "Waiting to build"
+        case .building: "Building on your Mac"
+        case .readyForPhone: "Build complete"
+        case .installing: "Installing on your iPhone"
+        case .installed: "Installed on your iPhone"
+        case .failed: "Needs attention"
+        }
     }
 }
 

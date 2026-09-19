@@ -93,12 +93,12 @@ describe("public pages", () => {
     const response = await application.fetch(request("/"));
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).toContain("<title>Discover apps — MENLO</title>");
+    expect(body).toContain("<title>Discover apps — Menlo</title>");
     expect(body).toContain("npm i -g menloapp");
     expect(body).toContain("menloapp deploy");
     expect(body).toContain('aria-label="Discover apps"');
     expect(body).not.toContain("Latest activity");
-    expect(body).toContain("DISCOVER OTHER APPS");
+    expect(body).toContain('href="/apps" aria-current="page">Discover</a>');
     expect(body).not.toContain("From GitHub to their iPhone");
     const apps = await application.fetch(request("/apps"));
     expect(apps.status).toBe(200);
@@ -338,6 +338,11 @@ describe("public pages", () => {
       ["/buy.js", "text/javascript"],
       ["/fonts/fraunces-latin.woff2", "font/woff2"],
       ["/fonts/plex-mono-latin.woff2", "font/woff2"],
+      ["/fonts/MenloApp-Bold.woff2", "font/woff2"],
+      ["/menlo/wordmark.svg", "image/svg+xml"],
+      ["/menlo/favicon.svg", "image/svg+xml"],
+      ["/menlo/tokens.css", "text/css"],
+      ["/menlo/home.js", "text/javascript"],
       ["/app.js", "text/javascript"],
       ["/modules/intent-package.js", "text/javascript"],
       ["/manifest.webmanifest", "application/manifest+json"],

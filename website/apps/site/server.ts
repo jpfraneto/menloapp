@@ -281,6 +281,10 @@ const STATIC_FILES: Record<
     file: "fonts/plex-mono-latin.woff2",
     type: "font/woff2",
   },
+  "/fonts/MenloApp-Bold.woff2": {
+    file: "fonts/MenloApp-Bold.woff2",
+    type: "font/woff2",
+  },
   "/app.js": {
     file: "app.js",
     type: "text/javascript; charset=utf-8",
@@ -705,7 +709,7 @@ export async function createApplication(
       return headResponse(json({ status: "ok", service: "tohseno" }), method);
     }
 
-    if (/^\/menlo\/(?:home\.(?:css|js)|tokens\.css|hero-sharing\.png|(?:menlo-mark|spectrum-rule|favicon|app)\.svg)$/.test(pathname)) {
+    if (/^\/menlo\/(?:home\.(?:css|js)|tokens\.css|hero-sharing\.png|(?:wordmark|menlo-mark|spectrum-rule|favicon|app)\.svg)$/.test(pathname)) {
       return headResponse(withSecurityHeaders(new Response(Bun.file(join(PUBLIC_DIRECTORY, pathname.slice(1))), {
         headers: { "Cache-Control": "public, max-age=0, must-revalidate" },
       })), method);

@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 enum WorkshopMotion {
     static func ambient(reduceMotion: Bool) -> Animation? {
-        reduceMotion ? nil : .easeInOut(duration: 3.2).repeatForever(autoreverses: true)
+        reduceMotion ? nil : .easeOut(duration: 0.16)
     }
 
     static func activity(reduceMotion: Bool, active: Bool) -> Animation? {
@@ -326,9 +326,8 @@ struct LivingWorkshopView: View {
         HStack(spacing: 14) {
             TohsenoLivingMark(size: 30)
             VStack(alignment: .leading, spacing: 2) {
-                Text("MENLO · APP WORKSHOP")
-                    .font(.caption2.weight(.semibold))
-                    .tracking(2.2)
+                Text("One Shot")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(TohsenoTheme.amber)
                 Text(projection.chapter.title)
                     .font(.title3.weight(.semibold))
@@ -668,8 +667,7 @@ private struct TohsenoKeeperActor: View {
         HStack(spacing: 10) {
             keeperMark
             VStack(alignment: .leading, spacing: 2) {
-                Text("menlo")
-                    .font(.system(size: 26, weight: .semibold, design: .serif))
+                MenloWordmark().frame(width: 94)
                 Text(line)
                     .font(.caption2)
                     .foregroundStyle(TohsenoTheme.silver)
@@ -894,7 +892,7 @@ private struct OneShotDock: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("ONE SHOT").font(.caption.weight(.bold)).tracking(2).foregroundStyle(TohsenoTheme.amber)
-                    Text("Describe one app in ordinary words. The Mac keeps the source; nothing Ships without Companion approval.")
+                    Text("Describe one app in ordinary words. Your Mac builds it, and your iPhone runs it.")
                         .font(.caption)
                         .foregroundStyle(TohsenoTheme.silver)
                 }
