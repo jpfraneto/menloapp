@@ -83,5 +83,6 @@ instructions. Native views use the same roles through native SwiftUI controls.
   Missing previews use a compact message. Source files, logs, and retained
   evolution history stay inside Technical details; errors remain visible.
 
-This design change does not activate a release or change the published Mac
-installer. Native resource bundles must be copied into packaged applications.
+Native resource bundles must be copied into packaged applications. Deployment
+and exact release evidence are recorded in [docs/STATE.md](../../docs/STATE.md);
+this presentation guide does not grant release authority.

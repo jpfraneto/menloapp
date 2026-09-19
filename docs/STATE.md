@@ -4,6 +4,42 @@ Written 2026-07-30, amended through 2026-09-18. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menlo design system (September 18)
+
+The GitHub discovery/app pages and native Mac UI use the owner's supplied
+MenloApp font, connected loop logo, and shared light/dark colors. The web directory presents each app
+once, and Get app preserves the exact-commit native handoff and source review.
+The Mac keeps a persistent app sidebar, shows actual build and phone-delivery
+states, and puts source files and logs inside Technical details. Native font
+and logo resources are bundled with the application. Retained legacy Registry
+pages keep their existing shell.
+
+Website source `5b4b352` is live in Railway production deployment
+`204f3568-d5b0-4ab6-a423-233510030246`. Public app pages return successfully;
+served WOFF2, SVG, CSS and JavaScript bytes match the committed files. Website
+typechecking and 39 focused checks passed. All 47 Mac tests passed; native
+light/dark fixture renders were inspected. These checks do not constitute
+physical recipient acceptance. The local design preview was stopped when the
+owner requested deployment.
+
+[Mac 1.3.0-rc.2](https://github.com/jpfraneto/menloapp/releases/tag/v1.3.0-rc.2),
+build 10013, was built from clean main source `4459223`. Installer appearance
+comes from `5b4b352`; compiled native source is identical between those commits.
+The universal app uses hardened runtime. App and DMG passed Developer ID
+signature, notarization, stapling, and Gatekeeper checks. The app inside the
+mounted DMG was verified separately; its Applications link, saved Finder layout,
+and bundled resources were checked.
+Apple accepted app submission `4f3cabba-b1aa-4d9a-848c-02b2b693bb61` and DMG
+submission `2f7db7e5-334b-4930-9377-a2ee2dfcd9cb`.
+
+The published installer is 53,522,177 bytes with SHA-256
+`aca5f4fd3a93794936f6d9117635d678d534c58e8e13d8ae59543d9cf053ddfb`.
+Downloads from both the public origin and `https://menloapp.lol/download/macos`
+reproduced those exact bytes. The production distribution API advertises build
+10013, and both download entry points label it as a release candidate. Release
+metadata and checksums accompany the GitHub prerelease. Clean-Mac and physical
+recipient acceptance of this candidate remain unobserved.
+
 ## App discovery and share previews (September 18)
 
 The homepage and `/apps` now list apps once, without commit history or update
