@@ -214,7 +214,7 @@ test("public discovery lists each app once and leaves updates to installed-app c
   expect(feed.apps).toHaveLength(1);
   expect(f.requests.some(path => path.endsWith("/commits"))).toBe(false);
   const page = await f.router.renderIndex();
-  expect(page).toContain("Apps, person to person.");
+  expect(page).toContain("BYPASS THE APP STORES.");
   expect(page.match(/href="\/test-app"/g)).toHaveLength(1);
   expect(page).not.toContain("Latest activity");
   expect(page).not.toContain("deployed an update");

@@ -48,7 +48,7 @@ for (const button of document.querySelectorAll("[data-copy]")) {
     const status = button.parentElement.querySelector(".ml-copy-status");
     try {
       await navigator.clipboard.writeText(target.value ?? target.textContent);
-      status.textContent = button.dataset.copy === "app-link" ? "App link copied." : "Commands copied.";
+      status.textContent = button.dataset.copyMessage ?? (button.dataset.copy === "app-link" ? "App link copied." : "Commands copied.");
     } catch {
       status.textContent = "Copying is unavailable. Select and copy the text above.";
       if (target instanceof HTMLInputElement) { target.focus(); target.select(); }
