@@ -33,6 +33,15 @@
 .ml-empty { grid-column: 1/-1; padding: 32px 0; }
 .ml-empty h2 { margin-top: 0; }
 .ml-feed-notice { padding: 16px; border: 1px solid var(--ml-control-border); border-radius: 8px; color: var(--ml-muted); }
+.ml-interview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); align-items: start; gap: 64px; border-top: 1px solid var(--ml-line); padding-top: 48px; margin-top: 64px; scroll-margin-top: 32px; }
+.ml-interview-eyebrow, .ml-interview-speaker { color: var(--ml-green); font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.ml-interview-heading h2 { font-size: 32px; line-height: 1.15; letter-spacing: -.025em; margin: 0 0 16px; text-wrap: balance; }
+.ml-interview-heading > p:last-child { color: var(--ml-muted); font-size: 14px; line-height: 22px; }
+.ml-interview-transcript { margin: 0; }
+.ml-interview-exchange + .ml-interview-exchange { margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--ml-line); }
+.ml-interview-speaker { display: block; margin-bottom: 8px; }
+.ml-interview-exchange dt { font-size: 20px; line-height: 28px; font-weight: 600; }
+.ml-interview-exchange dd { color: var(--ml-muted); font-size: 16px; line-height: 26px; margin: 20px 0 0; }
 .ml-app-heading { display: grid; grid-template-columns: 96px minmax(0, 1fr) auto; align-items: center; gap: 24px; }
 .ml-app-identity { min-width: 0; }
 .ml-app-identity h1 { margin: 0 0 8px; overflow-wrap: anywhere; }
@@ -103,6 +112,8 @@
 .ml-media-dialog img { display: block; max-height: calc(100vh - 180px); max-width: 100%; margin: auto; }
 @media (max-width: 799px) {
   .ml-app-grid { grid-template-columns: 1fr; }
+  .ml-interview { grid-template-columns: 1fr; gap: 24px; margin-top: 48px; padding-top: 32px; }
+  .ml-interview-heading { max-width: 40ch; }
   .ml-app-heading { grid-template-columns: 80px minmax(0, 1fr); gap: 20px; }
   .ml-app-heading > .ml-app-icon { width: 80px; height: 80px; }
   .ml-get-app { grid-column: 1/-1; flex-direction: row; align-items: center; gap: 16px; }
