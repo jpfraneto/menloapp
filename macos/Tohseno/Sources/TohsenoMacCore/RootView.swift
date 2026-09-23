@@ -30,9 +30,10 @@ public struct TohsenoRootView: View {
                 factory
             }
         }
+        .disabled(model.applicationUpdater.phase == .restarting)
         .safeAreaInset(edge: .top, spacing: 0) {
-            if let update = model.availableApplicationUpdate {
-                ApplicationUpdateBanner(update: update)
+            if model.applicationUpdater.phase != .idle {
+                ApplicationUpdateBanner(model: model)
             }
         }
         .background(TohsenoTheme.void)
@@ -190,36 +191,6 @@ private struct AppLibrarySidebar: View {
         }
         .padding(16)
         .background(TohsenoTheme.paper)
-    }
-}
-
-private struct ApplicationUpdateBanner: View {
-    let update: ApplicationUpdate
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.title3)
-                .foregroundStyle(TohsenoTheme.amber)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Menlo \(update.version) is available")
-                    .font(.callout.weight(.semibold))
-                Text(update.channel == "release-candidate" ? "Release candidate · manual update" : "Stable release · manual update")
-                    .font(.caption)
-                    .foregroundStyle(TohsenoTheme.silver)
-            }
-            Spacer()
-            Link("Update", destination: update.downloadURL)
-                .buttonStyle(PrimaryActionStyle())
-                .controlSize(.small)
-        }
-        .padding(.horizontal, 18)
-        .frame(minHeight: 48)
-        .background(TohsenoTheme.carbon)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(TohsenoTheme.amber.opacity(0.55)).frame(height: 1)
-        }
-        .accessibilityIdentifier("application.update-banner")
     }
 }
 
@@ -1090,10 +1061,9 @@ private struct ReadinessSetupContent: View {
                 if readiness.primaryAction != nil {
                     HStack(spacing: 12) {
                         if readiness.companionInstallState == "failed" {
-                            Link(
-                                "Check for a Menlo update",
-                                destination: URL(string: "https://tohseno.com/download/macos")!
-                            )
+                            Button("Check for a Menlo update") {
+                                Task { await model.applicationUpdater.check(userInitiated: true) }
+                            }
                             .buttonStyle(.bordered)
                         }
                         Button(readiness.primaryLabel ?? "Continue") {

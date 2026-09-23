@@ -204,7 +204,7 @@ public struct CompanionPairingSession: Codable, Equatable, Identifiable, Sendabl
     public var id: String { sessionID }
 }
 
-public struct ReferenceDraft: Equatable, Identifiable, Sendable {
+public struct ReferenceDraft: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let filename: String
     public let mediaType: String
@@ -226,7 +226,7 @@ public struct ReferenceDraft: Equatable, Identifiable, Sendable {
     }
 }
 
-public struct CreationDraft: Equatable, Sendable {
+public struct CreationDraft: Codable, Equatable, Sendable {
     public var name: String
     public var intention: String
     public var references: [ReferenceDraft]
@@ -257,7 +257,7 @@ public struct CreationDraft: Equatable, Sendable {
     }
 }
 
-public struct EvolutionDraft: Equatable, Sendable {
+public struct EvolutionDraft: Codable, Equatable, Sendable {
     public var intention: String
     public var references: [ReferenceDraft]
     public var harness: String?

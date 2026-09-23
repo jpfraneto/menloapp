@@ -1,8 +1,28 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-18. This is the plain-language
+Written 2026-07-30, amended through 2026-09-23. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## In-app Mac updates (September 23)
+
+Current native source replaces the update links with an in-app download bar,
+cancel/retry, verification, and an explicit Restart & update action. It uses the
+existing fail-closed distribution metadata, pins the downloaded DMG's SHA-256,
+checks the exact bundle/version/build and Developer ID team, and requires
+Gatekeeper acceptance. A private helper rechecks the candidate after the old
+process exits and atomically swaps the complete app bundle. The previous app is
+retained until the new process restores the saved creation and evolution drafts;
+if macOS refuses the relaunch, the helper restores the previous bundle. Active
+factory work blocks restart.
+The existing first-open factory installation and rollback boundary is unchanged.
+
+Local updater tests exercised the published 1.3.0-rc.2 download, checksum,
+Developer ID, Gatekeeper, and replacement of an isolated copy. These checks did
+not replace the owner's installed app or observe an end-to-end signed updater
+relaunch. The new updater has not been signed, notarized, or published. Existing
+released clients still have the browser-link updater and need one installation
+of a release containing this code before subsequent updates can stay in-app.
 
 ## Menlo design system (September 18)
 
@@ -627,11 +647,12 @@ managed-credit purchase surface is no longer exposed, and Tohseno Intelligence
 is labeled coming soon. Historical managed receipts remain readable without
 being restored into a new request.
 
-Current source also checks the fail-closed macOS distribution metadata once at
+The initial native update banner checked the fail-closed macOS distribution metadata once at
 startup. When that endpoint names a valid HTTPS artifact with a build number
-higher than the installed `CFBundleVersion`, the native app shows a compact top
+higher than the installed `CFBundleVersion`, it showed a compact top
 banner naming the exact release and linking to the manual verified DMG route.
-It never downloads, replaces, or relaunches the app automatically. Public RC11
+It did not download, replace, or relaunch the app. The September 23 source above
+replaces that link with the in-app update flow. Public RC11
 predates this source change, so the banner begins with the next notarized native
 candidate and can announce candidates after that one. Production deployment
 `83c14eae-9f74-408c-97b7-0495c3fcf1fc` now truthfully exposes RC11 as version

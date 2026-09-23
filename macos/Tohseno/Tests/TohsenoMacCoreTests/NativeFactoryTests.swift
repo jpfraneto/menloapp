@@ -750,29 +750,26 @@ final class NativeFactoryTests: XCTestCase {
     }
 
     func testWebsiteUpdateCheckerOffersOnlyAValidHigherBuild() throws {
-        let downloadURL = try XCTUnwrap(URL(string: "https://tohseno.com/download/macos"))
         let published = Data(#"{"schema":"tohseno.macos-distribution/1","available":true,"channel":"release-candidate","version":"1.2.0-rc.12","build_number":10008,"url":"https://github.com/jpfraneto/tohseno/releases/download/v1.2.0-rc.12/Tohseno-1.2.0-rc.12.dmg","sha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","minimum_macos_version":"14.0"}"#.utf8)
-        let update = try XCTUnwrap(WebsiteApplicationUpdateChecker.availableUpdate(
+        let update = try XCTUnwrap(try WebsiteApplicationUpdateChecker.availableUpdate(
             from: published,
-            currentBuildNumber: 10007,
-            downloadURL: downloadURL
+            currentBuildNumber: 10007
         ))
         XCTAssertEqual(update.version, "1.2.0-rc.12")
         XCTAssertEqual(update.buildNumber, 10008)
         XCTAssertEqual(update.channel, "release-candidate")
-        XCTAssertEqual(update.downloadURL, downloadURL)
+        XCTAssertEqual(update.downloadURL.absoluteString, "https://github.com/jpfraneto/tohseno/releases/download/v1.2.0-rc.12/Tohseno-1.2.0-rc.12.dmg")
+        XCTAssertEqual(update.sha256, String(repeating: "a", count: 64))
 
-        XCTAssertNil(WebsiteApplicationUpdateChecker.availableUpdate(
+        XCTAssertNil(try WebsiteApplicationUpdateChecker.availableUpdate(
             from: published,
-            currentBuildNumber: 10008,
-            downloadURL: downloadURL
+            currentBuildNumber: 10008
         ))
         let unsafe = Data(String(decoding: published, as: UTF8.self)
             .replacingOccurrences(of: "https://github.com", with: "http://github.com").utf8)
-        XCTAssertNil(WebsiteApplicationUpdateChecker.availableUpdate(
+        XCTAssertThrowsError(try WebsiteApplicationUpdateChecker.availableUpdate(
             from: unsafe,
-            currentBuildNumber: 10007,
-            downloadURL: downloadURL
+            currentBuildNumber: 10007
         ))
     }
 
@@ -785,7 +782,8 @@ final class NativeFactoryTests: XCTestCase {
             version: "1.2.0-rc.12",
             buildNumber: 10008,
             channel: "release-candidate",
-            downloadURL: try XCTUnwrap(URL(string: "https://tohseno.com/download/macos"))
+            downloadURL: try XCTUnwrap(URL(string: "https://downloads.tohseno.com/Menlo-1.2.0-rc.12.dmg")),
+            sha256: String(repeating: "a", count: 64)
         )
         let model = TohsenoAppModel(
             client: UIFixtureFactoryClient(),
@@ -1074,7 +1072,7 @@ final class NativeFactoryTests: XCTestCase {
         let sourceRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/TohsenoMacCore")
-        let source = try ["RootView.swift", "LivingWorkshop.swift"]
+        let source = try ["RootView.swift", "LivingWorkshop.swift", "ApplicationUpdateView.swift"]
             .map { try String(contentsOf: sourceRoot.appendingPathComponent($0), encoding: .utf8) }
             .joined(separator: "\n")
         for identifier in [
@@ -1152,7 +1150,7 @@ final class NativeFactoryTests: XCTestCase {
 
 }
 
-private actor FakeFactory: FactoryServing {
+actor FakeFactory: FactoryServing {
     private(set) var githubInstallCalls = 0
     func resolveGitHubApp(slug: String) async throws -> GitHubApp {
         GitHubApp(schema: "menlo.github-app/1", id: "fixture", slug: slug, repositoryID: 12,

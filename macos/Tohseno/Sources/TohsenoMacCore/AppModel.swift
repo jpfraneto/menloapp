@@ -53,7 +53,8 @@ public final class TohsenoAppModel {
     public private(set) var pendingAdoptionPath: String?
     public private(set) var pairedCompanionDevices: [PairedCompanionDevice] = []
     public private(set) var companionPairingSession: CompanionPairingSession?
-    public private(set) var availableApplicationUpdate: ApplicationUpdate?
+    public let applicationUpdater: ApplicationUpdater
+    public var availableApplicationUpdate: ApplicationUpdate? { applicationUpdater.update }
     public private(set) var followedBuilderIDs: Set<String>
     public private(set) var hasSkippedFirstShot: Bool
     public var route: AppRoute = .library {
@@ -67,7 +68,6 @@ public final class TohsenoAppModel {
     public var advancedExpanded = false
 
     private let client: any FactoryServing
-    private let applicationUpdateChecker: any ApplicationUpdateChecking
     private let preferences: UserDefaults
     private var previewVersions: [String: String] = [:]
     private var monitoringTask: Task<Void, Never>?
@@ -77,11 +77,13 @@ public final class TohsenoAppModel {
     public init(
         client: any FactoryServing,
         preferences: UserDefaults = .standard,
-        applicationUpdateChecker: any ApplicationUpdateChecking = WebsiteApplicationUpdateChecker()
+        applicationUpdateChecker: any ApplicationUpdateChecking = WebsiteApplicationUpdateChecker(),
+        applicationUpdateInstaller: any ApplicationUpdateInstalling = NativeApplicationUpdateInstaller()
     ) {
         self.client = client
         self.preferences = preferences
-        self.applicationUpdateChecker = applicationUpdateChecker
+        applicationUpdater = ApplicationUpdater(checker: applicationUpdateChecker,
+                                                installer: applicationUpdateInstaller, preferences: preferences)
         workshopRuntime = WorkshopHostRuntime(
             authorizer: client,
             localDeviceName: "This Mac"
@@ -89,6 +91,13 @@ public final class TohsenoAppModel {
         hasSkippedFirstShot = preferences.bool(forKey: "tohseno.first-shot-skipped")
         followedBuilderIDs = Set(preferences.stringArray(forKey: "tohseno.followed-builders.v1") ?? [])
         restoreRoute()
+        if let data = applicationUpdater.restoredDrafts,
+           let drafts = try? JSONDecoder().decode(ApplicationUpdateDrafts.self, from: data) {
+            creation = drafts.creation
+            quickShotIntention = drafts.quickShotIntention
+            evolutions = drafts.evolutions
+            applicationUpdater.finishRestoringDrafts()
+        }
     }
 
     public var apps: [AppSummary] { workspace?.visibleApps ?? [] }
@@ -144,7 +153,32 @@ public final class TohsenoAppModel {
     }
 
     public func refreshApplicationUpdate() async {
-        availableApplicationUpdate = await applicationUpdateChecker.availableUpdate()
+        await applicationUpdater.check()
+    }
+
+    public var applicationUpdateRestartBlocker: String? {
+        if isSubmitting || githubBusy || !(workspace?.activeExecutions.isEmpty ?? true)
+            || ["building", "installing", "launching", "waiting_for_pairing"].contains(readiness?.companionInstallState ?? "") {
+            return "Your update is ready. Finish the current work before restarting."
+        }
+        if !localEndpoint.credential.isEmpty {
+            return "Save your connection settings before restarting."
+        }
+        return nil
+    }
+
+    public func restartForApplicationUpdate() async {
+        do {
+            // Ask the factory again at the moment of restart, not only when drawing the button.
+            workspace = try await client.workspace()
+            readiness = try await client.readiness()
+            if let blocker = applicationUpdateRestartBlocker {
+                throw ApplicationUpdateError(blocker)
+            }
+            let drafts = ApplicationUpdateDrafts(creation: creation, quickShotIntention: quickShotIntention,
+                                                evolutions: evolutions)
+            try await applicationUpdater.restart(preserving: JSONEncoder().encode(drafts))
+        } catch { report(error) }
     }
 
     public func reload() async {

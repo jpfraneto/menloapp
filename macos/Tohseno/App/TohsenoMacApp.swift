@@ -5,8 +5,10 @@ import TohsenoMacCore
 @main
 struct TohsenoMacApp: App {
     @State private var model: TohsenoAppModel
+    @Environment(\.openWindow) private var openWindow
 
     init() {
+        NativeApplicationUpdateInstaller.runHelperIfRequested()
         #if DEBUG
         if ProcessInfo.processInfo.environment["TOHSENO_UI_FIXTURE"] == "1" {
             let fixture = TohsenoAppModel(
@@ -38,7 +40,13 @@ struct TohsenoMacApp: App {
             }
             CommandGroup(after: .help) {
                 Link("Menlo Help", destination: URL(string: "https://tohseno.com/docs")!)
-                Link("Check for Updates…", destination: URL(string: "https://tohseno.com/download/macos")!)
+            }
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") {
+                    openWindow(id: "factory")
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    Task { await model.applicationUpdater.check(userInitiated: true) }
+                }
             }
         }
 

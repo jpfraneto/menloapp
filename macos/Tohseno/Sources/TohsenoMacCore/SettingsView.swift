@@ -146,8 +146,14 @@ public struct TohsenoSettingsView: View {
                 }
                 Section("Privacy and updates") {
                     Link("Read Privacy Explanation", destination: URL(string: "https://tohseno.com/privacy")!)
-                    Link("Check for Updates", destination: URL(string: "https://tohseno.com/download/macos")!)
-                    Text("Updates remain manual. Menlo checks the fail-closed release metadata and opens the verified DMG route; it never downloads or replaces the app automatically.")
+                    Button("Check for Updates") {
+                        Task { await model.applicationUpdater.check(userInitiated: true) }
+                    }
+                    .disabled(model.applicationUpdater.phase.isBusy)
+                    if model.applicationUpdater.phase != .idle {
+                        ApplicationUpdateBanner(model: model)
+                    }
+                    Text(model.applicationUpdater.checkMessage ?? "Download updates here and restart when you’re ready. Your projects and drafts stay on this Mac.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -159,6 +165,7 @@ public struct TohsenoSettingsView: View {
             .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
         }
         .frame(width: 700, height: 520)
+        .disabled(model.applicationUpdater.phase == .restarting)
         .accessibilityIdentifier("settings.root")
         .fileImporter(isPresented: $choosingExecutable, allowedContentTypes: [.executable], allowsMultipleSelection: false) { result in
             do {
