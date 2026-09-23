@@ -180,7 +180,7 @@ private struct AppLibrarySidebar: View {
             VStack(alignment: .leading, spacing: 14) {
                 Button { model.route = .registry } label: { Label("Discover", systemImage: "square.grid.2x2") }
                     .accessibilityIdentifier("registry.workshop")
-                Button { model.route = .library } label: { Label("One Shot", systemImage: "sparkles") }
+                Button { model.route = .library } label: { Label("Your apps", systemImage: "square.grid.2x2") }
                 Button(action: adopt) { Label("Add existing app", systemImage: "folder.badge.plus") }
                 Divider()
                 Button { model.route = .profile } label: { Label("Your GitHub", systemImage: "person.crop.circle") }
@@ -1336,6 +1336,7 @@ private struct HarnessReadinessScreen: View {
 private struct CreationView: View {
     @Bindable var model: TohsenoAppModel
     @State private var choosingReferences = false
+    @State private var dictation = IntentDictationController()
     @FocusState private var intentionFocused: Bool
 
     private var canSubmit: Bool {
@@ -1353,6 +1354,7 @@ private struct CreationView: View {
                     intention: $model.creation.intention,
                     deviceDescription: model.connectedDeviceDescription
                 )
+                .disabled(dictation.isActive)
                 TextEditor(text: $model.creation.intention)
                     .font(.body)
                     .scrollContentBackground(.hidden)
@@ -1362,10 +1364,17 @@ private struct CreationView: View {
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(TohsenoTheme.iron))
                     .focused($intentionFocused)
                     .shotSubmitOnReturn(enabled: canSubmit) {
+                        dictation.stop()
                         Task { await model.submitCreation() }
                     }
+                    .disabled(dictation.isActive)
                     .accessibilityLabel("What would make your life easier?")
                     .accessibilityIdentifier("creation.intention")
+                ComposerTools(
+                    model: model, text: $model.creation.intention,
+                    harness: $model.creation.harness, selectedModel: $model.creation.model,
+                    dictation: dictation
+                )
                 TextField("Optional app name", text: $model.creation.name)
                     .textFieldStyle(.roundedBorder)
                     .accessibilityIdentifier("creation.name")
@@ -1380,16 +1389,12 @@ private struct CreationView: View {
                         .font(.caption)
                         .foregroundStyle(TohsenoTheme.silver)
                 }
-                AdvancedRouteDisclosure(
-                    model: model,
-                    harness: $model.creation.harness,
-                    selectedModel: $model.creation.model
-                )
                 HStack {
                     RouteCostView(model: model, harness: model.creation.harness)
                     ShotKeyboardHint()
                     Spacer()
                     Button {
+                        dictation.stop()
                         Task { await model.submitCreation() }
                     } label: {
                         HStack(spacing: 7) {
@@ -1421,6 +1426,12 @@ private struct CreationView: View {
             return !urls.isEmpty
         }
         .task { intentionFocused = true }
+        .onChange(of: choosingReferences) { _, presented in
+            if presented { dictation.stop() }
+        }
+        .onChange(of: dictation.isActive) { _, active in
+            if !active { intentionFocused = true }
+        }
     }
 
 }
@@ -1933,11 +1944,12 @@ private struct DeviceHandoffCard: View {
     }
 }
 
-private struct EvolutionComposerSheet: View {
+struct EvolutionComposerSheet: View {
     @Bindable var model: TohsenoAppModel
     let app: AppSummary
     @Binding var isPresented: Bool
     @State private var choosingReferences = false
+    @State private var dictation = IntentDictationController()
     @FocusState private var intentionFocused: Bool
 
     private var draft: Binding<EvolutionDraft> {
@@ -1974,17 +1986,18 @@ private struct EvolutionComposerSheet: View {
                 .overlay(RoundedRectangle(cornerRadius: 9).stroke(Color.secondary.opacity(0.22)))
                 .focused($intentionFocused)
                 .shotSubmitOnReturn(enabled: canSubmit, action: submit)
+                .disabled(dictation.isActive)
                 .accessibilityIdentifier("evolution.intention")
+            ComposerTools(
+                model: model, text: draft.intention,
+                harness: draft.harness, selectedModel: draft.model,
+                dictation: dictation
+            )
             ReferenceStrip(references: draft.wrappedValue.references) { _, id in
                 draft.wrappedValue.references.removeAll { $0.id == id }
             }
             Button("Add reference images…") { choosingReferences = true }
                 .disabled(draft.wrappedValue.references.count >= 8)
-            AdvancedRouteDisclosure(
-                model: model,
-                harness: draft.harness,
-                selectedModel: draft.model
-            )
             Spacer(minLength: 0)
             HStack {
                 RouteCostView(
@@ -2023,10 +2036,17 @@ private struct EvolutionComposerSheet: View {
             return !urls.isEmpty
         }
         .onAppear { intentionFocused = true }
+        .onChange(of: choosingReferences) { _, presented in
+            if presented { dictation.stop() }
+        }
+        .onChange(of: dictation.isActive) { _, active in
+            if !active { intentionFocused = true }
+        }
     }
 
     private func submit() {
         guard canSubmit else { return }
+        dictation.stop()
         Task {
             await model.submitEvolution(for: app)
             if model.errorMessage == nil { isPresented = false }
@@ -2046,7 +2066,7 @@ private func progressLanguage(_ state: PresentedState) -> String {
     }
 }
 
-private struct AppArtwork: View {
+struct AppArtwork: View {
     let data: Data?
     let size: CGFloat
     let cornerRadius: CGFloat
@@ -2064,45 +2084,6 @@ private struct AppArtwork: View {
         .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
         .accessibilityHidden(true)
-    }
-}
-
-private struct AdvancedRouteDisclosure: View {
-    @Bindable var model: TohsenoAppModel
-    @Binding var harness: String?
-    @Binding var selectedModel: String?
-
-    var body: some View {
-        DisclosureGroup("Advanced intelligence choice", isExpanded: $model.advancedExpanded) {
-            VStack(alignment: .leading, spacing: 12) {
-                Picker("Intelligence", selection: $harness) {
-                    Text("Automatic — \(model.defaults?.harnessLabel ?? "best available")").tag(String?.none)
-                    ForEach((model.defaults?.harnesses ?? []).filter { $0.id != "tohseno-managed" }) { option in
-                        Text("\(option.label) — \(availability(option))").tag(Optional(option.id))
-                    }
-                }
-                .accessibilityIdentifier("advanced.harness")
-                if let harness, let option = model.defaults?.harnesses.first(where: { $0.id == harness }) {
-                    Picker("Model", selection: $selectedModel) {
-                        ForEach(option.models) { choice in
-                            Text(choice.label).tag(Optional(choice.id))
-                        }
-                    }
-                    .accessibilityIdentifier("advanced.model")
-                    Text("Menlo will use this exact selection for this request and will not substitute another route during recovery.")
-                        .font(.caption)
-                        .foregroundStyle(TohsenoTheme.silver)
-                }
-            }
-            .padding(.top, 10)
-        }
-    }
-
-    private func availability(_ option: FactoryHarnessOption) -> String {
-        if !option.installed { return "not installed" }
-        if option.authentication == .notDetected { return "needs sign-in" }
-        if !option.routes.contains(where: \.available) { return "needs attention" }
-        return option.authentication == .authenticated ? "ready" : "configured"
     }
 }
 

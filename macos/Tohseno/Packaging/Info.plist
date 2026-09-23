@@ -25,6 +25,8 @@
   <key>NSBonjourServices</key>
   <array><string>_tohseno-ws._tcp</string></array>
   <key>NSLocalNetworkUsageDescription</key><string>Connect this Mac to your paired iPhone for live Workshop Sessions.</string>
+  <key>NSMicrophoneUsageDescription</key><string>Use your microphone when you click Speak to describe an app or a change.</string>
+  <key>NSSpeechRecognitionUsageDescription</key><string>Turn your spoken ideas into text you can review before sending.</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSHumanReadableCopyright</key><string>Copyright © 2026 Anky, Inc.</string>
   <key>NSPrincipalClass</key><string>NSApplication</string>

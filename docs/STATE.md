@@ -4,6 +4,28 @@ Written 2026-07-30, amended through 2026-09-23. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Mac home and voice composers (September 23)
+
+At the owner's request, the Mac home now centers actual apps and one creation
+composer. App icons and delivery states replace the large status diagram and
+repeated global failure warnings. The existing workshop connection, pulse, and
+network details remain reachable from the compact iPhone control.
+
+Creation, the home composer, and app changes each expose Speak, intelligence,
+and model controls directly. Dictation starts only on a microphone click,
+requests macOS Microphone and Speech Recognition access, and appends to the
+existing draft. Partial results and pauses preserve earlier words. Stop,
+submission, navigation, and leaving the active app end recording; speech never
+submits a request. On-device recognition is preferred where supported. The
+signed Mac bundle now declares audio input and both privacy descriptions.
+Changing providers clears the previous model; choosing a model from Automatic
+pins that model's provider. Custom adapter configuration remains in Settings.
+
+Native tests and small-window light/dark composer renders passed locally.
+Microphone permission and actual spoken transcription still require owner use;
+render fixtures are not evidence of recording or physical-device acceptance.
+These changes have not been notarized or published as a distributable release.
+
 ## In-app Mac updates (September 23)
 
 Current native source replaces the update links with an in-app download bar,
@@ -20,7 +42,8 @@ The existing first-open factory installation and rollback boundary is unchanged.
 Local updater tests exercised the published 1.3.0-rc.2 download, checksum,
 Developer ID, Gatekeeper, and replacement of an isolated copy. These checks did
 not replace the owner's installed app or observe an end-to-end signed updater
-relaunch. The new updater has not been signed, notarized, or published. Existing
+relaunch. A signed local preview is available; the new updater has not been
+notarized or published as a distributable release. Existing
 released clients still have the browser-link updater and need one installation
 of a release containing this code before subsequent updates can stay in-app.
 
@@ -642,7 +665,8 @@ plain language and provide one two-way Workshop Pulse; the phone haptic and
 measured round trip are not authority or physical-install evidence.
 
 The Mac primary path uses installed, authenticated local/BYO intelligence
-automatically. Exact provider/model choice remains Advanced. The incomplete
+automatically. The September 23 source makes exact provider/model choice
+visible beside each Mac composer. The incomplete
 managed-credit purchase surface is no longer exposed, and Tohseno Intelligence
 is labeled coming soon. Historical managed receipts remain readable without
 being restored into a new request.

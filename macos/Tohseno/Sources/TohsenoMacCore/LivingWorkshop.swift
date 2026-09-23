@@ -216,7 +216,9 @@ struct LivingWorkshopView: View {
     @State private var selectedIndex = 0
     @State private var showingPalette = false
     @State private var showingList = false
+    @State private var showingConnection = false
     @State private var choosingReferences = false
+    @State private var dictation = IntentDictationController()
     @FocusState private var intentionFocused: Bool
 
     private var projection: LivingWorkshopProjection {
@@ -235,35 +237,21 @@ struct LivingWorkshopView: View {
 
     var body: some View {
         ZStack {
-            WorkshopField()
             VStack(spacing: 0) {
                 workshopHeader
                 ScrollView {
-                    VStack(spacing: 18) {
-                        WorkshopStoryStage(
-                            projection: projection,
-                            runtime: model.workshopRuntime,
-                            intelligenceProviders: model.intelligenceProviders,
-                            selectedID: selectedAppID,
-                            selectApp: openApp,
-                            sendPulse: { Task { await model.sendWorkshopPulse() } },
-                            openNetwork: { model.route = .registry },
-                            openKeeper: { model.route = .profile }
-                        )
+                    appShelf
                         .frame(maxWidth: 1_080)
-
-                        appShelf
-                            .frame(maxWidth: 1_080)
-                    }
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 20)
+                        .padding(28)
+                        .frame(maxWidth: .infinity)
                 }
                 OneShotDock(
                     model: model,
                     choosingReferences: $choosingReferences,
                     intentionFocused: $intentionFocused,
                     canSubmit: canSubmit,
-                    adopt: adopt
+                    adopt: adopt,
+                    dictation: dictation
                 )
             }
 
@@ -292,13 +280,47 @@ struct LivingWorkshopView: View {
         .sheet(isPresented: $showingList) {
             WorkshopListFallback(model: model, isPresented: $showingList)
         }
+        .sheet(isPresented: $showingConnection) {
+            VStack(alignment: .leading, spacing: 20) {
+                HStack {
+                    Text("Connection details").font(.title2.bold())
+                    Spacer()
+                    Button("Done") { showingConnection = false }.keyboardShortcut(.cancelAction)
+                }
+                WorkshopStoryStage(
+                    projection: projection, runtime: model.workshopRuntime,
+                    intelligenceProviders: model.intelligenceProviders,
+                    selectedID: selectedAppID, selectApp: openApp,
+                    sendPulse: { Task { await model.sendWorkshopPulse() } },
+                    openNetwork: { showingConnection = false; model.route = .registry },
+                    openKeeper: { showingConnection = false; model.route = .profile }
+                )
+            }
+            .padding(24)
+            .frame(width: 900)
+            .background(TohsenoTheme.void)
+            .foregroundStyle(TohsenoTheme.bone)
+        }
         .onMoveCommand(perform: moveSelection)
+        .onChange(of: showingConnection || showingList || showingPalette || choosingReferences) { _, presented in
+            if presented { dictation.stop() }
+        }
+        .onChange(of: dictation.isActive) { _, active in
+            if !active { intentionFocused = true }
+        }
         .onKeyPress("/", phases: .down) { _ in
             guard !intentionFocused else { return .ignored }
             withAnimation(.easeOut(duration: 0.16)) { showingPalette = true }
             return .handled
         }
         .onKeyPress(.return, phases: .down) { press in
+            if dictation.isActive && !press.modifiers.contains(.shift) {
+                if canSubmit {
+                    dictation.stop()
+                    Task { await model.submitCreation() }
+                }
+                return .handled
+            }
             guard !intentionFocused, !press.modifiers.contains(.shift), let selectedAppID else {
                 return .ignored
             }
@@ -313,7 +335,7 @@ struct LivingWorkshopView: View {
             if model.registrySnapshot == nil { await model.refreshRegistry() }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Living software workshop. \(projection.chapter.title).")
+        .accessibilityLabel("Your apps")
         .accessibilityIdentifier("workshop.scene")
     }
 
@@ -324,76 +346,80 @@ struct LivingWorkshopView: View {
 
     private var workshopHeader: some View {
         HStack(spacing: 14) {
-            TohsenoLivingMark(size: 30)
             VStack(alignment: .leading, spacing: 2) {
-                Text("One Shot")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(TohsenoTheme.amber)
-                Text(projection.chapter.title)
-                    .font(.title3.weight(.semibold))
+                Text("Your apps").font(.system(size: 24, weight: .semibold))
+                Text("Open an app to make it yours.")
+                    .font(.callout)
+                    .foregroundStyle(TohsenoTheme.silver)
             }
             Spacer()
-            Button { showingList = true } label: {
-                Label("List", systemImage: "list.bullet")
+            Button { showingConnection = true } label: {
+                Label(phoneStatus, systemImage: "iphone.gen3")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(TohsenoTheme.silver)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(TohsenoTheme.graphite, in: Capsule())
             }
-            .help("Accessible app list fallback")
+            .help(projection.phoneName ?? "View iPhone connection details")
+            .accessibilityIdentifier("workshop.connection-details")
+            Button { showingList = true } label: {
+                Image(systemName: "list.bullet")
+            }
+            .accessibilityLabel("Show apps as a list")
+            .help("Show apps as a list")
             .accessibilityIdentifier("workshop.list")
             Button { showingPalette = true } label: {
-                Label("Commands", systemImage: "command")
+                Image(systemName: "command")
             }
+            .accessibilityLabel("Commands")
             .help("Open command palette (/) ")
             .accessibilityIdentifier("workshop.palette")
-            SettingsLink { Image(systemName: "gearshape") }
-                .accessibilityLabel("Workshop settings")
         }
         .buttonStyle(.borderless)
-        .padding(.horizontal, 24)
-        .frame(height: 64)
-        .background(TohsenoTheme.carbon.opacity(0.94))
-        .overlay(alignment: .bottom) { Rectangle().fill(TohsenoTheme.iron).frame(height: 1) }
+        .padding(.horizontal, 28)
+        .frame(height: 92)
     }
 
     private var appShelf: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label("App shelf", systemImage: "square.grid.2x2")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(TohsenoTheme.silver)
-                Spacer()
-                Text("Arrow keys choose · Return opens")
-                    .font(.caption2)
-                    .foregroundStyle(TohsenoTheme.ash)
-            }
+        VStack(alignment: .leading, spacing: 16) {
             if projection.apps.isEmpty {
                 Button {
                     intentionFocused = true
                 } label: {
-                    Label("Your first app will take shape here", systemImage: "sparkles.rectangle.stack")
-                        .frame(maxWidth: .infinity, minHeight: 54)
+                    VStack(spacing: 12) {
+                        Image(systemName: "sparkles.rectangle.stack").font(.system(size: 36, weight: .light))
+                        Text("What would you love to make?").font(.title2.weight(.medium))
+                        Text("Speak or type your idea below.").font(.callout)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 220)
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(TohsenoTheme.silver)
                 .accessibilityIdentifier("workshop.empty-shelf")
             } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 10) {
-                        ForEach(Array(projection.apps.enumerated()), id: \.element.id) { index, app in
-                            WorkshopShelfObject(app: app, selected: index == selectedIndex) {
-                                selectedIndex = index
-                                openApp(app.id)
-                            }
-                            .accessibilityIdentifier("app.\(app.id)")
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                    ForEach(Array(model.apps.enumerated()), id: \.element.id) { index, app in
+                        WorkshopShelfObject(app: app, artwork: model.icons[app.id], selected: index == selectedIndex) {
+                            selectedIndex = index
+                            openApp(app.id)
                         }
+                        .accessibilityIdentifier("app.\(app.id)")
                     }
                 }
-                .scrollIndicators(.hidden)
             }
         }
-        .padding(14)
-        .background(TohsenoTheme.carbon.opacity(0.88))
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(TohsenoTheme.iron))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
         .accessibilityIdentifier("workshop.app-shelf")
+    }
+
+    private var phoneStatus: String {
+        if model.workshopRuntime.connectionState == .connected { return "iPhone connected" }
+        switch projection.phone {
+        case .connected: return "iPhone paired"
+        case .nearby: return "iPhone offline"
+        case .attention: return "iPhone needs setup"
+        case .unknown: return "Connect iPhone"
+        }
     }
 
     private func openApp(_ id: String) {
@@ -401,12 +427,16 @@ struct LivingWorkshopView: View {
     }
 
     private func moveSelection(_ direction: MoveCommandDirection) {
-        guard !intentionFocused, !projection.apps.isEmpty else { return }
+        guard !intentionFocused, !dictation.isActive, !projection.apps.isEmpty else { return }
         switch direction {
-        case .left, .up:
+        case .left:
             selectedIndex = max(0, selectedIndex - 1)
-        case .right, .down:
+        case .right:
             selectedIndex = min(projection.apps.count - 1, selectedIndex + 1)
+        case .up:
+            selectedIndex = max(0, selectedIndex - 2)
+        case .down:
+            selectedIndex = min(projection.apps.count - 1, selectedIndex + 2)
         default:
             break
         }
@@ -841,35 +871,42 @@ private struct WorkshopThresholdView: View {
 }
 
 private struct WorkshopShelfObject: View {
-    let app: WorkshopAppObject
+    let app: AppSummary
+    let artwork: Data?
     let selected: Bool
     let open: () -> Void
+    @State private var hovering = false
 
     var body: some View {
         Button(action: open) {
-            HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 9)
-                    .fill(stateColor.opacity(0.18))
-                    .frame(width: 38, height: 38)
-                    .overlay(Image(systemName: stateSymbol).foregroundStyle(stateColor))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(app.name).font(.callout.weight(.semibold)).lineLimit(1)
-                    Text(app.headline).font(.caption2).foregroundStyle(TohsenoTheme.silver).lineLimit(1)
+            HStack(spacing: 16) {
+                AppArtwork(data: artwork, size: 54, cornerRadius: 13)
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(app.displayName).font(.title3.weight(.semibold)).lineLimit(1)
+                    Label(app.deliveryHeadline, systemImage: stateSymbol)
+                        .font(.caption)
+                        .foregroundStyle(app.presentation.state == .failed ? Color(red: 0.9, green: 0.52, blue: 0.42) : TohsenoTheme.silver)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
                 }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(TohsenoTheme.ash)
             }
-            .padding(9)
-            .frame(width: 210, alignment: .leading)
-            .background(selected ? TohsenoTheme.ember.opacity(0.72) : TohsenoTheme.graphite)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(selected ? TohsenoTheme.amber : TohsenoTheme.iron))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(20)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+            .background(hovering ? TohsenoTheme.graphite : TohsenoTheme.carbon)
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(selected ? TohsenoTheme.amber.opacity(0.6) : TohsenoTheme.iron))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(app.name). \(app.headline)")
+        .onHover { hovering = $0 }
+        .accessibilityLabel("\(app.displayName). \(app.deliveryHeadline)")
+        .help("Open \(app.displayName)")
     }
 
-    private var stateColor: Color { app.state == .failed ? .red : TohsenoTheme.amber }
     private var stateSymbol: String {
-        switch app.state {
+        if app.deliveryUnconfirmed { return "folder" }
+        return switch app.presentation.state {
         case .waiting: "clock"
         case .building: "hammer.fill"
         case .readyForPhone: "iphone.gen3"
@@ -886,40 +923,54 @@ private struct OneShotDock: View {
     var intentionFocused: FocusState<Bool>.Binding
     let canSubmit: Bool
     let adopt: () -> Void
+    @Bindable var dictation: IntentDictationController
 
     var body: some View {
         VStack(spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("ONE SHOT").font(.caption.weight(.bold)).tracking(2).foregroundStyle(TohsenoTheme.amber)
-                    Text("Describe one app in ordinary words. Your Mac builds it, and your iPhone runs it.")
-                        .font(.caption)
+                    Text("What do you want to make?").font(.title3.weight(.semibold))
+                    Text("Start with an idea. Make it an iPhone app.")
+                        .font(.callout)
                         .foregroundStyle(TohsenoTheme.silver)
                 }
                 Spacer()
-                Button("Adopt app…", action: adopt)
+                Button("Add existing app…", action: adopt)
                     .disabled(model.isSubmitting)
                     .accessibilityIdentifier("adopt-app.workshop")
-                Button("More options…") { model.route = .create }
+                Button("App details…") { model.route = .create }
                     .accessibilityIdentifier("creation.options")
             }
 
             HStack(alignment: .bottom, spacing: 12) {
                 VStack(spacing: 7) {
                     TextEditor(text: $model.creation.intention)
-                        .font(.body)
+                        .font(.system(size: 16))
                         .scrollContentBackground(.hidden)
                         .padding(8)
-                        .frame(minHeight: 64, maxHeight: 92)
+                        .frame(minHeight: 82, maxHeight: 108)
                         .background(TohsenoTheme.void)
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                        .overlay(alignment: .topLeading) {
+                            if model.creation.intention.isEmpty {
+                                Text(dictation.isListening ? "Speak your idea…" : "An app that helps me…")
+                                    .font(.system(size: 16))
+                                    .foregroundStyle(TohsenoTheme.ash)
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 8)
+                                    .allowsHitTesting(false)
+                            }
+                        }
                         .overlay(RoundedRectangle(cornerRadius: 11).stroke(
                             intentionFocused.wrappedValue ? TohsenoTheme.amber : TohsenoTheme.iron
                         ))
                         .focused(intentionFocused)
                         .shotSubmitOnReturn(enabled: canSubmit) {
+                            dictation.stop()
                             Task { await model.submitCreation() }
                         }
-                        .accessibilityLabel("One Shot intention")
+                        .disabled(dictation.isActive)
+                        .accessibilityLabel("Describe your app")
                         .accessibilityIdentifier("workshop.shot.intention")
                     if !model.creation.references.isEmpty {
                         ScrollView(.horizontal) {
@@ -959,13 +1010,14 @@ private struct OneShotDock: View {
                 .accessibilityIdentifier("workshop.shot.references")
 
                 Button {
+                    dictation.stop()
                     Task { await model.submitCreation() }
                 } label: {
                     HStack(spacing: 7) {
                         if model.isSubmitting {
                             TohsenoSpinner(size: 14, stroke: TohsenoTheme.void, gap: TohsenoTheme.amber)
                         }
-                        Text(model.isSubmitting ? "Taking the Shot…" : "Take the Shot")
+                        Text(model.isSubmitting ? "Creating…" : "Create app")
                     }
                 }
                 .buttonStyle(PrimaryActionStyle())
@@ -973,6 +1025,12 @@ private struct OneShotDock: View {
                 .keyboardShortcut(.return, modifiers: [])
                 .accessibilityIdentifier("workshop.shot.submit")
             }
+
+            ComposerTools(
+                model: model, text: $model.creation.intention,
+                harness: $model.creation.harness, selectedModel: $model.creation.model,
+                dictation: dictation
+            )
 
             HStack {
                 Label("Return sends · Shift–Return adds a line", systemImage: "return")
@@ -982,10 +1040,10 @@ private struct OneShotDock: View {
             .font(.caption2)
             .foregroundStyle(TohsenoTheme.ash)
         }
-        .padding(.horizontal, 22)
-        .padding(.vertical, 14)
+        .padding(.horizontal, 28)
+        .padding(.vertical, 20)
         .background(TohsenoTheme.carbon)
-        .overlay(alignment: .top) { Rectangle().fill(TohsenoTheme.amber.opacity(0.28)).frame(height: 1) }
+        .overlay(alignment: .top) { Rectangle().fill(TohsenoTheme.iron).frame(height: 1) }
         .accessibilityIdentifier("workshop.one-shot")
     }
 }

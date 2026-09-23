@@ -991,9 +991,9 @@ public final class TohsenoAppModel {
         let selected = effectiveHarnessID.flatMap { id in defaults?.harnesses.first { $0.id == id } }
         let route = selected?.routes.first(where: \.available)
         switch route?.billing {
-        case "none", "local": return "$0 paid to Tohseno; your Mac still uses electricity and hardware."
-        case "subscription": return "Incremental provider cost is unknown or covered by your provider plan."
-        case "api": return "Provider usage may be billed. A reliable estimate is unavailable for this route."
+        case "none", "local": return "Runs on your Mac · no Menlo usage charge."
+        case "subscription": return "Your provider’s plan and limits apply."
+        case "api": return "Your provider may charge for usage."
         case "managed":
             if let estimate = route?.estimatedAdditionalCostUSD {
                 return "Estimated managed cost: up to \(estimate.formatted(.currency(code: "USD")))."
@@ -1001,8 +1001,8 @@ public final class TohsenoAppModel {
             return "Tohseno will show an estimate and maximum before managed work starts."
         default:
             return defaults?.ready == true
-                ? "Automatic uses your best available configured route."
-                : "No usable intelligence route is configured yet."
+                ? "Uses your configured intelligence."
+                : "Set up an intelligence provider to get started."
         }
     }
 

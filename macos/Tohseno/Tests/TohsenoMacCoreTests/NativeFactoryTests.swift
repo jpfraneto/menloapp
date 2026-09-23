@@ -1072,14 +1072,15 @@ final class NativeFactoryTests: XCTestCase {
         let sourceRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
             .appendingPathComponent("Sources/TohsenoMacCore")
-        let source = try ["RootView.swift", "LivingWorkshop.swift", "ApplicationUpdateView.swift"]
+        let source = try ["RootView.swift", "LivingWorkshop.swift", "ApplicationUpdateView.swift", "IntentDictation.swift"]
             .map { try String(contentsOf: sourceRoot.appendingPathComponent($0), encoding: .utf8) }
             .joined(separator: "\n")
         for identifier in [
             "readiness.primary", "create-app.workshop", "creation.intention",
             "adopt-app.workshop", "adopt-app.empty",
             "creation.submit", "evolution.intention", "evolution.submit",
-            "advanced.harness", "workshop.session", "workshop.pulse.send", "app.open-on-iphone",
+            "intelligence.provider", "intelligence.model", "composer.microphone",
+            "workshop.session", "workshop.pulse.send", "app.open-on-iphone",
             "app.workspace-tabs", "app.change", "app.files", "app.build-log",
             "app.preview", "app.iphone-handoff", "app.open-source",
             "registry.workshop", "registry.modes", "registry.search",
@@ -1113,7 +1114,7 @@ final class NativeFactoryTests: XCTestCase {
         XCTAssertTrue(workshop.contains("Keeper"))
         XCTAssertTrue(workshop.contains("Tohseno, workshop keeper"))
         XCTAssertTrue(workshop.contains("Network threshold"))
-        XCTAssertTrue(workshop.contains("Take the Shot"))
+        XCTAssertTrue(workshop.contains("Create app"))
         XCTAssertFalse(workshop.contains("Execution pipeline"))
     }
 
