@@ -2,6 +2,10 @@
 
 Accepted ADRs are authoritative architecture decisions beneath `protocol/`.
 
+[ADR 0043](0043-first-app-onboarding.md) makes fresh-start onboarding install
+Menlo on the intended iPhone and complete private pairing. An app link keeps
+that app first across restart, with Menlo on iPhone optional afterward.
+
 [ADR 0041](0041-workshop-runtime.md) implements ADR 0039's live local Workshop
 Session between the one Mac factory and intended paired iPhone. It reuses the
 existing Ed25519/X25519 pairing authorities, exposes typed device/capability

@@ -77,7 +77,7 @@ private struct TohsenoMenuBarView: View {
     private var status: (String, String) {
         if model.isLoading { return ("Opening your connected projects…", "circle.dotted") }
         if model.errorMessage != nil { return ("Needs attention", "exclamationmark.triangle.fill") }
-        if model.readiness?.ready != true { return ("Finish setup", "iphone.badge.exclamationmark") }
+        if model.shouldPresentPhoneSetup { return ("Finish iPhone setup", "iphone.badge.exclamationmark") }
         return ("Factory ready", "checkmark.circle.fill")
     }
 

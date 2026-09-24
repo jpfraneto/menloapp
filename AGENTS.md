@@ -24,6 +24,11 @@ Do not turn ordinary product work into release ceremony.
 
 2. **`docs/adr/`** — accepted architectural decisions.
 
+   ADR 0043 makes fresh-start onboarding install Menlo on the intended iPhone
+   and complete its private connection so the person can send intents there.
+   A person arriving through an app link installs that app first; Menlo on
+   iPhone is optional afterward. Existing libraries remain accessible.
+
    ADR 0040 supersedes the normal consumer publication/acquisition path with
    MENLO's GitHub identity, public-repository distribution, automatic commit
    discovery, and off-chain registration ledger. `tohseno deploy` and

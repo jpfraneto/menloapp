@@ -30,7 +30,7 @@ test("npm pack installs into an isolated prefix without network or native mutati
     assert.equal(installed.status, 0, installed.stderr);
     const executable = path.join(prefix, "bin", "menloapp");
     assert.match(await readFile(executable, "utf8"), /node/);
-    for (const args of [[], ["--version"], ["--help"]]) {
+    for (const args of [["guide"], ["--version"], ["--help"]]) {
       const run = spawnSync(executable, args, { encoding: "utf8" });
       assert.equal(run.status, 0, run.stderr);
       assert.match(run.stdout, /MENLO|menloapp/);
@@ -84,7 +84,7 @@ test("a fresh global install installs only the CLI launcher", async () => {
     await assert.rejects(access(path.join(home, ".tohseno")));
 
     const executable = path.join(prefix, "bin", "menloapp");
-    const guide = spawnSync(executable, [], {
+    const guide = spawnSync(executable, ["guide"], {
       encoding: "utf8",
       env: { ...process.env, HOME: home },
     });

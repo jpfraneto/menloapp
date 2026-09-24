@@ -42,6 +42,8 @@ public final class TohsenoAppModel {
     public private(set) var networkActionMessage: String?
     public private(set) var networkReview: NetworkReviewRequest?
     public private(set) var githubReview: GitHubReview?
+    public private(set) var pendingFirstAppURL: URL?
+    public private(set) var requestedPhoneSetup = false
     public private(set) var githubBusy = false
     public let githubAccount = GitHubAccountModel()
     public private(set) var isLoading = true
@@ -89,6 +91,9 @@ public final class TohsenoAppModel {
             localDeviceName: "This Mac"
         )
         hasSkippedFirstShot = preferences.bool(forKey: "tohseno.first-shot-skipped")
+        if let saved = preferences.url(forKey: "menlo.first-app-url"), GitHubAppLink(saved) != nil {
+            pendingFirstAppURL = saved
+        }
         followedBuilderIDs = Set(preferences.stringArray(forKey: "tohseno.followed-builders.v1") ?? [])
         restoreRoute()
         if let data = applicationUpdater.restoredDrafts,
@@ -121,6 +126,35 @@ public final class TohsenoAppModel {
         false
     }
 
+    /// A linked app owns first installation until that flow finishes. Existing
+    /// libraries stay usable when their phone is away or Menlo is not paired.
+    public var shouldPresentPhoneSetup: Bool {
+        guard let readiness, !readiness.ready else { return false }
+        if requestedPhoneSetup { return true }
+        return workspace?.shots.isEmpty == true && pendingFirstAppURL == nil
+    }
+
+    public func setUpMenloOnPhone() {
+        requestedPhoneSetup = true
+        startReadinessMonitoringIfNeeded()
+    }
+
+    public func resumeFirstApp() async {
+        guard let url = pendingFirstAppURL, let link = GitHubAppLink(url) else { return }
+        if let app = apps.first(where: {
+            $0.github?.repositoryID == link.repositoryID && $0.github?.commit == link.commit
+                && ["installed", "ready_for_iphone", "building"].contains($0.github?.deliveryStatus ?? "")
+        }) {
+            route = .app(app.id)
+            if app.github?.installedCommit == link.commit {
+                pendingFirstAppURL = nil
+                preferences.removeObject(forKey: "menlo.first-app-url")
+            }
+            return
+        }
+        await openNetworkLink(url)
+    }
+
     public var selectedApp: AppSummary? {
         guard case let .app(id) = route else { return nil }
         return apps.first { $0.id == id }
@@ -131,6 +165,7 @@ public final class TohsenoAppModel {
         monitoringTask = Task { [weak self] in
             guard let self else { return }
             await self.reload()
+            if self.githubReview == nil { await self.resumeFirstApp() }
             await self.refreshApplicationUpdate()
             self.workshopRuntime.setIntelligenceReady(self.intelligenceAvailable)
             await self.workshopRuntime.start()
@@ -616,6 +651,12 @@ public final class TohsenoAppModel {
             networkActionMessage = result.status == "installed" ? "Installed on your iPhone." : result.status == "ready_for_iphone" ? "Built and signed. Connect your intended iPhone to install." : "Source is saved. The app is not installed yet."
             await reloadWorkspace()
             route = .app(result.projectID)
+            // A retained build is still the person's first app. Preserve the
+            // entry across restarts until physical installation is reported.
+            if result.status == "installed" {
+                pendingFirstAppURL = nil
+                preferences.removeObject(forKey: "menlo.first-app-url")
+            }
         } catch {
             if error.localizedDescription.contains("Requires review on your Mac:") {
                 githubReview?.reasons = error.localizedDescription
@@ -625,6 +666,10 @@ public final class TohsenoAppModel {
 
     public func openNetworkLink(_ url: URL) async {
         if let link = GitHubAppLink(url) {
+            pendingFirstAppURL = url
+            preferences.set(url, forKey: "menlo.first-app-url")
+            requestedPhoneSetup = false
+            route = .registry
             await reviewGitHubApp(slug: link.slug, commit: link.commit, repositoryID: link.repositoryID)
             return
         }

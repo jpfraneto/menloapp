@@ -1,8 +1,36 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-23. This is the plain-language
+Written 2026-07-30, amended through 2026-09-24. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Menlo as the first iPhone app (September 24)
+
+ADR 0043 distinguishes fresh setup from arrival through an app link. Plain
+`menloapp` and `menloapp setup` now run the existing iPhone installation and
+private-pairing path. The CLI reports completion only after that path succeeds.
+`menloapp try <link>` still goes directly to the linked app's source review,
+build and installation. npm installation itself has no setup side effects.
+
+The Mac introduces Menlo as the first iPhone app for an empty workspace. A valid
+exact-commit app link takes precedence and persists across restart or dismissal;
+existing libraries remain accessible without requiring Menlo on iPhone. The
+phone app's name and icon are Menlo, retaining its existing bundle identity and
+private data. Welcome copy explains sending intents from the phone to the Mac.
+
+Local verification: 20 CLI/package checks, eight installation/pairing checks,
+64 Mac checks (one additional updater check skipped without its opt-in), and
+58 Companion checks passed. The updated welcome was rendered and inspected.
+The owner's intended physical iPhone inventory contained the older Tohseno
+Companion. A local Release build, version 1.2.1 build 6, passed code-signature
+verification and was installed as Menlo on that same persisted target. The
+device inventory confirms the new name and build. Apple refused launch because
+the phone was locked; opening, current synchronization, and sending an intent
+still need owner observation. No new public Mac/npm release has been published.
+
+The live `/anky` route still resolves its historical signed Registry release
+and Claim flow. It is not a GitHub app link and has not been migrated by this
+onboarding change. Its historical authority has not been bypassed.
 
 ## Mac home and voice composers (September 23)
 

@@ -2,6 +2,8 @@ import { NPM_CLI_VERSION } from "./constants.js";
 
 export const HELP = `MENLO · menloapp ${NPM_CLI_VERSION}
 
+  menloapp                  Set up Menlo on your iPhone.
+  menloapp setup            Continue iPhone setup.
   menloapp deploy [path]     Share your app. Get a live URL.
   menloapp try <link>        Install an app on your iPhone.
 
@@ -12,11 +14,16 @@ export const HELP = `MENLO · menloapp ${NPM_CLI_VERSION}
 
 Run menloapp deploy --help for advanced options.`;
 
-export const GUIDE = `Share your app:
+export const GUIDE = `Start from scratch:
+  menloapp
+  Your Mac installs Menlo on your iPhone so you can send intents from there.
+
+Share your app:
   menloapp deploy
 
 Try an app:
   menloapp try https://menloapp.lol/hello-menlo
+  The linked app installs first. Menlo on iPhone is optional afterward.
 
 Discover apps at https://menloapp.lol`;
 
@@ -46,7 +53,8 @@ export function suggestedCommand(value) {
 }
 
 export function parseCommand(args) {
-  if (!args.length) return { kind: "guide", args: [] };
+  if (!args.length || (args.length === 1 && args[0] === "setup")) return { kind: "start", args: [] };
+  if (args.length === 1 && args[0] === "guide") return { kind: "guide", args: [] };
   if (args.length === 1 && ["--help", "-h", "help"].includes(args[0])) return { kind: "help", args: [] };
   if (args.length === 1 && ["--version", "-V"].includes(args[0])) return { kind: "version", args: [] };
   if (args.length === 1 && ["open", "doctor"].includes(args[0])) return { kind: args[0], args: [] };

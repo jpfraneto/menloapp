@@ -2,6 +2,22 @@
 
 Share your iPhone app. Let anyone try it.
 
+Starting from scratch:
+
+```sh
+npm i -g menloapp
+menloapp
+```
+
+Keep your intended iPhone connected and unlocked. Menlo checks Xcode and your
+Apple signing, installs Menlo on your iPhone, and guides you through the private
+connection. Setup finishes when the app is installed and paired. Open Menlo on
+your iPhone to send intents; your Mac builds and signs the apps you ask for.
+If setup stops for an Apple prerequisite, follow the instruction and run
+`menloapp setup` to continue.
+
+Already have an app to share:
+
 ```sh
 npm i -g menloapp
 menloapp deploy
@@ -19,6 +35,8 @@ menloapp try https://menloapp.lol/hello-menlo
 MENLO uses your Mac, Xcode and Apple signing identity to build the app for your
 paired iPhone. You review the exact source before its build runs. The iPhone
 needs Trust and Developer Mode enabled.
+The app you came for installs first. You can add Menlo to your iPhone later with
+`menloapp setup`; it is not required to try the linked app.
 
 [Discover apps](https://menloapp.lol)
 

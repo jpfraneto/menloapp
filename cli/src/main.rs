@@ -1019,24 +1019,29 @@ async fn dispatch(
                 let service = service_client::ServiceClient::ensure_running()
                     .await
                     .map_err(|error| error.to_string())?;
+                let application = if Path::new("/Applications/Menlo.app").is_dir() {
+                    "Menlo"
+                } else {
+                    "Tohseno"
+                };
                 let opened = std::process::Command::new("/usr/bin/open")
-                    .args(["-a", "Tohseno"])
+                    .args(["-a", application])
                     .status()?;
                 if !opened.success() {
-                    return Err("macOS could not open Tohseno.app".into());
+                    return Err("macOS could not open Menlo. Run `menloapp setup` for iPhone setup from Terminal.".into());
                 }
                 if json {
                     println!(
                         "{}",
                         serde_json::to_string(&json!({
                             "schema": "tohseno.native-app-opened/1",
-                            "application": "Tohseno.app",
+                            "application": format!("{application}.app"),
                             "workspace_id": service.runtime().workspace_id,
                             "service_version": service.runtime().service_version,
                         }))?
                     );
                 } else {
-                    bus.emit(Event::result("Tohseno is open. The Local Workspace Service remains available after this Terminal closes."));
+                    bus.emit(Event::result("Menlo is open. The Local Workspace Service remains available after this Terminal closes."));
                 }
             }
         }
@@ -2148,7 +2153,7 @@ async fn install_and_pair_companion(
         return present_json_or_status(
             json_output,
             companion_connection_receipt(),
-            "Tohseno Companion is installed on the intended iPhone and privately paired.",
+            "Menlo is installed on the intended iPhone and privately paired.",
             bus,
         )
         .map_err(Into::into);
@@ -2174,7 +2179,7 @@ async fn install_and_pair_companion(
             return present_json_or_status(
                 json_output,
                 companion_connection_receipt(),
-                "Tohseno Companion is installed on the intended iPhone and privately paired.",
+                "Menlo is installed on the intended iPhone and privately paired.",
                 bus,
             )
             .map_err(Into::into);
@@ -2182,7 +2187,7 @@ async fn install_and_pair_companion(
         let instruction = view
             .get("instruction")
             .and_then(Value::as_str)
-            .unwrap_or("Checking Tohseno Companion…");
+            .unwrap_or("Checking Menlo…");
         if instruction != last_instruction {
             bus.emit(Event::status(instruction));
             last_instruction = instruction.into();
@@ -2197,7 +2202,7 @@ async fn install_and_pair_companion(
             return Err(companion_setup_instruction(&view).into());
         }
         if std::time::Instant::now() >= deadline {
-            return Err("Companion setup did not finish within 20 minutes. Keep the intended iPhone connected and unlocked, then run `tohseno companion install` again.".into());
+            return Err("Menlo setup did not finish within 20 minutes. Keep the intended iPhone connected and unlocked, then run `menloapp setup` again.".into());
         }
         tokio::time::sleep(std::time::Duration::from_secs(1)).await;
         view = service
@@ -2211,7 +2216,7 @@ fn companion_setup_instruction(view: &Value) -> String {
     let instruction = view
         .get("instruction")
         .and_then(Value::as_str)
-        .unwrap_or("Finish setting up Tohseno Companion on the intended iPhone.");
+        .unwrap_or("Finish setting up Menlo on the intended iPhone.");
     match view.get("detail").and_then(Value::as_str) {
         Some(detail) => format!("{instruction}\n{detail}"),
         None => instruction.into(),

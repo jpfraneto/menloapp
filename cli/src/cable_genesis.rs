@@ -322,7 +322,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
         return view(
             GenesisStep::ConnectCable,
             "Connect your iPhone to this Mac with a cable.",
-            Some("Use a cable that carries data, not only power. Keep the iPhone unlocked. Tohseno checks for it automatically once per second."),
+            Some("Use a cable that carries data, not only power. Keep the iPhone unlocked. Menlo checks for it automatically once per second."),
             Some("check"),
             true,
             true,
@@ -330,12 +330,21 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
     }
     if !observed.xcode_ready {
         if !record.pre_xcode_trust_guidance_seen {
-            return view(GenesisStep::TrustMac, "Unlock your iPhone and tap Trust.", Some("Xcode is not installed yet, so Tohseno will verify trust after Xcode is ready."), Some("continue"), true, false);
+            return view(
+                GenesisStep::TrustMac,
+                "Unlock your iPhone and tap Trust.",
+                Some(
+                    "Xcode is not installed yet, so Menlo will verify trust after Xcode is ready.",
+                ),
+                Some("continue"),
+                true,
+                false,
+            );
         }
         return view(
             GenesisStep::InstallXcode,
             "Install Xcode from the App Store, then open it once.",
-            Some("Xcode is Apple’s free development app and the download is large. After it installs, open Xcode and let any additional setup finish. Tohseno keeps checking automatically."),
+            Some("Xcode is Apple’s free development app and the download is large. After it installs, open Xcode and let any additional setup finish. Menlo keeps checking automatically."),
             Some("open_app_store"),
             true,
             true,
@@ -346,7 +355,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
             return view(
                 GenesisStep::ConnectCable,
                 "Connect your iPhone to this Mac with a cable.",
-                Some("Use a cable that carries data, not only power. Keep the iPhone unlocked. Tohseno checks for it automatically once per second."),
+                Some("Use a cable that carries data, not only power. Keep the iPhone unlocked. Menlo checks for it automatically once per second."),
                 Some("check"),
                 true,
                 true,
@@ -356,7 +365,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
             return view(
                 GenesisStep::TrustMac,
                 "Unlock your iPhone and tap Trust.",
-                Some("Look at the iPhone screen for “Trust This Computer?”. Tap Trust, then enter the iPhone passcode. Tohseno keeps checking automatically."),
+                Some("Look at the iPhone screen for “Trust This Computer?”. Tap Trust, then enter the iPhone passcode. Menlo keeps checking automatically."),
                 Some("check"),
                 true,
                 true,
@@ -378,7 +387,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
         return view(
             GenesisStep::AddAppleAccount,
             "Add your Apple Account in Xcode.",
-            Some("Tohseno will open Xcode. Choose Xcode → Settings… → Accounts in the Mac menu bar. If your account is missing, click + and sign in. If it is already listed, select it, choose Manage Certificates…, and confirm Apple Development appears. A free Personal Team works. Return here; Tohseno checks automatically."),
+            Some("Menlo will open Xcode. Choose Xcode → Settings… → Accounts in the Mac menu bar. If your account is missing, click + and sign in. If it is already listed, select it, choose Manage Certificates…, and confirm Apple Development appears. A free Personal Team works. Return here; Menlo checks automatically."),
             Some("open_xcode_accounts"),
             true,
             true,
@@ -393,7 +402,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
         return match record.companion_install {
             CompanionInstallState::Building => view(
                 GenesisStep::InstallCompanion,
-                "Building Tohseno Companion for your iPhone…",
+                "Building Menlo for your iPhone…",
                 Some("Xcode is compiling and signing the app. This can take a few minutes. Keep your iPhone connected and unlocked."),
                 None,
                 false,
@@ -401,16 +410,16 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
             ),
             CompanionInstallState::Installing => view(
                 GenesisStep::InstallCompanion,
-                "Installing Tohseno Companion on your iPhone…",
-                Some("The build finished. Tohseno is copying the Companion to your iPhone. Keep it connected and unlocked."),
+                "Installing Menlo on your iPhone…",
+                Some("The build finished. This Mac is copying Menlo to your iPhone. Keep it connected and unlocked."),
                 None,
                 false,
                 true,
             ),
             CompanionInstallState::Launching => view(
                 GenesisStep::InstallCompanion,
-                "Opening Tohseno Companion on your iPhone…",
-                Some("Tohseno found the exact Companion bundle in this iPhone's installed-app list and is starting your private connection."),
+                "Opening Menlo on your iPhone…",
+                Some("Menlo appears in this iPhone's installed-app list. Your Mac is starting the private connection."),
                 None,
                 false,
                 true,
@@ -421,8 +430,8 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
     let Some(companion_installed) = observed.companion_installed else {
         return view(
             GenesisStep::InstallCompanion,
-            "Unlock your iPhone so Tohseno can check its installed apps.",
-            Some("Tohseno only calls the Companion installed after the exact com.tohseno.companion bundle appears in this iPhone's CoreDevice app list."),
+            "Unlock your iPhone so Menlo can check its installed apps.",
+            Some("This Mac must check your iPhone's installed-app list before it can confirm that Menlo is installed."),
             Some("check"),
             true,
             true,
@@ -431,8 +440,8 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
     if !companion_installed {
         return view(
             GenesisStep::InstallCompanion,
-            "Install Tohseno Companion on your iPhone.",
-            Some("Tohseno checked this iPhone's installed-app list and did not find the exact Companion bundle. Continue to build, sign, install, and open it on this iPhone."),
+            "Install Menlo on your iPhone.",
+            Some("Menlo is missing from this iPhone's installed-app list. Continue to build, sign, install, and open it on this iPhone."),
             Some("install_companion"),
             true,
             false,
@@ -441,8 +450,8 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
     if record.intended_device_digest.is_none() {
         return view(
             GenesisStep::Pairing,
-            "Connect Tohseno Companion on this iPhone.",
-            Some("The Companion is installed. Continue to bind this exact iPhone to the private Mac workspace and complete one-use pairing."),
+            "Connect Menlo on this iPhone.",
+            Some("Menlo is installed. Continue to bind this exact iPhone to the private Mac workspace and complete one-use pairing."),
             Some("retry_companion"),
             true,
             false,
@@ -476,11 +485,11 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
             return view(
                 GenesisStep::InstallCompanion,
                 if pairing_retry {
-                    "Finish connecting Tohseno Companion on your iPhone."
+                    "Finish connecting Menlo on your iPhone."
                 } else {
-                    "Connect Tohseno Companion on your iPhone."
+                    "Connect Menlo on your iPhone."
                 },
-                failure.or(Some("Tohseno found the exact Companion bundle in this iPhone's installed-app list. Continue to open it and complete the private pairing.")),
+                failure.or(Some("Menlo appears in this iPhone's installed-app list. Continue to open it and complete the private pairing.")),
                 Some("retry_companion"),
                 true,
                 false,
@@ -494,7 +503,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
         CompanionInstallState::WaitingForPairing => {
             return view(
                 GenesisStep::Pairing,
-                "Finish setup in Tohseno Companion on your iPhone.",
+                "Finish setup in Menlo on your iPhone.",
                 Some("This screen continues automatically when your private connection is ready."),
                 None,
                 false,
@@ -504,8 +513,8 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
         CompanionInstallState::Installed if !observed.paired => {
             return view(
                 GenesisStep::Pairing,
-                "Reconnect Tohseno Companion on your iPhone.",
-                Some("The app is installed on the intended iPhone, but this Mac no longer has a live private Companion pairing."),
+                "Reconnect Menlo on your iPhone.",
+                Some("The app is installed on the intended iPhone, but this Mac no longer has a live private Menlo connection."),
                 Some("retry_companion"),
                 true,
                 false,
@@ -516,7 +525,7 @@ pub fn project(record: &CableGenesisRecord, observed: &GenesisObservation) -> Ca
     view(
         GenesisStep::FirstShot,
         "Your iPhone and this Mac are connected.",
-        Some("Adopt an existing iOS project, or use Create App as a secondary path."),
+        Some("Menlo is installed and privately connected. Open it on your iPhone and tap the Menlo button to send your first intent. This Mac builds the apps you ask for."),
         None,
         false,
         false,
@@ -855,24 +864,15 @@ mod tests {
         };
         let building = project(&record, &observed());
         assert_eq!(building.step, GenesisStep::InstallCompanion);
-        assert_eq!(
-            building.instruction,
-            "Building Tohseno Companion for your iPhone…"
-        );
+        assert_eq!(building.instruction, "Building Menlo for your iPhone…");
         assert!(building.detail.unwrap().contains("few minutes"));
         record.companion_install = CompanionInstallState::Installing;
         let installing = project(&record, &observed());
-        assert_eq!(
-            installing.instruction,
-            "Installing Tohseno Companion on your iPhone…"
-        );
+        assert_eq!(installing.instruction, "Installing Menlo on your iPhone…");
         assert!(installing.detail.unwrap().contains("build finished"));
         record.companion_install = CompanionInstallState::Launching;
         let launching = project(&record, &observed());
-        assert_eq!(
-            launching.instruction,
-            "Opening Tohseno Companion on your iPhone…"
-        );
+        assert_eq!(launching.instruction, "Opening Menlo on your iPhone…");
         assert!(launching.detail.unwrap().contains("installed-app list"));
         let mut installed = observed();
         installed.companion_installed = Some(true);
@@ -885,19 +885,13 @@ mod tests {
         );
         record.last_error = Some(LEGACY_COMPANION_PAIRING_FAILURE.into());
         let retry = project(&record, &installed);
-        assert_eq!(
-            retry.instruction,
-            "Finish connecting Tohseno Companion on your iPhone."
-        );
+        assert_eq!(retry.instruction, "Finish connecting Menlo on your iPhone.");
         assert_eq!(retry.detail, Some(COMPANION_PAIRING_FAILURE));
         assert_eq!(retry.primary_action, Some("retry_companion"));
         record.companion_install = CompanionInstallState::WaitingForPairing;
         let pairing = project(&record, &installed);
         assert_eq!(pairing.step, GenesisStep::Pairing);
-        assert_eq!(
-            pairing.instruction,
-            "Finish setup in Tohseno Companion on your iPhone."
-        );
+        assert_eq!(pairing.instruction, "Finish setup in Menlo on your iPhone.");
         assert_eq!(pairing.primary_action, None);
         let mut paired = installed;
         paired.paired = true;
@@ -920,7 +914,7 @@ mod tests {
         let missing = project(&record, &state);
         assert_eq!(missing.step, GenesisStep::InstallCompanion);
         assert_eq!(missing.primary_action, Some("install_companion"));
-        assert!(missing.detail.unwrap().contains("did not find"));
+        assert!(missing.detail.unwrap().contains("missing"));
 
         state.companion_installed = None;
         let unobservable = project(&record, &state);

@@ -6,9 +6,65 @@ import XCTest
 
 final class NativeFactoryTests: XCTestCase {
     @MainActor
+    func testFreshOnboardingInstallsMenloButAppLinksKeepTheirFirstAppAcrossRestart() async throws {
+        let suite = "menlo-first-app-\(UUID())"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let waiting = ReadinessView(schema: "tohseno.native-onboarding-view/1", ready: false,
+            step: "install_companion", headline: "Install Menlo", detail: "Send intents from your iPhone.",
+            primaryAction: "install_companion", primaryLabel: "Install Menlo")
+        let factory = FakeFactory(workspaceShots: [], readinessResponses: [waiting])
+        let model = TohsenoAppModel(client: factory, preferences: preferences)
+        await model.reload()
+        XCTAssertTrue(model.shouldPresentPhoneSetup)
+
+        let commit = String(repeating: "a", count: 40)
+        let url = try XCTUnwrap(URL(string: "menlo://app/test-app?commit=\(commit)&repository=12"))
+        await model.openNetworkLink(url)
+        XCTAssertFalse(model.shouldPresentPhoneSetup)
+        XCTAssertEqual(model.githubReview?.commit, commit)
+        let calls = await factory.githubInstallCalls
+        XCTAssertEqual(calls, 0, "Opening a link still requires source/build consent")
+        model.dismissGitHubReview()
+        XCTAssertFalse(model.shouldPresentPhoneSetup, "Dismissing a review must not install Menlo first")
+
+        let restored = TohsenoAppModel(
+            client: FakeFactory(workspaceShots: [], readinessResponses: [waiting]), preferences: preferences)
+        await restored.reload()
+        XCTAssertFalse(restored.shouldPresentPhoneSetup)
+        await restored.resumeFirstApp()
+        XCTAssertEqual(restored.githubReview?.commit, commit)
+        XCTAssertEqual(restored.githubReview?.app.repositoryID, 12)
+        restored.setUpMenloOnPhone()
+        XCTAssertTrue(restored.shouldPresentPhoneSetup, "Menlo setup remains an explicit choice")
+    }
+
+    @MainActor
+    func testExistingAppsStayUsableWithoutMenloAndInvalidLinksDoNotSkipFreshSetup() async throws {
+        let suite = "menlo-existing-apps-\(UUID())"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let waiting = ReadinessView(schema: "tohseno.native-onboarding-view/1", ready: false,
+            step: "connect_cable", headline: "Connect your iPhone", detail: "Keep it unlocked.",
+            primaryAction: "check", primaryLabel: "Check again")
+        let returning = TohsenoAppModel(client: FakeFactory(readinessResponses: [waiting]), preferences: preferences)
+        await returning.reload()
+        XCTAssertFalse(returning.shouldPresentPhoneSetup)
+        let fresh = TohsenoAppModel(client: FakeFactory(workspaceShots: [], readinessResponses: [waiting]), preferences: preferences)
+        await fresh.reload()
+        await fresh.openNetworkLink(URL(string: "menlo://app/anky?commit=bad&repository=12")!)
+        XCTAssertTrue(fresh.shouldPresentPhoneSetup)
+        XCTAssertNil(fresh.pendingFirstAppURL)
+        XCTAssertNil(preferences.url(forKey: "menlo.first-app-url"))
+    }
+
+    @MainActor
     func testGitHubLinkReviewsPinnedCommitBeforeAnyBuild() async throws {
         let factory = FakeFactory()
-        let model = TohsenoAppModel(client: factory)
+        let suite = "menlo-link-review-\(UUID())"
+        let preferences = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { preferences.removePersistentDomain(forName: suite) }
+        let model = TohsenoAppModel(client: factory, preferences: preferences)
         let commit = String(repeating: "a", count: 40)
         let url = try XCTUnwrap(URL(string: "menlo://app/test-app?commit=\(commit)&repository=12"))
         await model.openNetworkLink(url)
@@ -505,8 +561,8 @@ final class NativeFactoryTests: XCTestCase {
 
         for phrase in [
             "MenloWordmark()",
-            "Your app. Out in the world.",
-            "This is where your ideas transform into apps.",
+            "Start with Menlo on your iPhone.",
+            "Send an intent. Your Mac makes it an app.",
             "Your intention",
             "Your Mac",
             "Your iPhone",
@@ -956,7 +1012,7 @@ final class NativeFactoryTests: XCTestCase {
         XCTAssertTrue(source.contains("Adopt Existing App"))
         XCTAssertTrue(source.contains("Create a First App"))
         XCTAssertTrue(source.contains("Choose how Menlo thinks"))
-        XCTAssertTrue(source.contains("This is where your ideas transform into apps."))
+        XCTAssertTrue(source.contains("Start with Menlo on your iPhone."))
         XCTAssertFalse(source.contains("Describe the app that should exist…"))
     }
 

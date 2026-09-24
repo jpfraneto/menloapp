@@ -5,7 +5,7 @@ import { GUIDE, HELP, parseCommand, redact, suggestedCommand, tryArguments } fro
 import { NPM_CLI_VERSION, PRODUCT_VERSION } from "../src/constants.js";
 import { delegate, installedNative } from "../src/native.js";
 import { installAuthorizedNative } from "../src/installer.js";
-import { startProduct } from "../src/start.js";
+import { openProduct, startProduct } from "../src/start.js";
 import { initPresentation } from "../src/project-presentation.js";
 import { deploy } from "../src/github.js";
 
@@ -53,6 +53,7 @@ async function main() {
     if (!installed) throw new Error("the verified native release did not activate safely");
   }
   if (command.kind === "delegate") return delegate(command.args);
+  if (command.kind === "open") return openProduct();
   return startProduct();
 }
 

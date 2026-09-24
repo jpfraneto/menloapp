@@ -6,7 +6,7 @@ import { nodeArchitecture, validateManifest, validatedHttpsURL } from "../src/ma
 import { validateArchivePaths } from "../src/archive.js";
 import { verifyArtifactBytes } from "../src/download.js";
 import { ensureInstallerMarker, verifyAppleSignature } from "../src/installer.js";
-import { startProduct } from "../src/start.js";
+import { openProduct, startProduct } from "../src/start.js";
 import { NPM_CLI_VERSION } from "../src/constants.js";
 import { createHash } from "node:crypto";
 import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
@@ -41,7 +41,9 @@ function manifest() {
 }
 
 test("command parsing keeps native commands opaque", () => {
-  assert.deepEqual(parseCommand([]), { kind: "guide", args: [] });
+  assert.deepEqual(parseCommand([]), { kind: "start", args: [] });
+  assert.deepEqual(parseCommand(["setup"]), { kind: "start", args: [] });
+  assert.deepEqual(parseCommand(["guide"]), { kind: "guide", args: [] });
   assert.deepEqual(parseCommand(["init"]), { kind: "delegate", args: ["init"] });
   assert.deepEqual(parseCommand(["deploy"]), { kind: "delegate", args: ["deploy"] });
   assert.deepEqual(parseCommand(["install"]), { kind: "delegate", args: ["install"] });
@@ -173,7 +175,7 @@ test("npm installations write the marker expected by native uninstall", async ()
   }
 });
 
-test("product start installs the service once and then opens Studio", () => {
+test("a fresh start finishes only after Menlo installation and pairing", () => {
   const commands = [];
   const messages = [];
   const status = startProduct((args) => {
@@ -182,8 +184,8 @@ test("product start installs the service once and then opens Studio", () => {
   }, (message) => messages.push(message));
 
   assert.equal(status, 0);
-  assert.deepEqual(commands, [["service", "install"], ["studio"]]);
-  assert.deepEqual(messages, ["Starting TOHSENO…", "Opening TOHSENO…"]);
+  assert.deepEqual(commands, [["service", "install"], ["companion", "install"]]);
+  assert.match(messages.at(-1), /installed and connected/);
 
   const failed = [];
   assert.equal(startProduct((args) => {
@@ -191,6 +193,28 @@ test("product start installs the service once and then opens Studio", () => {
     return 7;
   }, () => {}), 7);
   assert.deepEqual(failed, [["service", "install"]]);
+});
+
+test("unfinished phone setup never reports onboarding complete", () => {
+  const commands = [];
+  const messages = [];
+  const status = startProduct((args) => {
+    commands.push(args);
+    return args[0] === "companion" ? 3 : 0;
+  }, (message) => messages.push(message));
+  assert.equal(status, 3);
+  assert.deepEqual(commands, [["service", "install"], ["companion", "install"]]);
+  assert.match(messages.at(-1), /menloapp setup/);
+  assert.ok(!messages.some((message) => message.includes("installed and connected")));
+});
+
+test("opening the Mac or trying a linked app does not install Menlo first", () => {
+  const commands = [];
+  assert.equal(openProduct((args) => { commands.push(args); return 0; }, () => {}), 0);
+  assert.deepEqual(commands, [["service", "install"], ["studio"]]);
+  assert.deepEqual(parseCommand(tryArguments(["https://menloapp.lol/anky"])), {
+    kind: "delegate", args: ["github", "install", "anky"],
+  });
 });
 
 test("redirects follow only an exact allowlisted HTTPS chain", async () => {

@@ -1150,22 +1150,22 @@ private extension ReadinessView {
         let ready = genesis.step == "first_shot"
         let explanation = switch genesis.step {
         case "pick_up_iphone":
-            "Tohseno keeps the iPhone apps you use connected to the Mac, source project, and coding harness that evolve them."
+            "First, install Menlo on your iPhone. Send intents from there; this Mac builds and signs your apps."
         case "first_shot":
-            "Tohseno Companion completed an authenticated exchange with this Mac. Adopt an existing project to start the living connection."
+            "Menlo is installed and privately connected. Open it on your iPhone and tap the Menlo button to send your first intent."
         default:
-            genesis.detail ?? "Tohseno checks this step locally and advances only when it can observe success."
+            genesis.detail ?? "Menlo checks this step locally and advances only when it can observe success."
         }
         let label: String? = switch genesis.primaryAction {
-        case "begin": "Set Up Tohseno"
+        case "begin": "Set Up Menlo"
         case "continue": "Continue"
         case "check": "Check Again"
         case "open_app_store": "Open Xcode in the App Store"
         case "open_xcode_accounts": "Open Xcode"
         case "install_companion": genesis.companionInstallState == "failed"
             ? "Try Again"
-            : "Install Tohseno Companion"
-        case "retry_companion": "Reconnect Tohseno Companion"
+            : "Install Menlo"
+        case "retry_companion": "Reconnect Menlo"
         default: nil
         }
         let progress: Double? = switch projectedStep {

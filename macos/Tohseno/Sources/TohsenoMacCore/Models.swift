@@ -806,8 +806,8 @@ public struct ReadinessView: Codable, Equatable, Sendable {
             "Prepare Xcode",
             "Turn on Developer Mode",
             "Verify your Apple Account",
-            "Build and sign Companion",
-            "Install and connect Companion",
+            "Build and sign Menlo",
+            "Install and connect Menlo",
         ]
         return labels.enumerated().map { index, label in
             let number = index + 1

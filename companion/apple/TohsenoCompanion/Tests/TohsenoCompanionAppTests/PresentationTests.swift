@@ -276,7 +276,7 @@ struct PresentationTests {
             ),
             encoding: .utf8
         )
-        #expect(source.contains("BRING YOUR IPHONE INTO THE WORKSHOP"))
+        #expect(source.contains("MENLO ON YOUR IPHONE"))
         #expect(source.contains("Mac factory"))
         #expect(source.contains("This iPhone"))
         #expect(source.contains("workshop.first-run-connection"))

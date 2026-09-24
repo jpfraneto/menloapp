@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Menlo Companion</string>
+	<string>Menlo</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>$(PRODUCT_NAME)</string>
+	<string>Menlo</string>
 	<key>CFBundlePackageType</key>
 	<string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
 	<key>CFBundleShortVersionString</key>
@@ -50,7 +50,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Attach screenshots to describe what should change.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Speak the app or change you want Tohseno to make.</string>
+	<string>Speak the app or change you want Menlo to make.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Turn your spoken intent into text before you send it to your Mac.</string>
 	<key>TOHSENOVerificationRelayOrigin</key>

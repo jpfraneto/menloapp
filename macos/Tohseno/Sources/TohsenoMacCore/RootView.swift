@@ -24,7 +24,7 @@ public struct TohsenoRootView: View {
                     }
                 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let readiness = model.readiness, !readiness.ready {
+            } else if let readiness = model.readiness, model.shouldPresentPhoneSetup {
                 ReadinessScreen(model: model, readiness: readiness)
             } else {
                 factory
@@ -178,6 +178,12 @@ private struct AppLibrarySidebar: View {
             }
             .accessibilityIdentifier("app.library")
             VStack(alignment: .leading, spacing: 14) {
+                if let url = model.pendingFirstAppURL, let link = GitHubAppLink(url) {
+                    Button("Continue installing \(link.slug)") { Task { await model.resumeFirstApp() } }
+                }
+                if model.readiness?.ready != true {
+                    Button { model.setUpMenloOnPhone() } label: { Label("Set up Menlo on iPhone", systemImage: "iphone") }
+                }
                 Button { model.route = .registry } label: { Label("Discover", systemImage: "square.grid.2x2") }
                     .accessibilityIdentifier("registry.workshop")
                 Button { model.route = .library } label: { Label("Your apps", systemImage: "square.grid.2x2") }
@@ -887,9 +893,9 @@ private struct TohsenoWelcomeSequence: View {
 
                 VStack(spacing: 9) {
                     MenloWordmark().frame(width: 150)
-                    Text("Your app. Out in the world.")
+                    Text("Start with Menlo on your iPhone.")
                         .font(MenloTypography.brand(size: 44))
-                    Text("This is where your ideas transform into apps.")
+                    Text("Send an intent. Your Mac makes it an app.")
                         .font(.title3)
                         .foregroundStyle(TohsenoTheme.silver)
                 }
@@ -903,7 +909,7 @@ private struct TohsenoWelcomeSequence: View {
                     .offset(y: revealPhase >= 2 ? 0 : 7)
 
                 VStack(spacing: 12) {
-                    Text("Describe what you need in ordinary words. This Mac creates the native iPhone app, keeps its source, and remembers every change. Your iPhone is where it becomes useful.")
+                    Text("First, this Mac installs Menlo on your iPhone and connects them privately. Then open Menlo on your iPhone to describe an app or a change. Your Mac builds and signs it, keeps the source, and installs it on this iPhone.")
                         .font(.body)
                         .foregroundStyle(TohsenoTheme.silver)
                         .multilineTextAlignment(.center)
@@ -917,13 +923,17 @@ private struct TohsenoWelcomeSequence: View {
                     .foregroundStyle(TohsenoTheme.silver.opacity(0.78))
                     .multilineTextAlignment(.center)
 
-                    Button(readiness.step == "welcome" ? "Begin" : "Continue setup", action: enter)
+                    Button(readiness.step == "welcome" ? "Set up my iPhone" : "Continue setup", action: enter)
                         .buttonStyle(PrimaryActionStyle())
                         .accessibilityIdentifier("readiness.welcome.begin")
 
                     Text("You’ll connect your iPhone next. Keep it nearby and unlocked. Menlo asks for a cable only when Apple requires first pairing.")
                         .font(.caption)
                         .foregroundStyle(TohsenoTheme.silver.opacity(0.72))
+                        .multilineTextAlignment(.center)
+                    Text("Here for a particular app? Return to its page and choose Open Menlo. That app will install first.")
+                        .font(.callout)
+                        .foregroundStyle(TohsenoTheme.silver)
                         .multilineTextAlignment(.center)
                 }
                 .opacity(revealPhase >= 3 ? 1 : 0.42)
@@ -1139,9 +1149,9 @@ private struct SetupContextBanner: View {
         case "add_apple_account":
             "Your Apple Account lets Xcode sign the app as yours. Menlo never sees your password."
         case "install_companion", "building_companion":
-            "Companion is the private bridge that receives apps from your Mac and keeps them connected."
+            "Menlo is your first iPhone app. Send intents from it; your Mac builds and signs the apps you ask for."
         case "installing_companion", "launching_companion":
-            "The private bridge is moving onto your iPhone now."
+            "Menlo is being installed and opened on your iPhone."
         case "pairing_companion":
             "Your iPhone is proving that it belongs to this local Menlo workspace."
         default:
