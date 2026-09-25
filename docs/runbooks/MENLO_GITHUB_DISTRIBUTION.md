@@ -56,6 +56,27 @@ Official references:
 [repository permissions](https://docs.github.com/en/rest/collaborators/collaborators),
 [commit comparisons](https://docs.github.com/en/rest/commits/commits).
 
+## Authorized Anky alias migration
+
+ADR 0043 records the owner's September 25 authorization to give `/anky` the
+normal GitHub app-first flow. The one-time operator script is
+`website/apps/site/scripts/migrate-anky-to-github.ts`. It invokes the existing
+authenticated registrar with fixed GitHub user/repository identities and the
+reviewed public commit, preserving the historical signed manifest. It leaves
+the public endpoint's legacy-alias reservation unchanged and appends the normal
+registration event without manually editing the ledger.
+
+Run from `/app/website` in the existing production service, supplying the
+owner's existing GitHub user token over SSH standard input. Do not put the token
+in arguments, environment variables, logs, or files. First use
+`bun apps/site/scripts/migrate-anky-to-github.ts --check`, which registers into
+an isolated temporary directory and removes it. After checking the returned
+repository, commit, and historical manifest digest, use `--apply` once against
+the persistent directory. The script refuses a different GitHub identity,
+changed branch head, unavailable historical release, or existing registration.
+Check the public page and native resolver afterward; registration is not
+evidence of a recipient build or physical installation.
+
 ## The first real handoff
 
 1. Install the exact MENLO Mac candidate. Open it and finish Apple's account,

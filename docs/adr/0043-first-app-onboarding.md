@@ -34,3 +34,10 @@ implicitly install Menlo on iPhone. It changes no source-review consent,
 intended-device selection, Apple authority, frozen protocol, deployed ABI or
 distribution artifact gate. Source implementation and a local physical install
 do not establish that updated public Mac/npm artifacts have been released.
+
+On September 25 the owner explicitly authorized migrating the live `/anky`
+alias to the already-public `jpfraneto/anky-seed` repository (repository ID
+`1236924944`, owner ID `63654352`). This is a one-time authenticated registration
+under ADR 0040. The historical signed Registry release, its exact `/s/<shot>`
+route, and its Claim semantics remain intact. Other historical aliases retain
+the public registrar's existing collision protection.
