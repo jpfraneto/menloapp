@@ -77,6 +77,30 @@ changed branch head, unavailable historical release, or existing registration.
 Check the public page and native resolver afterward; registration is not
 evidence of a recipient build or physical installation.
 
+Applied September 25, 2026 at 16:34:32 UTC from reviewed main commit `abd5280` in
+the existing `menloapp` production service. The running registrar/config source
+matched main; TypeScript and all 16 registrar tests passed. The authenticated
+isolated check passed before the persistent registration.
+
+- App ID: `e1d86bb3-875c-4a7e-95e3-5739386772a4`.
+- Repository: `jpfraneto/anky-seed`, ID `1236924944`; owner/publisher ID
+  `63654352` (`jpfraneto`).
+- Public commit: `f3451eea236e86fa5a18be731294dc9133e81443`;
+  project `apps/ios/Anky.xcodeproj`, scheme `Anky`.
+- Live [Anky page](https://menloapp.lol/anky), app API, and directory returned
+  HTTP 200 with the Anky-specific app link. `tohseno --json github resolve anky`
+  independently resolved the same repository, commit, project, and scheme.
+- Historical release:
+  `0xbfedc96908c631e6cb65bade0e7ee3d3002e0afb08d82a797d435f50211a0744`.
+  Its [Claim page](https://menloapp.lol/s/d3f39ec1f705cf9b2e87688869f7e09188ac0a14ded693d566d5e3cd4c0c075f)
+  still returned its original Claim link. The signed manifest compared equal
+  before and after; SHA-256 of `JSON.stringify(signed_manifest)` was
+  `7ab6055b62309a9c4cf522c5da099117a867a3c986784e1c7b8a46c5f1947b22`.
+
+This changed the existing persistent directory without a website redeployment.
+No Anky source was published or edited, and no recipient build or physical
+Anky installation was performed by this migration.
+
 ## The first real handoff
 
 1. Install the exact MENLO Mac candidate. Open it and finish Apple's account,

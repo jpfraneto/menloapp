@@ -1,10 +1,10 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-24. This is the plain-language
+Written 2026-07-30, amended through 2026-09-25. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
-## Menlo as the first iPhone app (September 24)
+## Menlo as the first iPhone app (September 24–25)
 
 ADR 0043 distinguishes fresh setup from arrival through an app link. Plain
 `menloapp` and `menloapp setup` now run the existing iPhone installation and
@@ -24,13 +24,21 @@ Local verification: 20 CLI/package checks, eight installation/pairing checks,
 The owner's intended physical iPhone inventory contained the older Tohseno
 Companion. A local Release build, version 1.2.1 build 6, passed code-signature
 verification and was installed as Menlo on that same persisted target. The
-device inventory confirms the new name and build. Apple refused launch because
-the phone was locked; opening, current synchronization, and sending an intent
-still need owner observation. No new public Mac/npm release has been published.
+device inventory confirms the new name and build. Apple initially refused
+launch while the phone was locked. On September 25 the launch succeeded and the
+existing paired phone synchronized with the Mac at 16:24:52 UTC, reporting
+ready. Sending a new intent still needs owner use. No new public Mac/npm release
+has been published.
 
-The live `/anky` route still resolves its historical signed Registry release
-and Claim flow. It is not a GitHub app link and has not been migrated by this
-onboarding change. Its historical authority has not been bypassed.
+With the owner's explicit September 25 authorization, the live `/anky` route
+now uses the normal GitHub app-first flow for `jpfraneto/anky-seed`. Production
+registration, the public page/API/directory, and the native CLI resolver agree
+on repository ID `1236924944` and public commit
+`f3451eea236e86fa5a18be731294dc9133e81443`, using `apps/ios/Anky.xcodeproj`, scheme
+`Anky`. The historical `/s/<shot>` Claim page remains available and its signed
+manifest is unchanged. The migration did not build or install Anky on a
+recipient's phone. Exact evidence is recorded in
+[the GitHub distribution runbook](runbooks/MENLO_GITHUB_DISTRIBUTION.md#authorized-anky-alias-migration).
 
 ## Mac home and voice composers (September 23)
 
