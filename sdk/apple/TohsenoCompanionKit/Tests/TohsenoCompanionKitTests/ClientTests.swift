@@ -6,6 +6,119 @@ import XCTest
 final class ClientTests: XCTestCase {
     private let instant = try! CompanionTimestamp.parse("2026-08-15T12:01:00Z")
 
+    func testConcurrentRequestsAndSyncAllocateDistinctOrderedSequences() async throws {
+        let fixture = try await syncFixture()
+        await fixture.relay.enforceSenderSequences()
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for index in 0 ..< 12 {
+                group.addTask {
+                    _ = try await fixture.client.requestWorkspaceSnapshot(commandID: "concurrent_\(index)")
+                }
+                group.addTask { try await fixture.client.reconcile() }
+            }
+            try await group.waitForAll()
+        }
+        let uploads = await fixture.relay.allUploads()
+        XCTAssertEqual(uploads.map(\.senderSequence), Array(1 ... 12).map(UInt64.init))
+        let replays = await fixture.relay.rejectedReplayCount()
+        XCTAssertEqual(replays, 0, "normal concurrent use must not rely on replay recovery")
+        let pending = try await fixture.client.unacknowledgedCommandCount()
+        XCTAssertEqual(pending, 12)
+    }
+
+    func testReplayRecoveryPreservesSignedCommandsAndReceivesMacSnapshot() async throws {
+        let fixture = try await syncFixture()
+        await fixture.relay.setOffline(true)
+        for index in 0 ..< 2 {
+            _ = try await fixture.client.requestWorkspaceSnapshot(commandID: "saved_\(index)")
+        }
+        let saved = await fixture.store.load()
+        let original = try CompanionStateCodec.open(XCTUnwrap(saved), key: fixture.phone.storageKey)
+        let grant = try XCTUnwrap(original.pairing?.grant)
+        let mailbox = try XCTUnwrap(original.pairing?.inbox.mailboxID)
+        let snapshot = fixtureSnapshot(phone: fixture.phone, grant: grant, snapshotVersion: 2, nextCursor: 2)
+        try await fixture.relay.append(RelayMailboxEnvelope(cursor: 3, envelope: studioEnvelope(
+            studio: fixture.studio, phone: fixture.phone, mailboxID: mailbox,
+            sequence: 3, envelopeID: "33333333-3333-4333-8333-333333333333",
+            plaintext: StrictJSON.encode(WorkspaceEvent(
+                eventID: "event_after_recovery", workspaceID: grant.workspaceID, cursor: 2,
+                emittedAt: "2026-08-15T12:01:00Z", payload: .workspaceSnapshot(snapshot)
+            ))
+        )))
+        await fixture.relay.setOffline(false)
+        await fixture.relay.rejectNextUpload(with: .relayUploadReplayRejected)
+        try await fixture.client.reconcile()
+
+        let uploads = await fixture.relay.allUploads()
+        XCTAssertEqual(uploads.map(\.senderSequence), [3, 4])
+        for (index, envelope) in uploads.enumerated() {
+            let plaintext = try await CompanionEnvelopeCrypto.open(
+                envelope, expectedSenderSigningPublicKey: fixture.phone.signingKey.publicKey.rawRepresentation,
+                expectedSenderDeviceID: fixture.phone.description.deviceID,
+                expectedMailboxID: envelope.mailboxID, recipient: fixture.studio, now: instant,
+                replay: try CompanionReplayProtection(capacity: 128)
+            )
+            XCTAssertEqual(plaintext, try StrictJSON.encode(original.outbox[index].command))
+            XCTAssertNotEqual(envelope.envelopeID, original.outbox[index].envelope.envelopeID)
+        }
+        let workspace = try await fixture.client.currentWorkspace()
+        XCTAssertEqual(workspace, snapshot)
+        let pending = try await fixture.client.unacknowledgedCommandCount()
+        XCTAssertEqual(pending, 2, "only a Mac-signed receipt can retire a saved command")
+    }
+
+    func testUnknownRelayConflictDoesNotResealOrDiscardPendingCommand() async throws {
+        let fixture = try await syncFixture()
+        await fixture.relay.setOffline(true)
+        _ = try await fixture.client.requestWorkspaceSnapshot(commandID: "saved_conflict")
+        let before = await fixture.store.load()
+        await fixture.relay.setOffline(false)
+        await fixture.relay.rejectNextUpload(with: .relayFailure(409))
+        do {
+            try await fixture.client.reconcile()
+            XCTFail("an unclassified conflict must remain a failure")
+        } catch let error as TohsenoCompanionError {
+            XCTAssertEqual(error, .relayFailure(409))
+        }
+        let after = await fixture.store.load()
+        XCTAssertEqual(after, before)
+        let attempts = await fixture.relay.uploadAttemptCount()
+        XCTAssertEqual(attempts, 1)
+    }
+
+    func testReplayRecoveryPreservesReferenceBytesWithTheirSignedCommand() async throws {
+        let fixture = try await syncFixture()
+        let reference = try CompanionReferenceBlob(
+            blobID: "saved_reference", originName: "reference.png", mediaType: "image/png",
+            bytes: fixtureIconBlob().bytes
+        )
+        await fixture.relay.setOffline(true)
+        _ = try await fixture.client.requestShotCreation(CreateShotRequest(
+            commandID: "saved_creation", suggestedName: "Example", intention: "Use this reference.",
+            references: [reference]
+        ))
+        let saved = await fixture.store.load()
+        let original = try CompanionStateCodec.open(XCTUnwrap(saved), key: fixture.phone.storageKey)
+        await fixture.relay.setOffline(false)
+        await fixture.relay.rejectNextUpload(with: .relayUploadReplayRejected)
+        try await fixture.client.reconcile()
+        let uploads = await fixture.relay.allUploads()
+        XCTAssertEqual(uploads.map(\.senderSequence), [3, 4])
+        let expected = try [StrictJSON.encode(reference.transportChunks()[0]),
+                            StrictJSON.encode(original.outbox[0].command)]
+        for (index, envelope) in uploads.enumerated() {
+            let plaintext = try await CompanionEnvelopeCrypto.open(
+                envelope, expectedSenderSigningPublicKey: fixture.phone.signingKey.publicKey.rawRepresentation,
+                expectedSenderDeviceID: fixture.phone.description.deviceID,
+                expectedMailboxID: envelope.mailboxID, recipient: fixture.studio, now: instant,
+                replay: try CompanionReplayProtection(capacity: 128)
+            )
+            XCTAssertEqual(plaintext, expected[index])
+        }
+        let pending = try await fixture.client.unacknowledgedCommandCount()
+        XCTAssertEqual(pending, 1)
+    }
+
     func testPairSnapshotOfflineOutboxExactlyOnceAndRevocation() async throws {
         let clock = LockedClock(instant)
         let phone = try CompanionIdentity(
@@ -840,6 +953,84 @@ final class ClientTests: XCTestCase {
         await client.stopForegroundSynchronization()
     }
 
+
+    private func syncFixture() async throws -> (
+        client: TohsenoCompanionClient, relay: FakeRelay,
+        store: InMemoryCompanionStateStore, phone: CompanionIdentity,
+        studio: CompanionIdentity
+    ) {
+        let clock = LockedClock(instant)
+        let phone = try CompanionIdentity(
+            phrase: RecoveryPhrase(entropy: Data(repeating: 0, count: 16))
+        )
+        let studio = try CompanionIdentity(
+            phrase: RecoveryPhrase(entropy: Data(repeating: 1, count: 16))
+        )
+        let endpoint = try RelayEndpoint(
+            id: "official-v1",
+            baseURL: URL(string: "http://127.0.0.1:3100")!,
+            allowLoopbackHTTP: true
+        )
+        let allowlist = try RelayAllowlist([endpoint])
+        let invitation = try signedInvitation(studio: studio)
+        let grant = try signedGrant(studio: studio, phone: phone)
+        let responseMailbox = String(repeating: "a", count: 32)
+        let commandMailbox = String(repeating: "b", count: 32)
+        let commandWrite = Base64URL.encode(Data(repeating: 44, count: 32))
+        let grantPackage = CompanionPairingGrantPackage(
+            capabilityGrant: grant,
+            studioAgreementPublicKey: studio.description.agreementPublicKey,
+            commandMailboxID: commandMailbox,
+            commandMailboxWriteCapability: commandWrite
+        )
+        let grantEnvelope = try studioEnvelope(
+            studio: studio,
+            phone: phone,
+            mailboxID: responseMailbox,
+            sequence: 1,
+            envelopeID: "11111111-1111-4111-8111-111111111111",
+            plaintext: StrictJSON.encode(grantPackage)
+        )
+        let snapshot = fixtureSnapshot(phone: phone, grant: grant)
+        let snapshotEvent = WorkspaceEvent(
+            eventID: "event_snapshot",
+            workspaceID: grant.workspaceID,
+            cursor: 1,
+            emittedAt: "2026-08-15T12:01:00Z",
+            payload: .workspaceSnapshot(snapshot)
+        )
+        let snapshotEnvelope = try studioEnvelope(
+            studio: studio,
+            phone: phone,
+            mailboxID: responseMailbox,
+            sequence: 2,
+            envelopeID: "22222222-2222-4222-8222-222222222222",
+            plaintext: StrictJSON.encode(snapshotEvent)
+        )
+        let relay = FakeRelay(
+            mailboxID: responseMailbox,
+            envelopes: [
+                RelayMailboxEnvelope(cursor: 1, envelope: grantEnvelope),
+                RelayMailboxEnvelope(cursor: 2, envelope: snapshotEnvelope),
+            ]
+        )
+        let secrets = InMemoryCompanionSecretStore()
+        let durableState = InMemoryCompanionStateStore()
+        let durablePayloads = InspectablePayloadStore()
+        let client = TohsenoCompanionClient(
+            identityStore: secrets,
+            stateStore: durableState,
+            payloadStore: durablePayloads,
+            relay: relay,
+            relayAllowlist: allowlist,
+            entropySource: DeterministicEntropy(),
+            now: { clock.value() }
+        )
+        _ = try await client.createIdentity()
+        try await client.pair(with: try invitationURI(invitation), displayName: "Fixture iPhone")
+        return (client, relay, durableState, phone, studio)
+    }
+
     private func signedInvitation(studio: CompanionIdentity) throws -> PairingInvitation {
         let ephemeral = try Curve25519.KeyAgreement.PrivateKey(rawRepresentation: Data(repeating: 9, count: 32))
         let draft = PairingInvitation(
@@ -1130,6 +1321,9 @@ private actor FakeRelay: CompanionRelayTransport {
     private var immediatelyFinishedLiveConnections = 0
     private var delayedEnvelope: RelayMailboxEnvelope?
     private var delayedEnvelopeFetchCount: Int?
+    private var enforceSequences = false
+    private var rejectedReplays = 0
+    private var nextUploadError: TohsenoCompanionError?
 
     init(mailboxID: String, envelopes: [RelayMailboxEnvelope]) {
         self.mailboxID = mailboxID
@@ -1137,6 +1331,10 @@ private actor FakeRelay: CompanionRelayTransport {
     }
 
     func setOffline(_ value: Bool) { offline = value }
+    func enforceSenderSequences() { enforceSequences = true }
+    func rejectedReplayCount() -> Int { rejectedReplays }
+    func allUploads() -> [OpaqueCompanionEnvelope] { uploads }
+    func rejectNextUpload(with error: TohsenoCompanionError) { nextUploadError = error }
     func setReset(resetBefore: UInt64, head: UInt64) {
         reset = (resetBefore, head)
     }
@@ -1194,6 +1392,15 @@ private actor FakeRelay: CompanionRelayTransport {
     ) throws -> RelayEnvelopeUploadReceipt {
         if offline { throw TohsenoCompanionError.transportUnavailable }
         uploadAttempts.append(envelope)
+        if let error = nextUploadError {
+            nextUploadError = nil
+            throw error
+        }
+        if enforceSequences, !uploads.contains(where: { $0.envelopeID == envelope.envelopeID }),
+           envelope.senderSequence <= uploads.map(\.senderSequence).max() ?? 0 {
+            rejectedReplays += 1
+            throw TohsenoCompanionError.relayUploadReplayRejected
+        }
         if !uploads.contains(where: { $0.envelopeID == envelope.envelopeID }) { uploads.append(envelope) }
         return RelayEnvelopeUploadReceipt(
             schema: "tohseno.companion-envelope-accepted/1",

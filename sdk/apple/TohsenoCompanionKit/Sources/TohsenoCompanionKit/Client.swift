@@ -699,7 +699,7 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
                 state?.iconBlobs = [:]
                 try await persist(identity: identity)
                 connectionContinuation.yield(.reconnecting)
-                _ = try await queue(
+                _ = try await queueDuringReconciliation(
                     commandID: snapshotResetCommandID(
                         pairing: pairing,
                         resetBefore: resetBefore,
@@ -897,6 +897,22 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
         payload: CompanionCommandPayload,
         references: [CompanionReferenceBlob] = []
     ) async throws -> CommandReceipt {
+        // Actor isolation alone does not protect state across awaits. Queueing
+        // and reconciliation both allocate sender sequences, persist pairing,
+        // and edit the outbox; they must share one operation boundary.
+        await enterReconciliation()
+        defer { leaveReconciliation() }
+        try Task.checkCancellation()
+        return try await queueDuringReconciliation(
+            commandID: commandID, payload: payload, references: references
+        )
+    }
+
+    private func queueDuringReconciliation(
+        commandID: String,
+        payload: CompanionCommandPayload,
+        references: [CompanionReferenceBlob] = []
+    ) async throws -> CommandReceipt {
         try await ensureLoaded()
         try requireActivePairing()
         guard var pairing = state?.pairing else { throw TohsenoCompanionError.notPaired }
@@ -1050,7 +1066,26 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
     }
 
     private func flushOutbox(identity: CompanionIdentity) async throws {
+        do {
+            try await flushOutboxPass(identity: identity, reseal: false)
+        } catch TohsenoCompanionError.relayUploadReplayRejected {
+            // Older clients could allocate the same sequence in overlapping
+            // operations. Retry once with fresh envelopes, preserving the exact
+            // signed commands/chunks and their Mac-side idempotency identities.
+            // A relay conflict is never a Mac acknowledgement of the command.
+            try await flushOutboxPass(identity: identity, reseal: true)
+        }
+    }
+
+    private func flushOutboxPass(identity: CompanionIdentity, reseal: Bool) async throws {
         guard var pairing = state?.pairing else { throw TohsenoCompanionError.notPaired }
+        if reseal {
+            let highestPending = state?.outbox.map(\.envelope.senderSequence).max() ?? 0
+            guard highestPending < CompanionLimits.maximumSafeJSONInteger else {
+                throw TohsenoCompanionError.invalidEnvelope("sender sequence exhausted")
+            }
+            pairing.nextSenderSequence = max(pairing.nextSenderSequence, highestPending + 1)
+        }
         let endpoint = try relayEndpoint(pairing)
         let recipientKey = try Base64URL.decode(
             pairing.studioAgreementPublicKey,
@@ -1082,7 +1117,7 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
                       envelope.mailboxID == pairing.outbox.mailboxID else {
                     throw TohsenoCompanionError.unsafeStorage
                 }
-                if try envelopeNeedsResealing(envelope) {
+                if try reseal || envelopeNeedsResealing(envelope) {
                     let previousPending = pending
                     let previousPairing = pairing
                     let localPayloadID = try requireLocalPayloadID(pending)
@@ -1177,7 +1212,7 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
                 throw TohsenoCompanionError.unsafeStorage
             }
             var pending = state!.outbox[commandIndex]
-            if try envelopeNeedsResealing(pending.envelope) {
+            if try reseal || envelopeNeedsResealing(pending.envelope) {
                 let previousPending = pending
                 let previousPairing = pairing
                 pending.envelope = try CompanionEnvelopeCrypto.seal(
@@ -1378,7 +1413,11 @@ public actor TohsenoCompanionClient: WorkshopClientAuthorizing {
     private func ensureLoaded() async throws {
         guard state == nil else { return }
         let identity = try await identityManager.identity()
-        if let bytes = try await stateStore.load() {
+        let bytes = try await stateStore.load()
+        // A concurrent reader may already have loaded and advanced the state
+        // while the storage actor was serving this read.
+        guard state == nil else { return }
+        if let bytes {
             state = try CompanionStateCodec.open(bytes, key: identity.storageKey)
         } else {
             state = CompanionPersistentState()

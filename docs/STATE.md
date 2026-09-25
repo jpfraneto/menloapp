@@ -4,6 +4,31 @@ Written 2026-07-30, amended through 2026-09-25. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## iPhone sync recovery (September 25)
+
+The owner's iPhone showed “Waiting to sync your Shots with your Mac” while the
+Mac had six apps. Device pairing and relay health were present, but did not
+prove that the app list had reached the phone. Physical diagnostic logs showed
+outgoing HTTP 409 `replay` failures: overlapping queue and reconciliation
+operations had allocated repeated sender sequences. Retrying that outbox
+blocked receipt of the Mac's reports.
+
+CompanionKit now serializes queueing with reconciliation across suspension
+points and prevents a concurrent initial read from replacing already-loaded
+state. An explicit upload replay rejection permits one recovery pass with fresh
+envelope metadata. Exact signed commands, reference bytes, command IDs, creation
+times, pairing, and the Mac's idempotency checks remain intact. Unknown conflicts
+still fail; only a Mac-signed receipt retires a saved command. This changes no
+frozen wire encoding or relay replay protection.
+
+Verification covered 37 SDK checks, including shared Rust/Swift vectors,
+concurrent requests, recovery with exact command/reference bytes, and refusing
+unrelated conflicts. A local Debug build was signature-verified and installed
+in place on the persisted intended iPhone with the same Apple team and Keychain
+access. Real phone-to-Mac commands and Mac-to-phone acknowledgements advanced.
+The owner then confirmed that apps are showing and Sync works. The local app
+contains the fix; no public distribution artifact was changed.
+
 ## Menlo as the first iPhone app (September 24–25)
 
 ADR 0043 distinguishes fresh setup from arrival through an app link. Plain
@@ -26,9 +51,10 @@ Companion. A local Release build, version 1.2.1 build 6, passed code-signature
 verification and was installed as Menlo on that same persisted target. The
 device inventory confirms the new name and build. Apple initially refused
 launch while the phone was locked. On September 25 the launch succeeded and the
-existing paired phone synchronized with the Mac at 16:24:52 UTC, reporting
-ready. Sending a new intent still needs owner use. No new public Mac/npm release
-has been published.
+Mac recorded activity from the existing paired phone at 16:24:52 UTC. That was
+not proof of app-list delivery; end-to-end sync was subsequently repaired and
+confirmed by the owner as described above. Sending a new intent still needs
+owner use. No new public Mac/npm release has been published.
 
 With the owner's explicit September 25 authorization, the live `/anky` route
 now uses the normal GitHub app-first flow for `jpfraneto/anky-seed`. Production

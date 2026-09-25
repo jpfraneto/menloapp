@@ -326,7 +326,8 @@ public final class URLSessionCompanionRelayTransport: CompanionRelayTransport, @
         )
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = data
-        let response = try await execute(request, expected: [200, 201], maximumBytes: 8 * 1024)
+        let response = try await execute(request, expected: [200, 201], maximumBytes: 8 * 1024,
+                                         recognizeUploadReplay: true)
         let receipt = try StrictJSON.decode(
             RelayEnvelopeUploadReceipt.self,
             from: response,
@@ -530,7 +531,8 @@ public final class URLSessionCompanionRelayTransport: CompanionRelayTransport, @
     private func execute(
         _ request: URLRequest,
         expected: Set<Int>,
-        maximumBytes: Int
+        maximumBytes: Int,
+        recognizeUploadReplay: Bool = false
     ) async throws -> Data {
         do {
             let (bytes, response) = try await session.bytes(
@@ -541,6 +543,17 @@ public final class URLSessionCompanionRelayTransport: CompanionRelayTransport, @
                 throw TohsenoCompanionError.transportUnavailable
             }
             guard expected.contains(HTTP.statusCode) else {
+                if recognizeUploadReplay, HTTP.statusCode == 409 {
+                    var body = Data()
+                    for try await byte in bytes {
+                        guard body.count < 8 * 1024 else { throw TohsenoCompanionError.responseTooLarge }
+                        body.append(byte)
+                    }
+                    let failure = try? StrictJSON.decode(RelayUploadFailure.self, from: body, maximumBytes: 8 * 1024)
+                    if failure?.errorClass == "replay" {
+                        throw TohsenoCompanionError.relayUploadReplayRejected
+                    }
+                }
                 if HTTP.statusCode == 401 || HTTP.statusCode == 403 || HTTP.statusCode == 410 {
                     throw TohsenoCompanionError.capabilityRevoked
                 }
@@ -572,6 +585,11 @@ public final class URLSessionCompanionRelayTransport: CompanionRelayTransport, @
             throw TohsenoCompanionError.transportUnavailable
         }
     }
+}
+
+private struct RelayUploadFailure: Decodable {
+    let errorClass: String
+    enum CodingKeys: String, CodingKey { case errorClass = "error_class" }
 }
 
 private final class RedirectRejectingTaskDelegate: NSObject, URLSessionTaskDelegate, @unchecked Sendable {

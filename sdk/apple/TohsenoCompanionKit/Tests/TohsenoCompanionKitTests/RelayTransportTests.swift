@@ -8,6 +8,35 @@ final class RelayTransportTests: XCTestCase {
         super.tearDown()
     }
 
+    func testOnlyExplicitUploadReplayConflictCanTriggerResealing() async throws {
+        let envelope = OpaqueCompanionEnvelope(
+            envelopeID: "11111111-1111-4111-8111-111111111111",
+            mailboxID: String(repeating: "a", count: 32), senderDeviceID: "phone_fixture",
+            recipientDeviceID: "studio_fixture", senderSequence: 1,
+            createdAt: "2026-08-15T12:01:00Z", expiresAt: "2026-08-16T12:01:00Z",
+            ephemeralPublicKey: Base64URL.encode(Data(repeating: 1, count: 32)),
+            nonce: Base64URL.encode(Data(repeating: 2, count: 12)),
+            ciphertext: Base64URL.encode(Data(repeating: 3, count: 16)),
+            signature: Base64URL.encode(Data(repeating: 4, count: 64))
+        )
+        for errorClass in ["replay", "duplicate_conflict", "capacity", "unknown"] {
+            RelayTestURLProtocol.setHandler { _, protocolInstance in
+                protocolInstance.respond(status: 409, headers: ["Content-Type": "application/json"])
+                protocolInstance.deliver(Data("{\"error_class\":\"\(errorClass)\"}".utf8))
+                protocolInstance.finish()
+            }
+            do {
+                _ = try await makeTransport().uploadEnvelope(
+                    endpoint: endpoint(), mailboxID: envelope.mailboxID,
+                    writeCapability: Base64URL.encode(Data(repeating: 9, count: 32)), envelope: envelope
+                )
+                XCTFail("HTTP 409 must never be treated as an acknowledgement")
+            } catch let error as TohsenoCompanionError {
+                XCTAssertEqual(error, errorClass == "replay" ? .relayUploadReplayRejected : .relayFailure(409))
+            }
+        }
+    }
+
     func testTransportRejectsRedirectWithoutContactingDestination() async throws {
         let destinationWasContacted = LockedFlag()
         RelayTestURLProtocol.setHandler { request, protocolInstance in

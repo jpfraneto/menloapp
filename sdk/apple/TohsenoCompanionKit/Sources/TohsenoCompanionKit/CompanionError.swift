@@ -23,6 +23,7 @@ public enum TohsenoCompanionError: Error, Equatable, Sendable {
     case responseTooLarge
     case cursorResetRequired(resetBefore: UInt64, head: UInt64)
     case relayFailure(Int)
+    case relayUploadReplayRejected
     case transportUnavailable
 }
 
@@ -73,6 +74,8 @@ extension TohsenoCompanionError: LocalizedError {
             "The relay retention window advanced; a full workspace snapshot is required."
         case let .relayFailure(status):
             "The companion relay returned HTTP \(status)."
+        case .relayUploadReplayRejected:
+            "The relay rejected an outgoing envelope's reused sender sequence."
         case .transportUnavailable:
             "The companion relay is currently unavailable."
         }
