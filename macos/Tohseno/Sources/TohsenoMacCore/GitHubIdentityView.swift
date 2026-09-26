@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// The directory's publisher is the person who shared the app. A repository
 /// owner can be an organization or a different person; keep those roles distinct.
@@ -10,13 +11,22 @@ struct GitHubPublisher: Decodable, Sendable {
 struct GitHubMark: View {
     var size: CGFloat = 18
 
+    private static let image: NSImage? = {
+        guard let url = MenloBrand.bundle.url(forResource: "github-mark", withExtension: "pdf"),
+              let image = NSImage(contentsOf: url) else { return nil }
+        image.isTemplate = true
+        return image
+    }()
+
     var body: some View {
-        Image("github-mark", bundle: MenloBrand.bundle)
-            .renderingMode(.template)
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .accessibilityHidden(true)
+        if let image = Self.image {
+            Image(nsImage: image)
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .accessibilityHidden(true)
+        }
     }
 }
 
