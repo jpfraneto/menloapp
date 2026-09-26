@@ -162,7 +162,16 @@ private struct AppLibrarySidebar: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            MenloWordmark().frame(width: 132).padding(.vertical, 8)
+            Button { model.route = .library } label: {
+                MenloWordmark().frame(width: 132)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 8)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help("Back to your apps")
+            .accessibilityLabel("Menlo, your apps")
+            .accessibilityIdentifier("sidebar.home")
             Button { model.route = .create } label: {
                 Label("Create an app", systemImage: "plus")
                     .frame(maxWidth: .infinity)
@@ -173,6 +182,7 @@ private struct AppLibrarySidebar: View {
             ScrollView {
                 VStack(spacing: 4) {
                     ForEach(model.apps) { app in
+                        let selected = model.route == .app(app.id) && !model.shouldPresentPhoneSetup
                         Button { model.route = .app(app.id) } label: {
                             HStack(spacing: 10) {
                                 AppArtwork(data: model.icons[app.id], size: 32, cornerRadius: 7)
@@ -182,14 +192,11 @@ private struct AppLibrarySidebar: View {
                                 }
                                 Spacer(minLength: 0)
                             }
-                            .padding(8)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(model.route == .app(app.id) ? TohsenoTheme.accentSoft : .clear,
-                                        in: RoundedRectangle(cornerRadius: 8))
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityAddTraits(model.route == .app(app.id) ? .isSelected : [])
+                        .buttonStyle(SidebarActionStyle(isSelected: selected))
+                        .help("\(app.displayName) — \(app.deliveryHeadline)")
+                        .accessibilityAddTraits(selected ? .isSelected : [])
                     }
                     if model.apps.isEmpty {
                         Text("The apps you create or try will appear here.")
@@ -199,25 +206,52 @@ private struct AppLibrarySidebar: View {
                 }
             }
             .accessibilityIdentifier("app.library")
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 3) {
                 if let url = model.pendingFirstAppURL, let link = GitHubAppLink(url) {
                     Button("Continue installing \(link.slug)") { Task { await model.resumeFirstApp() } }
                 }
                 if model.readiness?.ready != true {
-                    Button { model.setUpMenloOnPhone() } label: { Label("Set up Menlo on iPhone", systemImage: "iphone") }
+                    sidebarButton("Set up Menlo on iPhone", systemImage: "iphone",
+                                  selected: model.shouldPresentPhoneSetup) {
+                        model.setUpMenloOnPhone()
+                    }
+                    .accessibilityIdentifier("sidebar.phone-setup")
                 }
-                Button { model.route = .registry } label: { Label("Discover", systemImage: "square.grid.2x2") }
-                    .accessibilityIdentifier("registry.workshop")
-                Button(action: adopt) { Label("Add existing app", systemImage: "folder.badge.plus") }
-                Divider()
-                Button { model.route = .profile } label: { Label("Your GitHub", systemImage: "person.crop.circle") }
-                SettingsLink { Label("Settings", systemImage: "gearshape") }
+                sidebarButton("Discover", systemImage: "square.grid.2x2",
+                              selected: model.route == .registry && !model.shouldPresentPhoneSetup) {
+                    model.route = .registry
+                }
+                .accessibilityIdentifier("registry.workshop")
+                sidebarButton("Add existing app", systemImage: "folder.badge.plus", action: adopt)
+                Divider().padding(.vertical, 6)
+                sidebarButton("Your GitHub", systemImage: "person.crop.circle",
+                              selected: model.route == .profile && !model.shouldPresentPhoneSetup) {
+                    model.route = .profile
+                }
+                .accessibilityIdentifier("sidebar.github")
+                SettingsLink { sidebarLabel("Settings", systemImage: "gearshape") }
             }
-            .buttonStyle(.plain)
+            .buttonStyle(SidebarActionStyle())
             .font(.callout)
         }
         .padding(16)
         .background(TohsenoTheme.paper)
+    }
+
+    private func sidebarButton(
+        _ title: String, systemImage: String, selected: Bool = false, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) { sidebarLabel(title, systemImage: systemImage) }
+            .buttonStyle(SidebarActionStyle(isSelected: selected))
+            .accessibilityAddTraits(selected ? .isSelected : [])
+    }
+
+    private func sidebarLabel(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: systemImage).frame(width: 18)
+            Text(title).multilineTextAlignment(.leading)
+            Spacer(minLength: 0)
+        }
     }
 }
 

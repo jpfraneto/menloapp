@@ -133,3 +133,22 @@ struct PrimaryActionStyle: ButtonStyle {
             .opacity(isEnabled ? 1 : 0.5)
     }
 }
+
+struct SidebarActionStyle: ButtonStyle {
+    var isSelected = false
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .foregroundStyle(isSelected ? TohsenoTheme.accent : TohsenoTheme.text)
+            .background {
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(isSelected ? TohsenoTheme.accentSoft
+                          : isHovered || configuration.isPressed ? TohsenoTheme.surface : .clear)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 8))
+            .onHover { isHovered = $0 }
+    }
+}

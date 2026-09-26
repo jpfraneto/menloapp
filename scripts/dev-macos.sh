@@ -2,7 +2,7 @@
 # Incremental native UI preview over the currently installed, signed factory.
 set -euo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd -P)"
-base="/Applications/Tohseno.app"
+base="/Applications/Menlo.app"
 manifest="$base/Contents/Resources/FactoryRelease/FILES.sha256"
 current="${HOME}/.tohseno/current/FILES.sha256"
 if ! cmp -s "$manifest" "$current"; then
@@ -20,7 +20,7 @@ swift build --package-path "$repo/macos/Tohseno" -c debug
 bin="$(swift build --package-path "$repo/macos/Tohseno" -c debug --show-bin-path)/TohsenoMacApp"
 mkdir -p "$repo/dist/local-macos"
 preview="$(mktemp -d "$repo/dist/local-macos/preview.XXXXXX")"
-app="$preview/Tohseno.app"
+app="$preview/Menlo.app"
 ditto "$base" "$app"
 cp "$bin" "$app/Contents/MacOS/TohsenoMacApp"
 ditto "$(dirname "$bin")/TohsenoMac_TohsenoMacCore.bundle" "$app/Contents/Resources/TohsenoMac_TohsenoMacCore.bundle"
@@ -29,7 +29,7 @@ if ! git -C "$repo" diff --quiet -- macos/Tohseno sdk/apple/TohsenoWorkshopKit; 
   stamp="$stamp-dirty"
 fi
 /usr/libexec/PlistBuddy -c "Add :TohsenoLocalBuild string $stamp" "$app/Contents/Info.plist"
-/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Tohseno Local $stamp" "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Menlo Local $stamp" "$app/Contents/Info.plist"
 codesign --force --sign "$identity" --options runtime --timestamp \
   --entitlements "$repo/macos/Tohseno/Packaging/Tohseno.entitlements" "$app"
 codesign --verify --deep --strict -R "=$requirement" "$app"
