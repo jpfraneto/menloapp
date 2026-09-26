@@ -9,6 +9,7 @@ public final class GitHubAccountModel {
     public private(set) var login: String?
     public private(set) var userID: Int?
     public private(set) var userCode: String?
+    public private(set) var codeCopied = false
     public private(set) var busy = false
     public private(set) var message: String?
     private let service = "com.menlo.github"
@@ -75,8 +76,8 @@ public final class GitHubAccountModel {
 
     public func signIn() async {
         guard !busy else { return }
-        busy = true; cancelled = false; message = nil
-        defer { busy = false; userCode = nil }
+        busy = true; cancelled = false; message = nil; codeCopied = false
+        defer { busy = false; userCode = nil; codeCopied = false }
         do {
             let status = try await request("https://menloapp.lol/api/menlo/v1/status")
             guard let clientID = status["github_client_id"] as? String, !clientID.isEmpty else {
@@ -86,8 +87,9 @@ public final class GitHubAccountModel {
             guard let code = device["device_code"] as? String, let visible = device["user_code"] as? String,
                   device["verification_uri"] as? String == "https://github.com/login/device"
             else { throw FactoryClientError.transport("Enable Device Flow for the Menlo GitHub app, then try again.") }
+            guard !cancelled else { return }
             userCode = visible
-            NSWorkspace.shared.open(URL(string: "https://github.com/login/device")!)
+            openVerificationPage()
             var interval = max(device["interval"] as? Int ?? 5, 5)
             let deadline = Date().addingTimeInterval(TimeInterval(min(device["expires_in"] as? Int ?? 900, 900)))
             while Date() < deadline && !cancelled {
@@ -98,6 +100,7 @@ public final class GitHubAccountModel {
                     try await identify(token)
                     try save(token)
                     message = "Signed in with GitHub. Your repositories and profile stay on GitHub."
+                    NSApplication.shared.activate(ignoringOtherApps: true)
                     return
                 }
                 let error = response["error"] as? String
@@ -105,6 +108,19 @@ public final class GitHubAccountModel {
                 else if error != "authorization_pending" { throw FactoryClientError.transport("GitHub sign-in was cancelled or expired. Try again.") }
             }
         } catch { message = error.localizedDescription }
+    }
+
+    public func copyUserCode() {
+        guard let userCode else { return }
+        NSPasteboard.general.clearContents()
+        codeCopied = NSPasteboard.general.setString(userCode, forType: .string)
+    }
+
+    public func openVerificationPage() {
+        guard userCode != nil, !cancelled else { return }
+        copyUserCode()
+        let opened = NSWorkspace.shared.open(URL(string: "https://github.com/login/device")!)
+        message = opened ? nil : "Open github.com/login/device in your browser and paste the code below."
     }
 
     public func signOut() {
@@ -141,7 +157,7 @@ struct GitHubAccountView: View {
                     .padding(20)
                     .background(TohsenoTheme.surface, in: RoundedRectangle(cornerRadius: 12))
                     .accessibilityIdentifier("github.account-profile")
-                } else {
+                } else if !model.githubAccount.busy {
                     Button { Task { await model.githubAccount.signIn() } } label: {
                         HStack(spacing: 8) {
                             GitHubMark()
@@ -149,11 +165,20 @@ struct GitHubAccountView: View {
                         }
                     }
                     .buttonStyle(PrimaryActionStyle()).disabled(model.githubAccount.busy)
+                } else if model.githubAccount.userCode == nil {
+                    HStack(spacing: 10) {
+                        ProgressView().controlSize(.small)
+                        Text("Opening GitHub…").font(.headline)
+                    }
                 }
                 if let code = model.githubAccount.userCode {
-                    Text("Enter this code on GitHub").font(.headline)
-                    Text(code).font(.system(.title, design: .monospaced)).textSelection(.enabled)
-                    Button("Cancel") { model.githubAccount.cancel() }
+                    GitHubDeviceSignInView(
+                        code: code,
+                        copied: model.githubAccount.codeCopied,
+                        copy: model.githubAccount.copyUserCode,
+                        openGitHub: model.githubAccount.openVerificationPage,
+                        cancel: model.githubAccount.cancel
+                    )
                 }
                 if let message = model.githubAccount.message { Text(message).foregroundStyle(.secondary) }
                 Divider()
@@ -167,6 +192,64 @@ struct GitHubAccountView: View {
                 Link("GitHub sign-in permissions", destination: URL(string: "https://github.com/settings/applications")!)
             }.frame(maxWidth: 680, alignment: .leading).padding(36)
         }.task { await model.githubAccount.refresh() }
+    }
+}
+
+struct GitHubDeviceSignInView: View {
+    let code: String
+    let copied: Bool
+    let copy: () -> Void
+    let openGitHub: () -> Void
+    let cancel: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Finish signing in on GitHub").font(.title3.weight(.semibold))
+            Text(copied
+                 ? "Your code is copied. Paste it on GitHub with ⌘V, then approve Menlo."
+                 : "Copy this code and paste it on GitHub, then approve Menlo.")
+                .foregroundStyle(TohsenoTheme.textMuted)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 16) {
+                Text(code)
+                    .font(.system(.title, design: .monospaced).weight(.semibold))
+                    .textSelection(.enabled)
+                    .accessibilityLabel("GitHub sign-in code: \(code)")
+                Spacer()
+                Button(action: copy) {
+                    Label(copied ? "Copied" : "Copy code", systemImage: copied ? "checkmark" : "doc.on.doc")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+                .help("Copy sign-in code again")
+                .accessibilityLabel("Copy GitHub sign-in code")
+                .accessibilityIdentifier("github.copy-code")
+            }
+            .padding(16)
+            .background(TohsenoTheme.canvas, in: RoundedRectangle(cornerRadius: 8))
+            HStack(spacing: 12) {
+                Button(action: openGitHub) {
+                    HStack(spacing: 8) {
+                        GitHubMark()
+                        Text("Copy code & open GitHub")
+                        Image(systemName: "arrow.up.right")
+                    }
+                }
+                .buttonStyle(PrimaryActionStyle())
+                .accessibilityIdentifier("github.continue-sign-in")
+                Spacer()
+                Button("Cancel", action: cancel)
+                    .keyboardShortcut(.cancelAction)
+            }
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Waiting for your approval. Menlo will finish signing in automatically.")
+                    .font(.caption).foregroundStyle(TohsenoTheme.textMuted)
+            }
+        }
+        .padding(20)
+        .background(TohsenoTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(TohsenoTheme.separator))
     }
 }
 
