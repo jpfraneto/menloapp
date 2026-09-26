@@ -155,13 +155,16 @@ struct GitHubReviewSheet: View {
             Link(review.app.repository, destination: URL(string: "https://github.com/\(review.app.repository)")!)
             Text("Commit \(review.commit.prefix(7)) · \(review.app.scheme)").font(.system(.body, design: .monospaced))
             Text("Your Mac will download this source, build it with Xcode, and sign it for your intended iPhone using your Apple identity.")
+                .fixedSize(horizontal: false, vertical: true)
             if let reasons = review.reasons {
                 Text(reasons).foregroundStyle(.secondary).textSelection(.enabled)
             }
             Link("Review this source on GitHub ↗", destination: URL(string: "https://github.com/\(review.app.repository)/tree/\(review.commit)")!)
             if model.githubBusy { ProgressView("Preparing on your Mac. The first build can take several minutes.") }
             HStack {
-                Button("Cancel") { model.dismissGitHubReview() }.disabled(model.githubBusy)
+                Button("Cancel") { model.dismissGitHubReview() }
+                    .keyboardShortcut(.cancelAction)
+                    .disabled(model.githubBusy)
                 Spacer()
                 Button(review.reasons == nil ? "Build for my iPhone" : "I reviewed this code · build") {
                     Task { await model.installReviewedGitHubApp(approveMacReview: review.reasons != nil) }
