@@ -53,6 +53,7 @@ public struct TohsenoSettingsView: View {
         .frame(minWidth: 760, idealWidth: 800, maxWidth: .infinity,
                minHeight: 560, idealHeight: 620, maxHeight: .infinity)
         .background(TohsenoTheme.canvas)
+        .background(ResizableSettingsWindow())
         .foregroundStyle(TohsenoTheme.text)
         .tint(TohsenoTheme.accent)
         .disabled(model.applicationUpdater.phase == .restarting)
@@ -381,6 +382,19 @@ public struct TohsenoSettingsView: View {
         }
         .disabled(isRefreshing || model.isSubmitting)
     }
+}
+
+// The system Settings scene otherwise keeps a non-resizable panel on macOS.
+private struct ResizableSettingsWindow: NSViewRepresentable {
+    final class WindowAnchor: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            window?.styleMask.insert(.resizable)
+        }
+    }
+
+    func makeNSView(context: Context) -> WindowAnchor { WindowAnchor() }
+    func updateNSView(_ view: WindowAnchor, context: Context) {}
 }
 
 private enum SettingsPage: String, CaseIterable, Identifiable {
