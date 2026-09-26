@@ -17,7 +17,21 @@ a management menu. Revocation requires an explicit confirmation. Existing
 factory, pairing, source-consent, and update operations remain authoritative.
 
 The native app compiled and four focused provider, pairing-shape, and branding
-checks passed. Live visual acceptance of this Settings change is pending.
+checks passed. All four sections were inspected in the signed local build from
+`3dcdeec`, including the real GitHub photo, provider status, paired phone, and
+scrolling to the bottom of the local-server form with source consent still
+required. A redundant iPhone check action found during inspection is removed.
+
+## Current Menlo app icons (September 26)
+
+The installed Mac bundle still contained the older vertical icon, and the local
+UI helper inherited it. The helper now rebuilds its ICNS from the canonical
+linked-loop artwork before signing. The brand exporter also writes the iPhone
+asset from that same SVG with an opaque background so iOS applies its own
+corner mask. The iPhone build number advances to 7 for this in-place update.
+The owner's reachable iPhone 15 matches the existing setup's intended-device
+digest; inventory currently reports Menlo 1.2.1 build 6. Building and installing
+the updated phone icon remain pending. No public download was replaced.
 
 ## GitHub sign-in copy and browser handoff (September 26)
 

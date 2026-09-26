@@ -1,4 +1,4 @@
-"""Export the canonical SVG identity for the web and native Mac app.
+"""Export the canonical SVG identity for the web, Mac, and iPhone apps.
 
 Run with Python 3 and librsvg installed: python3 brand/menlo/export-assets.py
 The supplied MenloApp font binaries are copied unchanged, separately.
@@ -28,3 +28,9 @@ with tempfile.TemporaryDirectory(prefix="menlo-brand-") as temporary:
 
 subprocess.run(["rsvg-convert", "--width", "1024", "--height", "1024", "--output",
                 str(brand / "app-icon-1024.png"), str(brand / "app-icon.svg")], check=True)
+
+# iOS supplies its own corner mask; give its asset catalog an opaque square.
+iphone_icon = root / "companion/apple/TohsenoCompanion/App/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+subprocess.run(["rsvg-convert", "--width", "1024", "--height", "1024",
+                "--background-color", "#F3EDDD", "--output",
+                str(iphone_icon), str(brand / "app-icon.svg")], check=True)

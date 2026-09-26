@@ -50,11 +50,13 @@ public struct TohsenoSettingsView: View {
             .id(selection)
             .accessibilityIdentifier("settings.content")
         }
-        .frame(minWidth: 760, idealWidth: 800, minHeight: 560, idealHeight: 620)
+        .frame(minWidth: 760, idealWidth: 800, maxWidth: .infinity,
+               minHeight: 560, idealHeight: 620, maxHeight: .infinity)
         .background(TohsenoTheme.canvas)
         .foregroundStyle(TohsenoTheme.text)
         .tint(TohsenoTheme.accent)
         .disabled(model.applicationUpdater.phase == .restarting)
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("settings.root")
         .fileImporter(isPresented: $choosingExecutable, allowedContentTypes: [.executable], allowsMultipleSelection: false) { result in
             do {
@@ -172,7 +174,8 @@ public struct TohsenoSettingsView: View {
                         ProgressView(value: readiness.setupProgress)
                             .accessibilityLabel(readiness.setupStatus)
                     }
-                    if !readiness.ready, let label = readiness.primaryLabel, readiness.primaryAction != nil {
+                    if !readiness.ready, let label = readiness.primaryLabel,
+                       let action = readiness.primaryAction, action != "check" {
                         Button(label) { Task { await model.performReadinessAction() } }
                             .buttonStyle(PrimaryActionStyle())
                             .disabled(model.isSubmitting)

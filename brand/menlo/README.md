@@ -16,7 +16,8 @@ belong to the identity, not to status or action controls.
 - `wordmark.svg`: canonical linked wordmark, transparent, light/dark aware.
 - `mark.svg`: canonical compact symbol, transparent, light/dark aware.
 - `app-icon.svg`: symbol on warm paper for the Mac application icon.
-- `export-assets.py`: exports web SVGs, native light/dark PDFs, and the app PNG.
+- `export-assets.py`: exports web SVGs, native light/dark PDFs, the Mac icon PNG,
+  and the opaque iPhone icon from the same artwork. iOS supplies its corner mask.
 
 Run `python3 brand/menlo/export-assets.py` with librsvg available to refresh the
 exports. `render-icon.swift` retains the existing single-icon export entry point.
