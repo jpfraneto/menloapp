@@ -35,7 +35,7 @@ request and stores no credentials in the directory or ledger.
 On September 26 the owner supplied Client ID `Iv23liKJIcjPFqM9MZQH`.
 GitHub accepted the Mac client's device-code request, and Railway production
 deployment `22534fcc-884d-4754-a2c1-51617a06e4b9` activated `GITHUB_CLIENT_ID`.
-Both public origins now return that ID from `/api/menlo/v1/status`; website
+`https://menloapp.lol/api/menlo/v1/status` now returns that ID; website
 health passes. User authorization and the saved native session are separate
 acceptance steps. `GITHUB_READ_TOKEN` remains unconfigured.
 

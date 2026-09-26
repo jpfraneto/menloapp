@@ -77,7 +77,7 @@ A dedicated GitHub read token remains unconfigured; developers can also deploy
 with an existing `gh auth login` session. Physical recipient
 installation and update remain separate, unobserved acceptance steps.
 
-## 1. Keep both production domains connected
+## 1. Use the Menlo production domain
 
 Use the existing `menloapp` service in the **production** environment of Railway
 project `menloapp-production` (`3cd7e1db-dcd7-4fce-900d-321799179911`).
@@ -85,21 +85,19 @@ The service ID is
 `1b13b201-6332-4355-b47a-5df2642e1fbd`. It was renamed from `tohseno`; its durable
 volume and application directory are unchanged.
 
-Both `menloapp.lol` and `tohseno.com` connect to port 3000. Keep **tohseno.com**:
-released native clients, pinned npm runtime manifests and historical links still
-use it. Do not redirect old API or release-manifest requests wholesale to the
-new domain; released clients reject redirects there. The optional `www` alias
-was removed to fit the service's two custom-domain slots; no plan upgrade was
-needed.
+The owner confirmed on September 26 that the product is Menlo and its public
+domain is `menloapp.lol`, connected to port 3000. Use this domain for current
+links and updated client endpoints. Older signed artifacts retain their exact
+historical URLs; move their source to the Menlo domain when publishing updated
+artifacts, preserving signature and digest verification.
 
 Check the existing connections without recreating them:
 
 ```sh
 cd /Users/kithkui/code/menloapp
 railway domain status menloapp.lol --service menloapp --environment production
-railway domain status tohseno.com --service menloapp --environment production
 curl --fail https://menloapp.lol/healthz
-curl --fail https://tohseno.com/releases/cli-1.3.0.json
+curl --fail https://menloapp.lol/releases/cli-1.3.0.json
 ```
 
 For later DNS changes, use the exact destination/verification records shown by

@@ -12,12 +12,20 @@ The owner's Mac sign-in stopped because production returned a null
 returned a real GitHub device code and the expected verification URL.
 
 The existing Railway website was redeployed with `GITHUB_CLIENT_ID` set as
-deployment `22534fcc-884d-4754-a2c1-51617a06e4b9`. Both `menloapp.lol` and the
-existing native client's `tohseno.com` status endpoints now advertise that
+deployment `22534fcc-884d-4754-a2c1-51617a06e4b9`. Menlo's
+`https://menloapp.lol/api/menlo/v1/status` now advertises that
 Client ID, and website health passes. This was a configuration change over the
 existing website source. No client secret or GitHub read token was added.
 Completing account authorization and observing the Mac's saved session remain
 the next owner-attended steps.
+
+The owner confirmed Menlo as the product name and `menloapp.lol` as its public
+domain. Current Mac source now uses that domain for GitHub sign-in, discovery,
+Registry reads, updates, public app links, privacy, and help. The live status,
+directory, update, Registry status, and privacy endpoints return HTTP 200.
+Native package verification passed with 65 tests, one opt-in artifact-download
+test skipped, and no failures. Historical release evidence retains the exact
+URLs and names actually used at the time.
 
 ## Production alerts and CI repair (September 26)
 

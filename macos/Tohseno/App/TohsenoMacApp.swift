@@ -39,7 +39,7 @@ struct TohsenoMacApp: App {
                     .keyboardShortcut("n", modifiers: .command)
             }
             CommandGroup(after: .help) {
-                Link("Menlo Help", destination: URL(string: "https://tohseno.com/docs")!)
+                Link("Menlo Help", destination: URL(string: "https://menloapp.lol/")!)
             }
             CommandGroup(after: .appInfo) {
                 Button("Check for Updates…") {

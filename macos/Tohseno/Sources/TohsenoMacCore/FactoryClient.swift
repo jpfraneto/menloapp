@@ -216,7 +216,7 @@ public actor LoopbackFactoryClient: FactoryServing {
             throw FactoryClientError.invalidResponse("The private Builder follow projection is invalid.")
         }
         try validatePrivateUpdates(updateProjection)
-        if let url = URL(string: "https://tohseno.com/api/registry/v1/status") {
+        if let url = URL(string: "https://menloapp.lol/api/registry/v1/status") {
             var request = URLRequest(url: url)
             request.timeoutInterval = 15
             request.cachePolicy = .reloadRevalidatingCacheData
@@ -231,7 +231,7 @@ public actor LoopbackFactoryClient: FactoryServing {
                 publishingAvailable = status.relayer.available
             }
         }
-        if let url = URL(string: "https://tohseno.com/api/registry/v1/shots") {
+        if let url = URL(string: "https://menloapp.lol/api/registry/v1/shots") {
             var request = URLRequest(url: url)
             request.timeoutInterval = 15
             request.cachePolicy = .reloadRevalidatingCacheData
@@ -247,7 +247,7 @@ public actor LoopbackFactoryClient: FactoryServing {
             }
         }
         if publicRegistryAvailable,
-           let url = URL(string: "https://tohseno.com/api/registry/v1/timeline?limit=100") {
+           let url = URL(string: "https://menloapp.lol/api/registry/v1/timeline?limit=100") {
             var request = URLRequest(url: url)
             request.timeoutInterval = 15
             request.cachePolicy = .reloadRevalidatingCacheData

@@ -145,7 +145,7 @@ public struct TohsenoSettingsView: View {
                     }
                 }
                 Section("Privacy and updates") {
-                    Link("Read Privacy Explanation", destination: URL(string: "https://tohseno.com/privacy")!)
+                    Link("Read Privacy Explanation", destination: URL(string: "https://menloapp.lol/privacy")!)
                     Button("Check for Updates") {
                         Task { await model.applicationUpdater.check(userInitiated: true) }
                     }

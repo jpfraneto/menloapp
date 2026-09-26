@@ -41,7 +41,7 @@ struct GitHubExploreView: View {
                 if apps.isEmpty && !loading && message == nil { Text("No GitHub apps have been registered yet. Share the first one with menloapp deploy.").foregroundStyle(.secondary) }
                 Divider()
                 Link("Share your app ↗", destination: URL(string: "https://menloapp.lol/#deploy")!)
-                Link("Historical Registry releases ↗", destination: URL(string: "https://tohseno.com/registry")!).font(.caption)
+                Link("Historical Registry releases ↗", destination: URL(string: "https://menloapp.lol/registry")!).font(.caption)
             }.frame(maxWidth: 820, alignment: .leading).padding(36)
         }.task { await refresh() }
     }
@@ -62,7 +62,7 @@ struct GitHubExploreView: View {
         message = nil
         defer { loading = false }
         do {
-            let (data, response) = try await URLSession.shared.data(for: URLRequest(url: URL(string: "https://tohseno.com/api/menlo/v1/apps")!, timeoutInterval: 20))
+            let (data, response) = try await URLSession.shared.data(for: URLRequest(url: URL(string: "https://menloapp.lol/api/menlo/v1/apps")!, timeoutInterval: 20))
             guard (response as? HTTPURLResponse)?.statusCode == 200, data.count < 1_048_576 else { throw FactoryClientError.transport("The GitHub app directory is temporarily unavailable.") }
             struct Directory: Decodable { let apps: [GitHubListedApp] }
             apps = try JSONDecoder().decode(Directory.self, from: data).apps

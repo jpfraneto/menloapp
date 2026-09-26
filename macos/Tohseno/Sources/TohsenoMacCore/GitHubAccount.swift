@@ -73,7 +73,7 @@ public final class GitHubAccountModel {
         busy = true; cancelled = false; message = nil
         defer { busy = false; userCode = nil }
         do {
-            let status = try await request("https://tohseno.com/api/menlo/v1/status")
+            let status = try await request("https://menloapp.lol/api/menlo/v1/status")
             guard let clientID = status["github_client_id"] as? String, !clientID.isEmpty else {
                 throw FactoryClientError.invalidConfiguration("Menlo’s GitHub sign-in is awaiting configuration. Terminal deployment can use an existing gh auth login session.")
             }

@@ -541,7 +541,7 @@ private struct RegistryView: View {
                 }
                 .buttonStyle(.plain).foregroundStyle(TohsenoTheme.amber)
                 if let app {
-                    Link("View", destination: URL(string: "https://tohseno.com\(app.route)")!)
+                    Link("View", destination: URL(string: "https://menloapp.lol\(app.route)")!)
                 }
             }
         }

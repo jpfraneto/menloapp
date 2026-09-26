@@ -27,7 +27,7 @@ public struct WebsiteApplicationUpdateChecker: ApplicationUpdateChecking {
     private let urlSession: URLSession
 
     public init(
-        endpoint: URL = URL(string: "https://tohseno.com/api/distribution/v1/macos")!,
+        endpoint: URL = URL(string: "https://menloapp.lol/api/distribution/v1/macos")!,
         currentBuildNumber: Int? = nil,
         urlSession: URLSession? = nil
     ) {
