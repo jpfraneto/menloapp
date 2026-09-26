@@ -4,6 +4,27 @@ Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## GitHub people and source in the Mac UI (September 26)
+
+Discover now shows each registered publisher's real GitHub photo and profile
+link alongside a larger, separately clickable repository name and GitHub mark.
+The Get app control continues into the existing source review. App review and
+GitHub-connected library headers show the same prominent repository link and
+the repository owner's photo. Those retained app records do not contain the
+publisher, so the UI labels the owner accurately instead of inventing a maker.
+The signed-in account's photo and handle appear in the sidebar and account
+page, with session restoration at app startup. Avatars are public GitHub images;
+the existing native sign-in, source consent, and installation boundaries remain.
+
+The native suite passed with 65 tests, one optional download test skipped, and
+no failures. The focused workspace render passed after moving account restore
+to app startup. Live local checks verified the owner's actual account photo,
+publisher photos, the final GitHub mark, Anky's review and Escape cancellation,
+and Logos's repository header. The final signed UI is from `3dd0d8e` over the
+unchanged installed factory. Its latest account refresh reported that the
+GitHub session needs attention; reauthorization was not performed. Public
+publisher photos still loaded. No public Mac artifact or installation changed.
+
 ## Native discovery and navigation polish (September 26)
 
 The Mac sidebar now highlights the selected app, Discover, GitHub, or explicit
