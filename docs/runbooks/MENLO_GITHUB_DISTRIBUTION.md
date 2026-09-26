@@ -36,8 +36,11 @@ On September 26 the owner supplied Client ID `Iv23liKJIcjPFqM9MZQH`.
 GitHub accepted the Mac client's device-code request, and Railway production
 deployment `22534fcc-884d-4754-a2c1-51617a06e4b9` activated `GITHUB_CLIENT_ID`.
 `https://menloapp.lol/api/menlo/v1/status` now returns that ID; website
-health passes. User authorization and the saved native session are separate
-acceptance steps. `GITHUB_READ_TOKEN` remains unconfigured.
+health passes. The owner then authorized the local Mac build from source
+`4acad6e`; Menlo displayed `@jpfraneto` and restored that account after quitting
+and reopening. The real device flow and saved session are verified on the
+owner's Mac. The public Mac artifact is unchanged. `GITHUB_READ_TOKEN` remains
+unconfigured.
 
 If using an OAuth App instead, device authorization requests `read:user
 public_repo`; this grants broader public-repository access than the read-only

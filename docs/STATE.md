@@ -16,8 +16,11 @@ deployment `22534fcc-884d-4754-a2c1-51617a06e4b9`. Menlo's
 `https://menloapp.lol/api/menlo/v1/status` now advertises that
 Client ID, and website health passes. This was a configuration change over the
 existing website source. No client secret or GitHub read token was added.
-Completing account authorization and observing the Mac's saved session remain
-the next owner-attended steps.
+The owner completed GitHub authorization in the local Mac build from source
+`4acad6e`. Menlo displayed `@jpfraneto` and its successful sign-in message.
+After quitting and reopening that same app, the account restored without a new
+authorization request. This verifies the real device-flow sign-in and saved
+session on the owner's Mac. The public Mac download was not replaced.
 
 The owner confirmed Menlo as the product name and `menloapp.lol` as its public
 domain. Current Mac source now uses that domain for GitHub sign-in, discovery,
