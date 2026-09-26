@@ -79,6 +79,7 @@ public struct TohsenoRootView: View {
                                 Label("Back", systemImage: "chevron.left")
                             }
                             .buttonStyle(.plain)
+                            .keyboardShortcut(.cancelAction)
                             .accessibilityIdentifier("readiness.back")
                             Spacer()
                         }
