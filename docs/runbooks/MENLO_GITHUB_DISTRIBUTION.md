@@ -44,7 +44,7 @@ For production reads, provision a dedicated **read-only** GitHub credential as
 rate limit is small. Never reuse an operator's broad write credential as the
 server's read token. The website caches GitHub responses for 60 seconds.
 
-The Railway `tohseno` production service stores `github-apps.sqlite` under
+The Railway `menloapp` production service stores `github-apps.sqlite` under
 `MENLO_ROOT`, or under `$REGISTRY_ROOT/menlo` when omitted. Keep that directory
 on the existing persistent volume. A single repository has one stable app
 link. Renames require redeploy; ownership transfers require explicit operator

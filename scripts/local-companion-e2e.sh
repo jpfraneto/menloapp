@@ -180,8 +180,10 @@ test -f "$fixture_harness" && test ! -L "$fixture_harness" && test -x "$fixture_
   fail "the deterministic factory harness is unavailable"
 binary_directory="$(CDPATH= cd -- "$(dirname -- "$binary")" && pwd -P)"
 binary="$binary_directory/$(basename -- "$binary")"
-test "$("$binary" --version)" = "tohseno 1.2.1" ||
-  fail "the local companion flow requires a TOHSENO 1.2.1 binary"
+MENLO_EXPECTED_CLI_VERSION="$("$repository_root/scripts/cli-version.sh")"
+export MENLO_EXPECTED_CLI_VERSION
+test "$("$binary" --version)" = "tohseno $MENLO_EXPECTED_CLI_VERSION" ||
+  fail "the local companion flow requires source version $MENLO_EXPECTED_CLI_VERSION"
 
 install_root="$temporary_root/install"
 data_root="$temporary_root/data"
@@ -293,7 +295,7 @@ RUNTIME_PATH="$runtime_path" HEALTH_PATH="$temporary_root/service-health.json" b
       health.workspace_id !== runtime.workspace_id ||
       health.studio_device_id !== runtime.studio_device_id ||
       health.instance_id !== runtime.instance_id ||
-      health.service_version !== "1.2.1") process.exit(1);
+      health.service_version !== process.env.MENLO_EXPECTED_CLI_VERSION) process.exit(1);
 ' || fail "the Local Workspace Service health identity did not verify"
 
 workspace_secret_reference="$(JSON_PATH="$workspace_record" bun -e '
@@ -406,15 +408,17 @@ for private_text in \
   fi
 done
 
-STATUS_PATH="$temporary_root/revoked-status.json" \
+HEALTH_PATH="$temporary_root/service-health.json" \
+  STATUS_PATH="$temporary_root/revoked-status.json" \
   PAIR_PATH="$simulation_record" \
   EXERCISE_PATH="$temporary_root/exercise.json" bun -e '
   const status = await Bun.file(process.env.STATUS_PATH).json();
+  const health = await Bun.file(process.env.HEALTH_PATH).json();
   const pair = await Bun.file(process.env.PAIR_PATH).json();
   const exercise = await Bun.file(process.env.EXERCISE_PATH).json();
   console.log(JSON.stringify({
     schema: "tohseno.local-companion-e2e/1",
-    service_version: "1.2.1",
+    service_version: health.service_version,
     relay_healthy: true,
     service_healthy: true,
     paired_devices: 1,

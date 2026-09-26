@@ -78,7 +78,8 @@ installation and update remain separate, unobserved acceptance steps.
 ## 1. Keep both production domains connected
 
 Use the existing `menloapp` service in the **production** environment of Railway
-project `3cd7e1db-dcd7-4fce-900d-321799179911`. The service ID is
+project `menloapp-production` (`3cd7e1db-dcd7-4fce-900d-321799179911`).
+The service ID is
 `1b13b201-6332-4355-b47a-5df2642e1fbd`. It was renamed from `tohseno`; its durable
 volume and application directory are unchanged.
 

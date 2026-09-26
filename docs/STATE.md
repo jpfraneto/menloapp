@@ -1,8 +1,40 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-25. This is the plain-language
+Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Production alerts and CI repair (September 26)
+
+The September 25 GitHub failure at source `3b19620` was the CLI smoke check:
+it still expected native version `1.2.1`, while the source builds `1.3.0`.
+The run's Rust formatting, Clippy, tests and protocol vectors, Apple checks,
+and contract job passed. CI and the affected isolated lifecycle checks now
+derive the expected CLI version from Cargo metadata. The downstream historical
+1.2 readiness check now pins the RC11 evidence actually recorded in that file,
+including its exact artifact digest; the release record and activation gates
+were not changed. The workflow is named `Menlo CI`.
+
+Local verification passed: the exact CI smoke step, all three affected isolated
+lifecycle suites, 21 Studio checks, website typecheck and 177 website/relay
+tests, installer and archive/package checks, and the release-workflow trust
+audit. These local results do not claim that a new remote CI run has completed.
+
+The latest Menlo Railway crash email found was dated September 17 and referred
+to superseded deployment `c9ef7c4c-d603-4c93-8447-b0f77c84143e`. Railway no longer
+returns its logs or a diagnosis, so its original cause is unknown. The active
+website deployment `995d3a52-1393-43e6-ad24-0e9773602779` and Companion relay
+deployment `f16306bf-7894-4dfd-ba83-b388bad214cd` report success. Live homepage,
+Anky page, homepage assets, website health, and relay health returned HTTP 200;
+the app directory API and final Menlo 1.3.0-rc.2 download destination also
+returned HTTP 200. Recent
+relay logs show successful mailbox exchanges. This is service evidence, not a
+new physical installation acceptance.
+
+Railway project `3cd7e1db-dcd7-4fce-900d-321799179911` was renamed from
+`tohseno-production` to `menloapp-production`. Service IDs, active deployments,
+domains, and persistent volumes were preserved. No website or native artifact
+redeployment was needed for these CI and display-name repairs.
 
 ## iPhone sync recovery (September 25)
 

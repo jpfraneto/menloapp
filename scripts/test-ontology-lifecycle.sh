@@ -128,7 +128,9 @@ for executable in "$binary" "$identity_helper" "$fixture_harness"; do
   test -f "$executable" && test ! -L "$executable" && test -x "$executable" ||
     fail "a factory lifecycle executable was not built safely"
 done
-test "$("$binary" --version)" = "tohseno 1.2.1" || fail "TOHSENO 1.2.1 was not built"
+expected_cli_version="$("$repository_root/scripts/cli-version.sh")"
+test "$("$binary" --version)" = "tohseno $expected_cli_version" ||
+  fail "the CLI does not match source version $expected_cli_version"
 test "$("$identity_helper" --version)" = "tohseno-apple-identity 1.2.1" ||
   fail "the 1.2.1 Apple identity helper was not built"
 

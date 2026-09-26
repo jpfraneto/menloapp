@@ -1,4 +1,4 @@
-name: TOHSENO 1.2.0 CI
+name: Menlo CI
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: tohseno-1.2.0-ci-${{ github.workflow }}-${{ github.ref }}
+  group: menlo-ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -143,11 +143,12 @@ jobs:
               '."$schema" == "https://json-schema.org/draft/2020-12/schema"'
       - name: Candidate CLI smoke
         run: |
+          expected_version="$(scripts/cli-version.sh)"
           cargo run --quiet --locked -p tohseno -- --json protocol info |
-            jq -e \
+            jq -e --arg expected_version "$expected_version" \
               '.schema == "tohseno.protocol-info/2"
                and .protocol == "tohseno"
-             and .product_version == "1.2.1"
+               and .product_version == $expected_version
                and .release_status == "stable"
                and .contract_generation.generation == "0.8.0"
                and .contract_generation.status == "active"
@@ -156,7 +157,7 @@ jobs:
                and (has("deployment") | not)
                and (has("candidate_version") | not)'
           cargo run --quiet --locked -p tohseno -- --version |
-            grep -Fqx 'tohseno 1.2.1'
+            grep -Fqx "tohseno $expected_version"
 
   apple:
     name: Apple identity, Fascia, and Simulator fixture
@@ -190,7 +191,7 @@ jobs:
         run: |
           swift build --package-path macos/Tohseno -Xswiftc -warnings-as-errors
           swift test --package-path macos/Tohseno
-      - name: Build the TOHSENO Companion for Simulator
+      - name: Build Menlo for iPhone Simulator
         run: |
           xcodebuild \
             -project companion/apple/TohsenoCompanion/App/TohsenoCompanion.xcodeproj \
@@ -441,6 +442,8 @@ jobs:
              and .source.recording_layer_implicit_migration == false
              and .blocking_reason != null' \
             release/V1_1_0_READINESS.json
+          # This file records the historical RC11 rollout, not today's live
+          # installer or write switches. Keep its exact artifact evidence pinned.
           jq -e \
             '.schema == "tohseno.release-readiness/1"
              and .version == "1.2.0"
@@ -449,9 +452,9 @@ jobs:
              and .authorization.authorized == true
              and .authorization.authorized_by == "repository owner"
              and (.authorization.authorization_form | length) > 0
-             and .source.previous_release_candidate == "1.2.0-rc.5"
+             and .source.previous_release_candidate == "1.2.0-rc.10"
              and .source.target_public_installer_pin == "1.2.0"
-             and .source.current_public_installer_pin == "1.2.0-rc.6"
+             and .source.current_public_installer_pin == "1.2.0-rc.11"
              and .source.historical_protocol_rewritten == false
              and .source.recording_layer_implicit_migration == false
              and .claims.activation.active == true
@@ -459,13 +462,13 @@ jobs:
              and .claims.activation.signed_record_sha256 == "0x37d99a657a54d3898d2000331a9acdf60bdd5177a95118b095f4d371b8b711bd"
              and .claims.activation.signing_digest == "0xec418380f588b9a6f72fc251b7a0ae7bee8a19a1d843017e4733ebd2d094966d"
              and .claims.deployment.address == "0x5012703d48d99224ac0035d58bc373de9e8b1934"
-             and .claims.production_writes_enabled == false
-             and .release_candidate_evidence.tag == "v1.2.0-rc.6"
+             and .claims.production_writes_enabled == true
+             and .release_candidate_evidence.tag == "v1.2.0-rc.11"
              and .release_candidate_evidence.prerelease == true
-             and .release_candidate_evidence.dmg_sha256 == "082c9d1c8e44574cdb48132753e243c372ab21b675674527c0391589af7df2de"
+             and .release_candidate_evidence.dmg_sha256 == "bac1ea3222c1ebbad82ced592ba33ef465eba2995f6413acd14edd5d8c8c5c35"
              and .release_candidate_evidence.origin_round_trip_sha256_verified == true
              and .release_candidate_evidence.public_download_round_trip_sha256_verified == true
-             and .release_candidate_evidence.claims_relayer_enabled == false
+             and .release_candidate_evidence.claims_relayer_enabled == true
              and .release_candidate_evidence.stable_promotion == false
              and .blocking_reason != null' \
             release/V1_2_0_READINESS.json
