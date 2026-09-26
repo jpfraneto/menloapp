@@ -4,167 +4,56 @@ import CoreImage.CIFilterBuiltins
 
 public struct TohsenoSettingsView: View {
     @Bindable private var model: TohsenoAppModel
+    @State private var selection = SettingsPage.general
     @State private var choosingExecutable = false
+    @State private var isRefreshing = false
+    @State private var isRestarting = false
 
     public init(model: TohsenoAppModel) { self.model = model }
 
     public var body: some View {
-        TabView {
-            Form {
-                LabeledContent("iPhone readiness", value: model.readiness?.ready == true ? "Ready" : "Needs attention")
-                LabeledContent("Local factory", value: model.workspace == nil ? "Unavailable" : "Running")
-                LabeledContent("App storage", value: "~/Desktop/Tohseno")
-                Section("Terminal") {
-                    LabeledContent("tohseno command", value: model.cliIntegration?.enabled == true ? "Ready in new windows" : "Not activated")
-                    if model.cliIntegration?.enabled != true {
-                        Button(model.isEnablingCLI ? "Activating…" : "Activate CLI") {
-                            Task { await model.enableCLIIntegration() }
+        HStack(spacing: 0) {
+            navigation
+            Divider().overlay(TohsenoTheme.separator)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(selection.rawValue).font(.system(size: 26, weight: .semibold))
+                            .accessibilityAddTraits(.isHeader)
+                        Text(selection.detail)
+                            .foregroundStyle(TohsenoTheme.textMuted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let message = model.errorMessage {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "exclamationmark.circle")
+                                .foregroundStyle(TohsenoTheme.error)
+                            Text(message).fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Button("Dismiss") { model.dismissError() }
                         }
-                        .disabled(model.isEnablingCLI || model.cliIntegration?.installed != true)
+                        .padding(16)
+                        .background(TohsenoTheme.error.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
                     }
-                    Text(model.cliMessage ?? "Activation adds the verified ~/.tohseno/bin command to your shell profile without replacing unrelated settings.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Button("Check Again") { Task { await model.reload() } }
-                Button("Restart Local Factory Safely") { Task { await model.restartService() } }
-                Section("Companion devices") {
-                    if model.pairedCompanionDevices.isEmpty {
-                        Text("No iPhone Companion is paired yet.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(model.pairedCompanionDevices) { device in
-                        PairedCompanionDeviceRow(model: model, device: device)
-                    }
-                    Button("Pair Another iPhone") {
-                        Task { await model.beginCompanionPairing() }
-                    }
-                    if let session = model.companionPairingSession {
-                        CompanionPairingCard(session: session)
+                    switch selection {
+                    case .general: general
+                    case .iphone: iPhone
+                    case .intelligence: intelligence
+                    case .advanced: advanced
                     }
                 }
+                .frame(maxWidth: 640, alignment: .leading)
+                .padding(28)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
-            .padding(20)
-            .tabItem { Label("Factory", systemImage: "gearshape.2") }
-
-            Form {
-                Section("Intelligence") {
-                    Text("Menlo uses intelligence already available on this Mac. Provider sign-in stays with the provider, and local work does not require Menlo credits.")
-                        .foregroundStyle(.secondary)
-                    ForEach((model.defaults?.harnesses ?? []).filter {
-                        $0.id != "tohseno-managed" && $0.installed
-                    }) { option in
-                        Label {
-                            LabeledContent(
-                                option.label,
-                                value: option.authentication == .authenticated ? "Available" : "Needs sign-in"
-                            )
-                        } icon: {
-                            Image(systemName: option.authentication == .authenticated
-                                ? "checkmark.circle.fill" : "circle")
-                                .foregroundStyle(option.authentication == .authenticated
-                                    ? TohsenoTheme.amber : .secondary)
-                        }
-                        .accessibilityIdentifier("intelligence.provider.\(option.id)")
-                    }
-                    if !(model.defaults?.harnesses ?? []).contains(where: {
-                        $0.id != "tohseno-managed" && $0.installed
-                    }) {
-                        Label("No supported local intelligence detected", systemImage: "circle")
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("intelligence.unavailable")
-                    }
-                    Label {
-                        LabeledContent("Menlo Intelligence", value: "Coming soon")
-                    } icon: {
-                        Image(systemName: "circle").foregroundStyle(.secondary)
-                    }
-                    .accessibilityIdentifier("intelligence.tohseno-coming-soon")
-                }
-
-                DisclosureGroup("Advanced", isExpanded: $model.advancedExpanded) {
-                    Text("Custom executable")
-                        .font(.headline)
-                    TextField("Identifier", text: $model.customHarness.id)
-                    TextField("Display name", text: $model.customHarness.label)
-                    HStack {
-                        TextField("Executable", text: $model.customHarness.executable)
-                            .disabled(true)
-                        Button("Choose…") { choosingExecutable = true }
-                    }
-                    TextField("Models, separated by commas", text: $model.customHarness.models)
-                    TextField("Fixed arguments, one per line", text: $model.customHarness.arguments, axis: .vertical)
-                        .lineLimit(2...4)
-                    Toggle("Prefer this route automatically", isOn: $model.customHarness.preferred)
-                    Button("Save Custom Harness") { Task { await model.saveCustomHarness() } }
-                        .disabled(model.isSubmitting)
-
-                    Divider()
-                    Text("Local OpenAI-compatible endpoint")
-                        .font(.headline)
-                    TextField("Identifier", text: $model.localEndpoint.id)
-                    TextField("Display name", text: $model.localEndpoint.label)
-                    TextField("Loopback base URL", text: $model.localEndpoint.baseURL)
-                    TextField("Advertised models, separated by commas", text: $model.localEndpoint.models)
-                    SecureField("Optional bearer credential", text: $model.localEndpoint.credential)
-                    Picker("Privacy mode", selection: $model.localEndpoint.privacyMode) {
-                        Text("Local").tag("local")
-                        Text("Standard").tag("standard")
-                        Text("Zero data retention").tag("zdr")
-                        Text("Private").tag("private")
-                    }
-                    Toggle("I consent to send app source to this endpoint", isOn: $model.localEndpoint.consentToSendSource)
-                    Toggle("Prefer this route automatically", isOn: $model.localEndpoint.preferred)
-                    Button("Check and Save Endpoint") { Task { await model.saveLocalEndpoint() } }
-                        .disabled(model.isSubmitting || !model.localEndpoint.consentToSendSource)
-                }
-            }
-            .padding(20)
-            .tabItem { Label("Intelligence", systemImage: "sparkles") }
-
-            Form {
-                Button("Open Legacy Browser Studio") { Task { await model.openLegacyStudio() } }
-                Button("Export Support Report…") { model.exportSupportReport() }
-                Section("Retired apps") {
-                    if model.archivedApps.isEmpty {
-                        Text("No retired apps.").foregroundStyle(.secondary)
-                    }
-                    ForEach(model.archivedApps) { app in
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(app.displayName)
-                                Text("Source and accepted history remain on this Mac.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Button("Restore") { Task { await model.restore(app) } }
-                                .disabled(model.isSubmitting)
-                                .accessibilityIdentifier("archive.restore.\(app.id)")
-                        }
-                    }
-                }
-                Section("Privacy and updates") {
-                    Link("Read Privacy Explanation", destination: URL(string: "https://menloapp.lol/privacy")!)
-                    Button("Check for Updates") {
-                        Task { await model.applicationUpdater.check(userInitiated: true) }
-                    }
-                    .disabled(model.applicationUpdater.phase.isBusy)
-                    if model.applicationUpdater.phase != .idle {
-                        ApplicationUpdateBanner(model: model)
-                    }
-                    Text(model.applicationUpdater.checkMessage ?? "Download updates here and restart when you’re ready. Your projects and drafts stay on this Mac.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Text("Browser Studio is retained for support and diagnostics; it is not the normal product surface.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(20)
-            .tabItem { Label("Diagnostics", systemImage: "stethoscope") }
+            .scrollBounceBehavior(.basedOnSize)
+            .id(selection)
+            .accessibilityIdentifier("settings.content")
         }
-        .frame(width: 700, height: 520)
+        .frame(minWidth: 760, idealWidth: 800, minHeight: 560, idealHeight: 620)
+        .background(TohsenoTheme.canvas)
+        .foregroundStyle(TohsenoTheme.text)
+        .tint(TohsenoTheme.accent)
         .disabled(model.applicationUpdater.phase == .restarting)
         .accessibilityIdentifier("settings.root")
         .fileImporter(isPresented: $choosingExecutable, allowedContentTypes: [.executable], allowsMultipleSelection: false) { result in
@@ -181,12 +70,403 @@ public struct TohsenoSettingsView: View {
             }
         }
     }
+
+    private var navigation: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Settings")
+                .font(.title3.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.top, 12)
+                .padding(.bottom, 16)
+            ForEach(SettingsPage.allCases) { page in
+                Button { selection = page } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: page.symbol).frame(width: 20)
+                        Text(page.rawValue).fontWeight(selection == page ? .semibold : .regular)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(SidebarActionStyle(isSelected: selection == page))
+                .accessibilityAddTraits(selection == page ? .isSelected : [])
+                .accessibilityIdentifier("settings.page.\(page.id)")
+            }
+            Spacer()
+            MenloWordmark().frame(width: 76).padding(10)
+        }
+        .padding(12)
+        .frame(width: 176)
+        .background(TohsenoTheme.paper)
+    }
+
+    private var general: some View {
+        VStack(spacing: 16) {
+            SettingsCard {
+                HStack(spacing: 16) {
+                    TohsenoMark().frame(width: 46, height: 46)
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text("Menlo").font(.title2.weight(.semibold))
+                        Text("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "—")")
+                            .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                    }
+                }
+                Text("Discover, build, and share iPhone apps.")
+                    .foregroundStyle(TohsenoTheme.textMuted)
+            }
+            SettingsCard {
+                SettingsRow("Updates", detail: "Choose when to download and restart.") {
+                    Button("Check for Updates") {
+                        Task { await model.applicationUpdater.check(userInitiated: true) }
+                    }
+                    .disabled(model.applicationUpdater.phase.isBusy)
+                }
+                if model.applicationUpdater.phase != .idle {
+                    ApplicationUpdateBanner(model: model)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                } else if let message = model.applicationUpdater.checkMessage {
+                    Text(message).font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                }
+                Divider()
+                SettingsRow("Privacy", detail: "How Menlo handles your apps and data.") {
+                    Link(destination: URL(string: "https://menloapp.lol/privacy")!) {
+                        Label("Read policy", systemImage: "arrow.up.right")
+                    }
+                }
+            }
+            if let login = model.githubAccount.login {
+                SettingsCard {
+                    HStack(spacing: 12) {
+                        GitHubAvatar(login: login, userID: model.githubAccount.userID, size: 40)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("@\(login)").fontWeight(.semibold)
+                            Text("GitHub account").font(.caption).foregroundStyle(TohsenoTheme.textMuted)
+                        }
+                        Spacer()
+                        Link(destination: URL(string: "https://github.com/\(login)")!) {
+                            HStack(spacing: 6) {
+                                GitHubMark(size: 16)
+                                Text("View profile")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var iPhone: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsCard {
+                SettingsRow(model.readiness?.deviceName ?? "Your iPhone",
+                            detail: model.readiness?.headline ?? "Check the connection to your iPhone.") {
+                    if model.readiness?.ready == true {
+                        Label("Ready", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(TohsenoTheme.accent)
+                    }
+                }
+                if let readiness = model.readiness {
+                    Text(readiness.detail)
+                        .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if readiness.isWorking {
+                        ProgressView(value: readiness.setupProgress)
+                            .accessibilityLabel(readiness.setupStatus)
+                    }
+                    if !readiness.ready, let label = readiness.primaryLabel, readiness.primaryAction != nil {
+                        Button(label) { Task { await model.performReadinessAction() } }
+                            .buttonStyle(PrimaryActionStyle())
+                            .disabled(model.isSubmitting)
+                    }
+                }
+                refreshButton("Check connection")
+            }
+            SettingsCard {
+                Text("Private connection").font(.headline)
+                Text("Connect Menlo on your iPhone to this Mac.")
+                    .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                let devices = model.pairedCompanionDevices.filter { !$0.revoked }
+                ForEach(devices) { device in
+                    PairedCompanionDeviceRow(model: model, device: device)
+                }
+                if devices.isEmpty {
+                    Text("No paired iPhone.").foregroundStyle(TohsenoTheme.textMuted)
+                }
+                Button("Pair iPhone…") { Task { await model.beginCompanionPairing() } }
+                if let session = model.companionPairingSession {
+                    CompanionPairingCard(session: session)
+                }
+                let revoked = model.pairedCompanionDevices.filter(\.revoked)
+                if !revoked.isEmpty {
+                    DisclosureGroup("Previous connections") {
+                        VStack(spacing: 12) {
+                            ForEach(revoked) { device in
+                                PairedCompanionDeviceRow(model: model, device: device)
+                            }
+                        }.padding(.top, 12)
+                    }
+                }
+            }
+        }
+    }
+
+    private var intelligence: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsCard {
+                Text("On this Mac").font(.headline)
+                let providers = (model.defaults?.harnesses ?? []).filter {
+                    $0.id != "tohseno-managed" && $0.installed
+                }
+                ForEach(providers) { option in
+                    SettingsRow(option.label,
+                                detail: option.authentication == .authenticated ? nil : "Sign in through \(option.label), then refresh.") {
+                        Label(option.authentication == .authenticated ? "Available" : "Needs sign-in",
+                              systemImage: option.authentication == .authenticated ? "checkmark.circle.fill" : "circle")
+                            .font(.callout)
+                            .foregroundStyle(option.authentication == .authenticated
+                                ? TohsenoTheme.accent : TohsenoTheme.textMuted)
+                    }
+                    .accessibilityIdentifier("intelligence.provider.\(option.id)")
+                    Divider()
+                }
+                if providers.isEmpty {
+                    Text("No supported local intelligence detected.")
+                        .foregroundStyle(TohsenoTheme.textMuted)
+                        .accessibilityIdentifier("intelligence.unavailable")
+                }
+                refreshButton("Refresh providers")
+            }
+            SettingsCard {
+                SettingsRow("Menlo Intelligence") {
+                    Text("Coming soon").font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                }
+                .accessibilityIdentifier("intelligence.tohseno-coming-soon")
+            }
+            DisclosureGroup("Advanced", isExpanded: $model.advancedExpanded) {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Connect a custom tool or a local model server.")
+                        .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                    SettingsCard {
+                        DisclosureGroup("Custom executable") { customExecutable.padding(.top, 16) }
+                    }
+                    SettingsCard {
+                        DisclosureGroup("Local model server") { localEndpoint.padding(.top, 16) }
+                    }
+                }.padding(.top, 16)
+            }
+        }
+    }
+
+    private var customExecutable: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SettingsField("Identifier") { TextField("my-tool", text: $model.customHarness.id) }
+            SettingsField("Display name") { TextField("My tool", text: $model.customHarness.label) }
+            SettingsField("Executable") {
+                HStack {
+                    Text(model.customHarness.executable.isEmpty ? "Choose a local executable" : model.customHarness.executable)
+                        .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                        .lineLimit(2).truncationMode(.middle)
+                    Spacer()
+                    Button("Choose…") { choosingExecutable = true }
+                }
+            }
+            SettingsField("Models · separated by commas") { TextField("model-one, model-two", text: $model.customHarness.models) }
+            SettingsField("Fixed arguments · one per line") {
+                TextField("Arguments", text: $model.customHarness.arguments, axis: .vertical).lineLimit(2...4)
+            }
+            Toggle("Use by default", isOn: $model.customHarness.preferred)
+            Button("Save custom tool") { Task { await model.saveCustomHarness() } }
+                .disabled(model.isSubmitting)
+        }
+    }
+
+    private var localEndpoint: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("An OpenAI-compatible server running on this Mac.")
+                .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+            SettingsField("Identifier") { TextField("local-model", text: $model.localEndpoint.id) }
+            SettingsField("Display name") { TextField("Local model", text: $model.localEndpoint.label) }
+            SettingsField("Loopback base URL") { TextField("http://127.0.0.1:1234/v1", text: $model.localEndpoint.baseURL) }
+            SettingsField("Models · separated by commas") { TextField("model-one, model-two", text: $model.localEndpoint.models) }
+            SettingsField("Bearer credential · optional") { SecureField("Credential", text: $model.localEndpoint.credential) }
+            Picker("Privacy mode", selection: $model.localEndpoint.privacyMode) {
+                Text("Local").tag("local")
+                Text("Standard").tag("standard")
+                Text("Zero data retention").tag("zdr")
+                Text("Private").tag("private")
+            }
+            Toggle("I consent to send app source to this endpoint", isOn: $model.localEndpoint.consentToSendSource)
+            Toggle("Use by default", isOn: $model.localEndpoint.preferred)
+            Button("Check and save server") { Task { await model.saveLocalEndpoint() } }
+                .disabled(model.isSubmitting || !model.localEndpoint.consentToSendSource)
+        }
+    }
+
+    private var advanced: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            SettingsCard {
+                SettingsRow("Terminal command", detail: model.cliIntegration?.enabled == true
+                            ? "Ready in new Terminal windows." : "Use Menlo from your terminal.") {
+                    if model.cliIntegration?.enabled == true {
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(TohsenoTheme.accent)
+                            .accessibilityLabel("Terminal command activated")
+                    } else {
+                        Button(model.isEnablingCLI ? "Activating…" : "Activate") {
+                            Task { await model.enableCLIIntegration() }
+                        }
+                        .disabled(model.isEnablingCLI || model.cliIntegration?.installed != true)
+                    }
+                }
+                if let message = model.cliMessage {
+                    Text(message).font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                }
+            }
+            SettingsCard {
+                SettingsRow("Support report", detail: "Save diagnostic information to share when something goes wrong.") {
+                    Button("Export…") { model.exportSupportReport() }
+                }
+                Divider()
+                SettingsRow("Local service", detail: "Restart the connection between Menlo and its background service.") {
+                    Button(isRestarting ? "Restarting…" : "Restart") {
+                        isRestarting = true
+                        Task {
+                            await model.restartService()
+                            isRestarting = false
+                        }
+                    }
+                    .disabled(isRestarting || model.isSubmitting)
+                }
+            }
+            SettingsCard {
+                DisclosureGroup("Retired apps (\(model.archivedApps.count))") {
+                    VStack(alignment: .leading, spacing: 16) {
+                        if model.archivedApps.isEmpty {
+                            Text("No retired apps.").foregroundStyle(TohsenoTheme.textMuted)
+                        }
+                        ForEach(model.archivedApps) { app in
+                            SettingsRow(app.displayName, detail: "Source and history are still on this Mac.") {
+                                Button("Restore") { Task { await model.restore(app) } }
+                                    .disabled(model.isSubmitting)
+                                    .accessibilityIdentifier("archive.restore.\(app.id)")
+                            }
+                        }
+                    }.padding(.top, 16)
+                }
+            }
+            DisclosureGroup("Additional diagnostics") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Open the legacy browser interface for support and recovery.")
+                        .font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                    Button("Open Browser Diagnostics") { Task { await model.openLegacyStudio() } }
+                    refreshButton("Refresh connection status")
+                }.padding(.top, 16)
+            }
+        }
+    }
+
+    private func refreshButton(_ title: String) -> some View {
+        Button {
+            isRefreshing = true
+            Task {
+                await model.reload()
+                isRefreshing = false
+            }
+        } label: {
+            HStack(spacing: 6) {
+                if isRefreshing { ProgressView().controlSize(.mini) }
+                Text(isRefreshing ? "Checking…" : title)
+            }
+        }
+        .disabled(isRefreshing || model.isSubmitting)
+    }
+}
+
+private enum SettingsPage: String, CaseIterable, Identifiable {
+    case general = "General"
+    case iphone = "iPhone"
+    case intelligence = "Intelligence"
+    case advanced = "Advanced"
+
+    var id: String { rawValue.lowercased() }
+    var symbol: String {
+        switch self {
+        case .general: "gearshape"
+        case .iphone: "iphone"
+        case .intelligence: "sparkles"
+        case .advanced: "slider.horizontal.3"
+        }
+    }
+    var detail: String {
+        switch self {
+        case .general: "Menlo on your Mac."
+        case .iphone: "Your iPhone and its connection to this Mac."
+        case .intelligence: "Use the tools you already have. Sign-in stays with your provider."
+        case .advanced: "Terminal access, recovery, and troubleshooting."
+        }
+    }
+}
+
+private struct SettingsCard<Content: View>: View {
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) { content }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(20)
+            .background(TohsenoTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(TohsenoTheme.separator.opacity(0.65)))
+    }
+}
+
+private struct SettingsRow<Accessory: View>: View {
+    let title: String
+    var detail: String?
+    @ViewBuilder let accessory: Accessory
+
+    init(_ title: String, detail: String? = nil, @ViewBuilder accessory: () -> Accessory) {
+        self.title = title
+        self.detail = detail
+        self.accessory = accessory()
+    }
+
+    var body: some View {
+        HStack(spacing: 20) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(title).fontWeight(.medium)
+                if let detail {
+                    Text(detail).font(.callout).foregroundStyle(TohsenoTheme.textMuted)
+                }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            accessory.fixedSize()
+        }
+    }
+}
+
+private struct SettingsField<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    init(_ title: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.callout.weight(.medium))
+            content.textFieldStyle(.roundedBorder).accessibilityLabel(title)
+        }
+    }
 }
 
 private struct PairedCompanionDeviceRow: View {
     let model: TohsenoAppModel
     let device: PairedCompanionDevice
     @State private var name: String
+    @State private var isRenaming = false
+    @State private var isSaving = false
+    @State private var confirmingRevoke = false
 
     init(model: TohsenoAppModel, device: PairedCompanionDevice) {
         self.model = model
@@ -195,25 +475,50 @@ private struct PairedCompanionDeviceRow: View {
     }
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             Image(systemName: device.revoked ? "iphone.slash" : "iphone.gen3")
-            TextField("iPhone name", text: $name)
-                .disabled(device.revoked)
-            Text(device.revoked ? "Revoked" : "Paired")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            if !device.revoked, name != device.displayName {
-                Button("Rename") {
-                    Task { await model.renameCompanionDevice(device, to: name) }
+                .font(.title2).foregroundStyle(TohsenoTheme.textMuted).frame(width: 28)
+            if isRenaming {
+                TextField("iPhone name", text: $name).textFieldStyle(.roundedBorder)
+                Button("Save") {
+                    isSaving = true
+                    Task {
+                        await model.renameCompanionDevice(device, to: name)
+                        isSaving = false
+                        if model.pairedCompanionDevices.first(where: { $0.id == device.id })?.displayName == name {
+                            isRenaming = false
+                        }
+                    }
                 }
-            }
-            if !device.revoked {
-                Button("Revoke", role: .destructive) {
-                    Task { await model.revokeCompanionDevice(device) }
+                .disabled(isSaving || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Cancel") { isRenaming = false; name = device.displayName }
+                    .disabled(isSaving)
+            } else {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(device.displayName).fontWeight(.medium)
+                    Text(device.revoked ? "Pairing revoked" : "Paired with this Mac")
+                        .font(.caption).foregroundStyle(TohsenoTheme.textMuted)
+                }
+                Spacer()
+                if !device.revoked {
+                    Menu {
+                        Button("Rename…") { name = device.displayName; isRenaming = true }
+                        Button("Revoke pairing…", role: .destructive) { confirmingRevoke = true }
+                    } label: {
+                        Image(systemName: "ellipsis").frame(width: 24, height: 24)
+                    }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
+                    .accessibilityLabel("Manage \(device.displayName)")
                 }
             }
         }
         .accessibilityIdentifier("settings.companion.\(device.id)")
+        .confirmationDialog("Revoke pairing with \(device.displayName)?", isPresented: $confirmingRevoke, titleVisibility: .visible) {
+            Button("Revoke pairing", role: .destructive) { Task { await model.revokeCompanionDevice(device) } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This iPhone will lose its private connection to this Mac. Pair it again to reconnect.")
+        }
     }
 }
 

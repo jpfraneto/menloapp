@@ -66,6 +66,8 @@ struct TohsenoMacApp: App {
         Settings {
             TohsenoSettingsView(model: model)
         }
+        .defaultSize(width: 800, height: 620)
+        .windowResizability(.contentMinSize)
     }
 
     private var localWindowTitle: String {

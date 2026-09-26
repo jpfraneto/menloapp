@@ -4,6 +4,21 @@ Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Native Settings cleanup (September 26)
+
+Settings now has General, iPhone, Intelligence, and Advanced navigation in a
+resizable, scrolling window. Readable cards replace the unbounded plain forms;
+provider status has aligned rows, and custom tools and local model servers open
+only when requested. Terminal setup, support export, service restart, retired
+apps, and browser diagnostics are grouped under Advanced. The hardcoded app
+storage path is removed. General includes the actual signed-in GitHub profile.
+Paired phones show their names as labels, with rename and pairing revocation in
+a management menu. Revocation requires an explicit confirmation. Existing
+factory, pairing, source-consent, and update operations remain authoritative.
+
+The native app compiled and four focused provider, pairing-shape, and branding
+checks passed. Live visual acceptance of this Settings change is pending.
+
 ## GitHub sign-in copy and browser handoff (September 26)
 
 One Sign in click now requests the GitHub device code, copies it to the
@@ -16,8 +31,9 @@ and minimum polling interval remain unchanged; no automatic approval is added.
 The native app compiled. In the signed local build from `ad99e3b`, a real Sign
 in click produced a code and confirmed the clipboard write before opening the
 browser. The waiting screen and its copy controls were visually checked at the
-minimum window width. Final GitHub approval remains the owner's action. The
-bundled factory and public Mac artifact are unchanged.
+minimum window width. The owner then completed GitHub authorization; Menlo
+displayed `@jpfraneto` and its successful sign-in message. The bundled factory
+and public Mac artifact are unchanged.
 
 ## GitHub people and source in the Mac UI (September 26)
 
