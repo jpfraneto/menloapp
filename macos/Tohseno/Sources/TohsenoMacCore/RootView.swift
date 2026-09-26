@@ -224,10 +224,23 @@ private struct AppLibrarySidebar: View {
                 .accessibilityIdentifier("registry.workshop")
                 sidebarButton("Add existing app", systemImage: "folder.badge.plus", action: adopt)
                 Divider().padding(.vertical, 6)
-                sidebarButton("Your GitHub", systemImage: "person.crop.circle",
-                              selected: model.route == .profile && !model.shouldPresentPhoneSetup) {
-                    model.route = .profile
+                Button { model.route = .profile } label: {
+                    HStack(spacing: 10) {
+                        if let login = model.githubAccount.login {
+                            GitHubAvatar(login: login, userID: model.githubAccount.userID, size: 28)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("@\(login)").fontWeight(.medium).lineLimit(1)
+                                Text("Your GitHub").font(.caption).foregroundStyle(TohsenoTheme.textMuted)
+                            }
+                        } else {
+                            GitHubMark()
+                            Text("Your GitHub")
+                        }
+                        Spacer(minLength: 0)
+                    }
                 }
+                .buttonStyle(SidebarActionStyle(isSelected: model.route == .profile && !model.shouldPresentPhoneSetup))
+                .accessibilityAddTraits(model.route == .profile && !model.shouldPresentPhoneSetup ? .isSelected : [])
                 .accessibilityIdentifier("sidebar.github")
                 SettingsLink { sidebarLabel("Settings", systemImage: "gearshape") }
             }
@@ -1582,8 +1595,8 @@ private struct AppDetailView: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(app.displayName).font(.title2.weight(.semibold)).lineLimit(3)
                     if let github = app.github {
-                        Text("By @\(github.repository.split(separator: "/").first.map(String.init) ?? github.repository)")
-                            .font(.caption).foregroundStyle(TohsenoTheme.textMuted)
+                        GitHubSourceIdentity(repository: github.repository)
+                            .padding(.top, 5)
                     }
                 }
                 Spacer(minLength: 12)
@@ -1842,7 +1855,7 @@ private struct AppWorkspaceView: View {
             Text(app.deliveryHeadline).foregroundStyle(.secondary)
             if let github = app.github {
                 Text(github.updateSummary).font(.headline)
-                Link("View source and maker on GitHub ↗", destination: URL(string: "https://github.com/\(github.repository)")!)
+                GitHubRepositoryLink(repository: github.repository)
                 Link("Give practical feedback ↗", destination: URL(string: "https://github.com/\(github.repository)/issues")!)
                 if github.hasUpdate {
                     Button("Update from GitHub") { Task { await model.reviewGitHubApp(slug: github.slug, commit: github.headCommit, repositoryID: github.repositoryID) } }

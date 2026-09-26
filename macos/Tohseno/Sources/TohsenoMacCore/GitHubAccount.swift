@@ -7,11 +7,13 @@ import AppKit
 @MainActor @Observable
 public final class GitHubAccountModel {
     public private(set) var login: String?
+    public private(set) var userID: Int?
     public private(set) var userCode: String?
     public private(set) var busy = false
     public private(set) var message: String?
     private let service = "com.menlo.github"
     private var cancelled = false
+    private var refreshing = false
 
     public init() {}
 
@@ -60,11 +62,14 @@ public final class GitHubAccountModel {
               name.range(of: #"^[A-Za-z0-9-]{1,39}$"#, options: .regularExpression) != nil,
               let id = user["id"] as? Int, id > 0
         else { throw FactoryClientError.invalidResponse("GitHub returned an invalid account.") }
+        userID = id
         login = name
     }
 
     public func refresh() async {
-        guard let token = storedToken() else { return }
+        guard !refreshing, !busy, let token = storedToken() else { return }
+        refreshing = true
+        defer { refreshing = false }
         do { try await identify(token) } catch { message = "Your GitHub session needs attention. Sign in again." }
     }
 
@@ -105,7 +110,7 @@ public final class GitHubAccountModel {
     public func signOut() {
         cancelled = true
         SecItemDelete([kSecClass: kSecClassGenericPassword, kSecAttrService: service, kSecAttrAccount: "github"] as CFDictionary)
-        login = nil; message = "Signed out of Menlo’s GitHub session."
+        login = nil; userID = nil; message = "Signed out of Menlo’s GitHub session."
     }
     public func cancel() { cancelled = true }
 }
@@ -119,11 +124,31 @@ struct GitHubAccountView: View {
                 Text("Your GitHub. Your apps.").font(.largeTitle.bold())
                 Text("Menlo uses GitHub for identity and source. Share an app from a repository you can push to, and send its link to a tester.")
                 if let login = model.githubAccount.login {
-                    Link("@\(login) ↗", destination: URL(string: "https://github.com/\(login)")!).font(.title2)
-                    Button("Sign out") { model.githubAccount.signOut() }
+                    HStack(spacing: 16) {
+                        GitHubAvatar(login: login, userID: model.githubAccount.userID, size: 64)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("@\(login)").font(.title2.weight(.semibold))
+                            Link(destination: URL(string: "https://github.com/\(login)")!) {
+                                HStack(spacing: 7) {
+                                    GitHubMark()
+                                    Text("View GitHub profile ↗")
+                                }
+                            }
+                        }
+                        Spacer()
+                        Button("Sign out") { model.githubAccount.signOut() }
+                    }
+                    .padding(20)
+                    .background(TohsenoTheme.surface, in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityIdentifier("github.account-profile")
                 } else {
-                    Button("Sign in with GitHub") { Task { await model.githubAccount.signIn() } }
-                        .buttonStyle(PrimaryActionStyle()).disabled(model.githubAccount.busy)
+                    Button { Task { await model.githubAccount.signIn() } } label: {
+                        HStack(spacing: 8) {
+                            GitHubMark()
+                            Text("Sign in with GitHub")
+                        }
+                    }
+                    .buttonStyle(PrimaryActionStyle()).disabled(model.githubAccount.busy)
                 }
                 if let code = model.githubAccount.userCode {
                     Text("Enter this code on GitHub").font(.headline)
@@ -152,7 +177,10 @@ struct GitHubReviewSheet: View {
         VStack(alignment: .leading, spacing: 18) {
             MenloWordmark().frame(width: 100)
             Text("Get \(review.app.name)").font(.title.weight(.semibold))
-            Link(review.app.repository, destination: URL(string: "https://github.com/\(review.app.repository)")!)
+            GitHubSourceIdentity(repository: review.app.repository)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(TohsenoTheme.canvas, in: RoundedRectangle(cornerRadius: 12))
             Text("Commit \(review.commit.prefix(7)) · \(review.app.scheme)").font(.system(.body, design: .monospaced))
             Text("Your Mac will download this source, build it with Xcode, and sign it for your intended iPhone using your Apple identity.")
                 .fixedSize(horizontal: false, vertical: true)

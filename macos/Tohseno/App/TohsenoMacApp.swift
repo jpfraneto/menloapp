@@ -27,6 +27,12 @@ struct TohsenoMacApp: App {
         WindowGroup(localWindowTitle, id: "factory") {
             TohsenoRootView(model: model)
                 .frame(minWidth: 980, minHeight: 620)
+                .task {
+                    #if DEBUG
+                    guard ProcessInfo.processInfo.environment["TOHSENO_UI_FIXTURE"] != "1" else { return }
+                    #endif
+                    await model.githubAccount.refresh()
+                }
                 .onOpenURL { url in
                     Task { await model.openNetworkLink(url) }
                 }

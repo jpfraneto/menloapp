@@ -6,6 +6,7 @@ struct GitHubListedApp: Decodable, Identifiable, Sendable {
     let name: String
     let repository: String
     let description: String
+    let publisher: GitHubPublisher?
 }
 
 struct GitHubExploreView: View {
@@ -25,7 +26,7 @@ struct GitHubExploreView: View {
             VStack(alignment: .leading, spacing: 28) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Discover").font(.largeTitle.bold())
-                    Text("Apps, person to person.")
+                    Text("iPhone apps, shared from GitHub.")
                         .font(.title3).foregroundStyle(TohsenoTheme.textMuted)
                 }
                 appLinkEntry
@@ -123,44 +124,53 @@ struct GitHubExploreView: View {
             .background(TohsenoTheme.surface, in: RoundedRectangle(cornerRadius: 12))
         }
         ForEach(apps) { app in
-            Button { openApp(app) } label: {
-                HStack(alignment: .top, spacing: 16) {
-                    Text(String(app.name.prefix(1)).uppercased())
-                        .font(MenloTypography.brand(size: 25))
-                        .foregroundStyle(TohsenoTheme.accent)
-                        .frame(width: 48, height: 48)
-                        .background(TohsenoTheme.accentSoft, in: RoundedRectangle(cornerRadius: 12))
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(app.name).font(.system(size: 17, weight: .semibold))
-                            .foregroundStyle(TohsenoTheme.text)
-                        Text(app.repository).font(.caption).foregroundStyle(TohsenoTheme.textMuted)
-                        if !app.description.isEmpty {
-                            Text(app.description).font(.callout)
-                                .foregroundStyle(TohsenoTheme.textMuted)
-                                .lineLimit(2)
-                                .padding(.top, 3)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    if openingAppID == app.id {
-                        ProgressView().controlSize(.small)
-                            .accessibilityLabel("Opening \(app.name)")
-                    } else {
-                        Image(systemName: "chevron.right")
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(TohsenoTheme.textMuted)
+            VStack(alignment: .leading, spacing: 0) {
+                Button { openApp(app) } label: {
+                    HStack(alignment: .top, spacing: 16) {
+                        Text(String(app.name.prefix(1)).uppercased())
+                            .font(MenloTypography.brand(size: 25))
+                            .foregroundStyle(TohsenoTheme.accent)
+                            .frame(width: 48, height: 48)
+                            .background(TohsenoTheme.accentSoft, in: RoundedRectangle(cornerRadius: 12))
                             .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(app.name).font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(TohsenoTheme.text)
+                            if !app.description.isEmpty {
+                                Text(app.description).font(.callout)
+                                    .foregroundStyle(TohsenoTheme.textMuted)
+                                    .lineLimit(2)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        HStack(spacing: 6) {
+                            if openingAppID == app.id {
+                                ProgressView().controlSize(.small)
+                                Text("Opening…")
+                            } else {
+                                Text("Get app")
+                                Image(systemName: "chevron.right")
+                            }
+                        }
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(TohsenoTheme.accent)
                     }
+                    .padding(18)
+                    .contentShape(Rectangle())
                 }
-                .padding(18)
-                .contentShape(Rectangle())
+                .buttonStyle(DiscoverAppStyle())
+                .disabled(isOpening)
+                .help("Review \(app.name)")
+                .accessibilityHint("Review this app before building it for your iPhone")
+                .accessibilityIdentifier("discover.app.\(app.slug)")
+                Divider().overlay(TohsenoTheme.separator).padding(.horizontal, 18)
+                GitHubSourceIdentity(repository: app.repository, publisher: app.publisher)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(18)
             }
-            .buttonStyle(DiscoverAppStyle())
-            .disabled(isOpening)
-            .help("Review \(app.name)")
-            .accessibilityHint("Review this app before building it for your iPhone")
-            .accessibilityIdentifier("discover.app.\(app.slug)")
+            .background(TohsenoTheme.surface)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(TohsenoTheme.separator))
         }
         if apps.isEmpty && !loading && message == nil {
             VStack(spacing: 8) {
@@ -219,12 +229,7 @@ private struct DiscoverAppStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .multilineTextAlignment(.leading)
-            .background(isHovered || configuration.isPressed ? TohsenoTheme.accentSoft : TohsenoTheme.surface,
-                        in: RoundedRectangle(cornerRadius: 12))
-            .overlay {
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(isHovered ? TohsenoTheme.controlBorder : TohsenoTheme.separator)
-            }
+            .background(isHovered || configuration.isPressed ? TohsenoTheme.accentSoft : TohsenoTheme.surface)
             .onHover { isHovered = $0 }
     }
 }
