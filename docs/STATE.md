@@ -4,6 +4,21 @@ Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## GitHub sign-in copy and browser handoff (September 26)
+
+One Sign in click now requests the GitHub device code, copies it to the
+clipboard, and opens GitHub's verification page in that order. The waiting
+screen shows the code, clipboard-result feedback, a copy button, and a combined
+Copy code & open GitHub action. Preparing and waiting states are visible, and
+successful authorization returns focus to Menlo. GitHub's required user approval
+and minimum polling interval remain unchanged; no automatic approval is added.
+
+The native app compiled. In the signed local build from `ad99e3b`, a real Sign
+in click produced a code and confirmed the clipboard write before opening the
+browser. The waiting screen and its copy controls were visually checked at the
+minimum window width. Final GitHub approval remains the owner's action. The
+bundled factory and public Mac artifact are unchanged.
+
 ## GitHub people and source in the Mac UI (September 26)
 
 Discover now shows each registered publisher's real GitHub photo and profile
