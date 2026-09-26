@@ -15,8 +15,13 @@ existing evidence. The redundant “Your apps” sidebar button is removed; the
 app list remains directly accessible.
 
 Native package verification passed with 65 tests, one opt-in artifact-download
-test skipped, and no failures. Live navigation verification is pending the
-updated local build.
+test skipped, and no failures. The real local app retained the sidebar during
+setup; Back returned to the library, and a sidebar click opened GitHub. Live
+keyboard testing found that the view's exit handler did not receive Escape,
+so Back now also has a direct cancel shortcut. That final change compiled,
+and Escape in the signed local build from `388ffcd` returned from phone setup
+to Discover. The redundant button is absent, and the GitHub session restored.
+The existing factory payload is unchanged; no public Mac artifact was replaced.
 
 ## GitHub device sign-in configuration (September 26)
 
