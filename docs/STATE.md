@@ -4,6 +4,32 @@ Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Native discovery and navigation polish (September 26)
+
+The Mac sidebar now highlights the selected app, Discover, GitHub, or explicit
+phone setup, with full-row click targets and hover feedback. The Menlo wordmark
+returns to the app overview. Discover separates link entry from the community
+directory, uses quieter app rows with clear names and source repositories, and
+provides refresh, retry, and opening feedback. Repeated opening gestures are
+disabled while a review is loading. The existing source review still precedes
+building; its full intended-iPhone and Apple-signing explanation now wraps, and
+Escape cancels the review.
+
+The native suite passed with 65 tests, one optional artifact-download test
+skipped, and no failures. After the final review-sheet adjustment, the focused
+exact-commit/source-consent test also passed. Live checks in the signed local
+client covered the wordmark's return home, selected navigation, the real app
+directory and refresh, opening Anky by card and pasted HTTPS link with Return,
+and cancelling its review. The final local build from `112b53b` visibly showed
+the full explanation and returned to Discover on Escape at the minimum window
+width. No build or phone installation was started by these checks.
+
+The local UI helper now uses the installed `/Applications/Menlo.app` and current
+UI metadata, avoiding a misleading older-update banner inherited from the base
+bundle. Its active-factory manifest and Developer ID checks remain in place.
+This is local UI evidence over the unchanged factory payload; no public Mac
+artifact was replaced.
+
 ## Phone setup navigation (September 26)
 
 The owner's existing library lost its sidebar after choosing “Set up Menlo on
