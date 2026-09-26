@@ -4,6 +4,20 @@ Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Phone setup navigation (September 26)
+
+The owner's existing library lost its sidebar after choosing “Set up Menlo on
+iPhone,” leaving no way back. Explicit setup now opens inside the main pane,
+with the app sidebar still available. Back and Escape return to the previous
+view; selecting another sidebar destination also leaves setup. This changes
+navigation only: device readiness and physical setup still require their
+existing evidence. The redundant “Your apps” sidebar button is removed; the
+app list remains directly accessible.
+
+Native package verification passed with 65 tests, one opt-in artifact-download
+test skipped, and no failures. Live navigation verification is pending the
+updated local build.
+
 ## GitHub device sign-in configuration (September 26)
 
 The owner's Mac sign-in stopped because production returned a null

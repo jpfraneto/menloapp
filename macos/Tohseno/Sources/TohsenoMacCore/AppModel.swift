@@ -60,7 +60,10 @@ public final class TohsenoAppModel {
     public private(set) var followedBuilderIDs: Set<String>
     public private(set) var hasSkippedFirstShot: Bool
     public var route: AppRoute = .library {
-        didSet { persistRoute() }
+        didSet {
+            requestedPhoneSetup = false
+            persistRoute()
+        }
     }
     public var creation = CreationDraft()
     public var quickShotIntention = ""
@@ -137,6 +140,10 @@ public final class TohsenoAppModel {
     public func setUpMenloOnPhone() {
         requestedPhoneSetup = true
         startReadinessMonitoringIfNeeded()
+    }
+
+    public func dismissPhoneSetup() {
+        requestedPhoneSetup = false
     }
 
     public func resumeFirstApp() async {

@@ -24,7 +24,8 @@ public struct TohsenoRootView: View {
                     }
                 }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let readiness = model.readiness, model.shouldPresentPhoneSetup {
+            } else if let readiness = model.readiness,
+                      model.shouldPresentPhoneSetup, !model.requestedPhoneSetup {
                 ReadinessScreen(model: model, readiness: readiness)
             } else {
                 factory
@@ -71,28 +72,48 @@ public struct TohsenoRootView: View {
                 .frame(width: 220)
             Divider().overlay(TohsenoTheme.separator)
             Group {
-                switch model.route {
-                case .library:
-                    LivingWorkshopView(model: model, adopt: chooseProject)
-                case .registry:
-                    GitHubExploreView(model: model)
-                case .profile:
-                    GitHubAccountView(model: model)
-                case .create:
-                    CreationView(model: model)
-                case .app:
-                    if let app = model.selectedApp {
-                        AppDetailView(model: model, app: app)
-                            .id(app.id)
-                    } else {
-                        LibraryEmptyView(adopt: chooseProject) { model.route = .create }
+                if let readiness = model.readiness, model.shouldPresentPhoneSetup {
+                    VStack(spacing: 0) {
+                        HStack {
+                            Button(action: model.dismissPhoneSetup) {
+                                Label("Back", systemImage: "chevron.left")
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("readiness.back")
+                            Spacer()
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 16)
+                        ReadinessScreen(model: model, readiness: readiness, setupInitiallyVisible: true)
+                    }
+                } else {
+                    switch model.route {
+                    case .library:
+                        LivingWorkshopView(model: model, adopt: chooseProject)
+                    case .registry:
+                        GitHubExploreView(model: model)
+                    case .profile:
+                        GitHubAccountView(model: model)
+                    case .create:
+                        CreationView(model: model)
+                    case .app:
+                        if let app = model.selectedApp {
+                            AppDetailView(model: model, app: app)
+                                .id(app.id)
+                        } else {
+                            LibraryEmptyView(adopt: chooseProject) { model.route = .create }
+                        }
                     }
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .onExitCommand {
-            if model.route != .library { model.route = .library }
+            if model.shouldPresentPhoneSetup {
+                model.dismissPhoneSetup()
+            } else if model.route != .library {
+                model.route = .library
+            }
         }
     }
 
@@ -186,7 +207,6 @@ private struct AppLibrarySidebar: View {
                 }
                 Button { model.route = .registry } label: { Label("Discover", systemImage: "square.grid.2x2") }
                     .accessibilityIdentifier("registry.workshop")
-                Button { model.route = .library } label: { Label("Your apps", systemImage: "square.grid.2x2") }
                 Button(action: adopt) { Label("Add existing app", systemImage: "folder.badge.plus") }
                 Divider()
                 Button { model.route = .profile } label: { Label("Your GitHub", systemImage: "person.crop.circle") }
