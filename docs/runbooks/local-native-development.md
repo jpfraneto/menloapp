@@ -11,9 +11,11 @@ bash scripts/dev-macos.sh
 ```
 
 This incrementally builds the host-architecture debug UI, copies the installed
-Mac bundle into a new directory under `dist/local-macos`, replaces only its UI
-executable, signs with the matching installed Developer ID, verifies the app,
-and opens it. The window title says Local with source revision/time and a dirty
+`/Applications/Menlo.app` into a new directory under `dist/local-macos`, replaces
+its UI executable, resources and app metadata from current source, signs with
+the matching installed Developer ID, verifies the app, and opens it. Current
+metadata prevents an old installed app version from offering an older update
+over the new local UI. The window title says Local with source revision/time and a dirty
 marker for tracked UI changes. This is a live client of the owner's factory,
 not a simulated screenshot. Buttons perform their normal real actions.
 
