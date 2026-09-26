@@ -4,6 +4,21 @@ Written 2026-07-30, amended through 2026-09-26. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## GitHub device sign-in configuration (September 26)
+
+The owner's Mac sign-in stopped because production returned a null
+`github_client_id`. The owner supplied the Menlo GitHub App's public Client ID,
+`Iv23liKJIcjPFqM9MZQH`. A request using the native client's device-flow fields
+returned a real GitHub device code and the expected verification URL.
+
+The existing Railway website was redeployed with `GITHUB_CLIENT_ID` set as
+deployment `22534fcc-884d-4754-a2c1-51617a06e4b9`. Both `menloapp.lol` and the
+existing native client's `tohseno.com` status endpoints now advertise that
+Client ID, and website health passes. This was a configuration change over the
+existing website source. No client secret or GitHub read token was added.
+Completing account authorization and observing the Mac's saved session remain
+the next owner-attended steps.
+
 ## Production alerts and CI repair (September 26)
 
 The September 25 GitHub failure at source `3b19620` was the CLI smoke check:

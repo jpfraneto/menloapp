@@ -70,9 +70,11 @@ npm update.
   `www.tohseno.com` is no longer a Railway custom domain.
 
 The September 16 npm-login and custom-domain-limit blockers are resolved.
-No further DNS setup is needed. Later npm publications can require fresh account verification. GitHub device-flow
-credentials and a dedicated GitHub read token remain unconfigured; developers
-can deploy with an existing `gh auth login` session. Physical recipient
+No further DNS setup is needed. Later npm publications can require fresh account
+verification. GitHub device authorization was configured on September 26 as
+recorded in [the distribution runbook](MENLO_GITHUB_DISTRIBUTION.md#github-setup).
+A dedicated GitHub read token remains unconfigured; developers can also deploy
+with an existing `gh auth login` session. Physical recipient
 installation and update remain separate, unobserved acceptance steps.
 
 ## 1. Keep both production domains connected
@@ -156,8 +158,8 @@ The old runtime manifest should remain directly available. Existing native
 clients can keep reading the same app directory through `tohseno.com`.
 
 Existing `gh auth login` sessions can deploy. For people without GitHub CLI,
-configure the existing GitHub App's public `GITHUB_CLIENT_ID` with Device Flow
-enabled, as described in [the distribution runbook](MENLO_GITHUB_DISTRIBUTION.md#github-setup).
+production now advertises the Menlo GitHub App's public `GITHUB_CLIENT_ID` with
+Device Flow enabled, as recorded in [the distribution runbook](MENLO_GITHUB_DISTRIBUTION.md#github-setup).
 A dedicated read-only `GITHUB_READ_TOKEN` is useful to avoid the small anonymous
 GitHub rate limit. User write tokens are never persisted by the directory.
 
@@ -293,9 +295,9 @@ temporary recording Simulator was removed after verification.
 
 The sample is a single-screen app, so it includes one real screenshot and no
 invented icon or extra screens. This is a Simulator preview; no new physical
-recipient installation or update is claimed. GitHub device authorization still
-requires production configuration for developers without an existing GitHub
-CLI session.
+recipient installation or update is claimed. GitHub device authorization was
+still unconfigured at this publication; the September 26 setup above resolves
+that configuration gap for developers without an existing GitHub CLI session.
 
 The published tarball and local evidence are under `dist/menloapp-1.4.0/`.
 `menloapp-1.4.0.tgz` is 23,387 bytes with SHA-256

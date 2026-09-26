@@ -17,11 +17,10 @@ acceptance is claimed by source tests.
 
 Two credentials were absent during implementation:
 
-- The production website has no `GITHUB_CLIENT_ID`. Existing `gh auth login`
-  sessions can deploy; the native GitHub sign-in button explains this setup gap.
-- `npm whoami` returns 401. The owner must run `npm login` before publishing the
-  prepared `tohseno@1.3.1` package. Until then the unversioned npm command still
-  resolves to the earlier release. Use the exact prepared package for testing.
+- The production website had no `GITHUB_CLIENT_ID`. This blocked native
+  browser sign-in until the September 26 configuration recorded below.
+- `npm whoami` returned 401. Later owner-attended npm publication resolved this;
+  see [the launch record](MENLOAPP_LAUNCH.md) for published package evidence.
 
 ## GitHub setup
 
@@ -32,6 +31,13 @@ an app. Give the website the public **Client ID** as `GITHUB_CLIENT_ID`.
 A client secret is not required for device authorization. User tokens remain
 on the developer's machine; the server uses them only for the current deploy
 request and stores no credentials in the directory or ledger.
+
+On September 26 the owner supplied Client ID `Iv23liKJIcjPFqM9MZQH`.
+GitHub accepted the Mac client's device-code request, and Railway production
+deployment `22534fcc-884d-4754-a2c1-51617a06e4b9` activated `GITHUB_CLIENT_ID`.
+Both public origins now return that ID from `/api/menlo/v1/status`; website
+health passes. User authorization and the saved native session are separate
+acceptance steps. `GITHUB_READ_TOKEN` remains unconfigured.
 
 If using an OAuth App instead, device authorization requests `read:user
 public_repo`; this grants broader public-repository access than the read-only
