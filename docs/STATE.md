@@ -21,6 +21,10 @@ checks passed. All four sections were inspected in the signed local build from
 `3dcdeec`, including the real GitHub photo, provider status, paired phone, and
 scrolling to the bottom of the local-server form with source consent still
 required. A redundant iPhone check action found during inspection is removed.
+The final local client from `b5c2f49` enables native window resizing; zoom and
+restore were exercised. Connection refresh in the preceding `6457569` client
+returned the real intended phone's name and Ready status with the existing
+pairing. No pairing was changed or revoked during UI checks.
 
 ## Current Menlo app icons (September 26)
 
@@ -30,8 +34,13 @@ linked-loop artwork before signing. The brand exporter also writes the iPhone
 asset from that same SVG with an opaque background so iOS applies its own
 corner mask. The iPhone build number advances to 7 for this in-place update.
 The owner's reachable iPhone 15 matches the existing setup's intended-device
-digest; inventory currently reports Menlo 1.2.1 build 6. Building and installing
-the updated phone icon remain pending. No public download was replaced.
+digest. A Release build from `6457569` passed Apple Development signature
+verification under the existing app/team identity and installed in place on
+that target. CoreDevice inventory confirms Menlo 1.2.1 build 7. The compiled
+iPhone icon was inspected; this records installation, not the owner's visual
+acceptance of the Home Screen. The signed local Mac client from `b5c2f49` also
+contains the current icon, verified by extracting its packaged ICNS. The
+installed `/Applications` bundle and public download have not been replaced.
 
 ## GitHub sign-in copy and browser handoff (September 26)
 
