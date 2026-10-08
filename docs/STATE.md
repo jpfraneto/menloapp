@@ -13,6 +13,11 @@ the whole image. The home heading is Documentation. Astro check, build,
 built-site link verification, and inspection of both generated header assets
 passed.
 
+Docs source `a279ea2` is live as
+`https://2da293d7.menloapp-docs.pages.dev`. Certificate-checked requests to
+`docs.menloapp.lol` confirm the authored home, exact Menlo header text, both
+current theme logo assets, and favicon match the built output.
+
 ## Menloapp docs simplification (October 8)
 
 The public docs now use plain task guides without character portraits,
