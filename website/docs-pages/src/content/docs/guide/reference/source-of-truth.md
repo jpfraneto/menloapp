@@ -1,52 +1,36 @@
 ---
 title: Source of truth
-description: The authority hierarchy and direct repository sources behind these explanatory docs.
+description: Repository authority, current Menlo decisions, and evidence behind the public guides.
 ---
 
-The September 2026 product name is Menlo. Existing Tohseno protocol, CLI, bundle, and storage identifiers retain their names. The owner’s rebrand instruction changes product presentation and the upload subsidy policy; it does not rewrite frozen protocol bytes. [Current status](/guide/reference/current-status/) and the [Menlo evidence record](https://github.com/jpfraneto/tohseno/blob/main/docs/MENLO_REBRAND.md) describe that rollout.
+This site explains the product. The repository carries authority. Menlo is the product name and `menloapp` is the npm package/command. Existing Tohseno protocol, storage, and bundle identifiers retain compatibility.
 
+## Normative protocol
 
-This site is a guide. The repository carries the authority.
+- [Specification](https://github.com/jpfraneto/menloapp/blob/main/protocol/SPECIFICATION.md): exact identities, encodings, commitments, and transitions.
+- [Conformance](https://github.com/jpfraneto/menloapp/blob/main/protocol/CONFORMANCE.md): required fail-closed checks.
+- [Implementers](https://github.com/jpfraneto/menloapp/blob/main/protocol/IMPLEMENTERS.md), [schemas](https://github.com/jpfraneto/menloapp/tree/main/protocol/schemas), and [test vectors](https://github.com/jpfraneto/menloapp/tree/main/protocol/test-vectors): integration and exact cross-language law.
 
-## 1. Normative protocol
+If explanatory prose conflicts with `protocol/`, the protocol wins. Product distribution decisions do not rewrite frozen bytes or deployed contract semantics.
 
-- [`protocol/SPECIFICATION.md`](https://github.com/jpfraneto/tohseno/blob/main/protocol/SPECIFICATION.md) — exact identities, encodings, commitments and transitions.
-- [`protocol/CONFORMANCE.md`](https://github.com/jpfraneto/tohseno/blob/main/protocol/CONFORMANCE.md) — required fail-closed checks.
-- [`protocol/IMPLEMENTERS.md`](https://github.com/jpfraneto/tohseno/blob/main/protocol/IMPLEMENTERS.md) — lifecycle integration.
-- [`protocol/schemas/`](https://github.com/jpfraneto/tohseno/tree/main/protocol/schemas) — closed Draft 2020-12 schemas.
-- [`protocol/test-vectors/`](https://github.com/jpfraneto/tohseno/tree/main/protocol/test-vectors) — frozen cross-language bytes.
+## Current product decisions
 
-## 2. Accepted decisions
+- [ADR 0040](https://github.com/jpfraneto/menloapp/blob/main/docs/adr/0040-menlo-github-distribution.md): GitHub identity, public repositories, app registration, `menloapp deploy`/`try`, listing media, and explicit recipient-local build/sign/install.
+- [ADR 0043](https://github.com/jpfraneto/menloapp/blob/main/docs/adr/0043-first-app-onboarding.md): fresh-start setup installs and pairs Menlo on iPhone; a linked app installs first, with Menlo on iPhone optional afterward.
+- [ADR 0044](https://github.com/jpfraneto/menloapp/blob/main/docs/adr/0044-version-linked-distribution-and-source-reviews.md): exact-version sharing and GitHub-authenticated source recommendations bound to one commit and build recipe.
 
-The [ADR index](https://github.com/jpfraneto/tohseno/tree/main/docs/adr) records decisions and supersession. The current product arc is:
+The [ADR index](https://github.com/jpfraneto/menloapp/tree/main/docs/adr) records earlier decisions and supersession. Retained requirements include one Mac factory, bounded implementation, exact bases, the integral `.tohseno/` boundary, intended-iPhone installation, Apple authority, and signed/notarized pinned native downloads.
 
-- 0015: persistent local factory and private Companion boundary.
-- 0016: App → Intent → App on iPhone; deletion of the Studio dashboard.
-- 0017: engine composes/accepts Genome; no Conception round trip.
-- 0019: one bounded implementation plus at most one repair.
-- 0024: integral `.tohseno/` with explicit private exclusions.
-- 0025: native Mac app is primary; optional managed balance.
-- 0026: Return sends, truthful Registry, fail-closed installer.
-- 0027: Build/App/Source workspace and permanent phone stage.
-- 0028–0031: Finder-first handoff, first-shot history, direct download, release-candidate acceptance.
-- 0032: real Companion onboarding and persistent product presence.
-- 0033: living existing projects become the primary path.
-- 0034: person-to-person signed buildable native software.
-- 0035: one Ship, later Updates, immutable edition and additive non-transferable Claim.
+Earlier Registry, Ship, Claim, and DeviceKey rules retain authority for historical releases and the explicit `--legacy-registry` path. They are superseded where ADR 0040 defines ordinary GitHub publication/acquisition. GitHub source recommendations are not DeviceKey-signed Release Attestations.
 
-Later decisions supersede only the parts they say they supersede. They do not silently rewrite frozen protocol or deployed ABI.
+## Current evidence
 
-## 3. Current implementation truth
+[docs/STATE.md](https://github.com/jpfraneto/menloapp/blob/main/docs/STATE.md) distinguishes implemented, locally verified, published, deployed, and physically observed facts. [packages/cli/README.md](https://github.com/jpfraneto/menloapp/blob/main/packages/cli/README.md) explains current CLI use. [release/](https://github.com/jpfraneto/menloapp/tree/main/release) retains immutable artifact and activation evidence.
 
-- [`docs/STATE.md`](https://github.com/jpfraneto/tohseno/blob/main/docs/STATE.md) — plain-language shipped/inactive/deferred snapshot.
-- [`docs/ARCHITECTURE.md`](https://github.com/jpfraneto/tohseno/blob/main/docs/ARCHITECTURE.md) — runtime components and persistence.
-- [`docs/LIVING_CONNECTION.md`](https://github.com/jpfraneto/tohseno/blob/main/docs/LIVING_CONNECTION.md) — adoption, private request, Ship/Claim/receive acceptance.
-- [`docs/GOLDEN_PATH.md`](https://github.com/jpfraneto/tohseno/blob/main/docs/GOLDEN_PATH.md) — boundary-by-boundary private command trace.
-- [`docs/PRIVACY.md`](https://github.com/jpfraneto/tohseno/blob/main/docs/PRIVACY.md) and [`docs/THREAT_MODEL.md`](https://github.com/jpfraneto/tohseno/blob/main/docs/THREAT_MODEL.md) — privacy and controls.
-- [`release/`](https://github.com/jpfraneto/tohseno/tree/main/release) — exact immutable activation and release evidence.
+A source implementation or passing test does not establish public artifact availability or another person’s physical installation. Historical readiness records describe their recorded moment.
 
-## Historical material
+## Historical law
 
-`MASTER_PROMPT.md` is the historical constitutional center of frozen v0.7 and is superseded as current deployment/protocol authority. `genome/LAWS.md` is compatibility law matching engine behavior, not ordinary prose. Historical release and readiness files describe their recorded moment; they are not automatically current.
+`MASTER_PROMPT.md` is superseded implementation input for frozen v0.7, not current protocol or deployment authority. `genome/LAWS.md` is retained agent-facing compatibility law matching engine behavior, not freely editable prose.
 
-When something here disagrees with a higher layer, follow the higher layer and fix this guide.
+Follow the higher authority when this guide disagrees, then correct the guide.

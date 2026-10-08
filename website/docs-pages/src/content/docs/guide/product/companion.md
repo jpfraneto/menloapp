@@ -1,39 +1,32 @@
 ---
-title: Menlo Companion
-description: The iPhone product, private remote control, and holder of human authorization.
+title: Menlo on iPhone
+description: Send private intents to your Mac and follow the apps it builds for this phone.
 ---
 
-Menlo Companion uses the same paper, ink, and green identity as the Mac. Its bundle identifier and private pairing identity are unchanged. The new Mac candidate includes its source; a distributed payload does not prove it has been installed on a particular phone.
+Menlo on iPhone is the private intent client for your Mac. The Mac remains the factory and Xcode build machine.
 
-Companion presents its two roles as the pocket side of the same Living
-Workshop. The Mac factory is visibly remote, this iPhone is the keeper, app
-objects sit on one shelf, and Network, Updates, and Keeper are truthful
-destinations rather than a claim that the phone runs a second factory.
+## Set up for creation
 
-## Private connection to the Mac
+Run `menloapp` or `menloapp setup` on the Mac with the intended iPhone connected and unlocked. Setup observes Xcode, Apple signing, Trust, and Developer Mode, installs and launches Menlo, then completes its private pairing. Installation alone is not completed pairing.
 
-Companion shows the apps connected to a paired Mac, their bounded status and history, and **Evolve App**. A person can type, use native speech transcription, and attach up to eight images. The SDK persists the signed command and encrypted outbox bytes before send returns, so an offline phone or sleeping Mac does not erase the request.
+If you arrived for a specific linked app, that app installs first. Menlo on iPhone is optional afterward. Existing libraries remain accessible while pairing is incomplete or the phone is away.
 
-**One Shot** opens the existing creation route. The app name remains optional;
-the exact intention and reference bounds are unchanged. Mac-offline state is
-shown explicitly and never presented as a failed or completed build.
+## Send a request
 
-The relay is content-blind. It transports opaque mailboxes and ciphertext but has no project authority, content key, source, or Apple signing identity. Delivery, admission, and execution are distinct receipts.
+Use One Shot for a new app or Evolve App for a change. Requests can include text, native speech transcription, and up to eight PNG/JPEG references. The SDK persists signed commands and encrypted outbox bytes before send returns. An offline phone or sleeping Mac leaves a queued request, not an invented build result.
 
-## Human authority for public actions
+The Mac admits the authenticated request against its exact base, executes the bounded coding route, and applies real Xcode, signing, and delivery checks. Menlo on iPhone shows the resulting status and active-client update information.
 
-Companion holds the Builder DeviceKey: a protocol-compatible P-256 key whose private scalar stays in the iPhone's strongest compatible non-exportable, this-device-only Keychain or Secure Enclave mechanism. It signs already computed 32-byte protocol digests exactly once and normalizes signatures to low-s form.
+## Private connection
 
-Before Ship, Update, profile, alias, or Claim authorization, Companion receives the complete structured action, recomputes its canonical digest, validates closed fields and active-generation facts, presents a bounded human summary, and asks for explicit approval. It never signs an opaque digest supplied by the Mac or server.
+The content-blind relay transports encrypted envelopes without source, Apple signing identity, or command authority. Initial pairing uses an encrypted, signed, one-use invitation. It finishes after the Mac accepts the proof and publishes an authenticated snapshot.
 
-## Pairing and revocation
+The Mac can rename or revoke a paired device. Revoked commands fail admission even if old ciphertext remains in transport.
 
-Initial pairing uses a signed, encrypted, one-use invitation that expires after two minutes. Pairing completes only after the Mac accepts the phone's proof and publishes an authenticated workspace snapshot.
+The visible iPhone app name is Menlo. Its `com.tohseno.companion` bundle identity, private data, DeviceKey, and pairing protocol retain continuity during upgrades.
 
-Settings on the Mac can rename and revoke paired devices. Revocation changes local authority first, increments its generation, and revokes both relay mailboxes. Future signed commands from that phone fail admission even if stale ciphertext remains in transport.
+## Historical public authority
 
-## Claim ritual
+The retained Registry path uses the non-exportable Builder DeviceKey for exact public actions. Companion recomputes structured digests before explicit approval. Historical Claim gestures become Claims only after canonical chain evidence.
 
-When Claims is operationally enabled, Companion centers the exact artifact and asks the person to draw one forgiving circle. The completed stroke is normalized, arc-length resampled to exactly 64 points, quantized into `tohseno.claim-mark/1`, and SHA-256 committed. Timing, force, motion, and behavioral biometrics are not retained. An accessible hold gesture emits a distinct canonical accessibility mark; it does not fabricate handwriting.
-
-A completed gesture is still not a Claim. Only canonical on-chain mint evidence changes the state to **Claimed**.
+Ordinary GitHub deploy and app acquisition require no Companion publication signature or Claim ritual. [Historical Registry rules](/guide/product/ship-claim-update/) remain separate.

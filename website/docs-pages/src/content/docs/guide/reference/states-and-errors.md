@@ -22,7 +22,11 @@ Historical internal names remain readable for compatibility. They do not restore
 
 Private commands move through durable received, validated, accepted/prepared, running or waiting-for-device, and terminal completion/rejection/failure records. A command receipt means durable Mac admission, not accepted software. Retry returns the stable command result when exact bytes match.
 
-## Public lifecycle
+## GitHub source and installation
+
+The app page can follow the latest default-branch head while a version link remains pinned. Downloaded, built, ready, and installed commits are separate. Installed advances only after intended-phone verification. Divergent history or unavailable comparison is never represented as an ordinary commits-behind count.
+
+## Historical Registry lifecycle
 
 | State | Canonical condition |
 | --- | --- |
@@ -48,6 +52,6 @@ Private commands move through durable received, validated, accepted/prepared, ru
 
 Errors preserve the exact last durable fact and should name one smallest next action without exposing private content.
 
-## Upload funding required
+## Historical Registry upload funding required
 
-After one sponsored upload, another upload stops before additional sponsored Registry gas is spent. The current message explains that ETH funding is required and funding setup is unavailable. Paid-wallet setup and its real address/Copy interface are unfinished; sending ETH to a BuilderAccount identity does not resolve this condition. See [current status](/guide/reference/current-status/).
+This does not apply to `menloapp deploy`. On the retained legacy path, after one sponsored upload, another upload stops before additional sponsored Registry gas is spent. The current message explains that ETH funding is required and funding setup is unavailable. Paid-wallet setup and its real address/Copy interface are unfinished; sending ETH to a BuilderAccount identity does not resolve this condition. See [current status](/guide/reference/current-status/).

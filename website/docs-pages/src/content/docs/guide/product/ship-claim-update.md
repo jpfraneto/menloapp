@@ -3,6 +3,11 @@ title: Ship, Claim, and Update
 description: The public lifecycle and why publication, encounter, preparation, and installation stay separate.
 ---
 
+:::note[Historical Registry path]
+This page describes retained Registry releases and the explicit `--legacy-registry` compatibility path. Ordinary GitHub distribution uses `menloapp deploy` and `menloapp try`, with no Registry gas, Claim, or Companion publication approval. [Use the current sharing guide](/guide/start/share-an-app/).
+:::
+
+
 ## Ship happens once
 
 The first accepted transition from a private/local candidate to a discoverable Shot is **Ship**. It produces exactly one `shot.shipped` event and an immutable `shipped_at` derived from canonical registration evidence.

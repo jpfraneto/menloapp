@@ -17,7 +17,7 @@ For generated Shots, deterministic gates also cover the source-tree and Fascia c
 
 ## Device resolution
 
-The system selects a physical target only when exactly one reachable CoreDevice iPhone is eligible. Zero devices becomes a truthful waiting state. More than one fails closed instead of selecting the first enumerated phone.
+A recorded intended-iPhone CoreDevice digest selects that phone only. USB and local-network reachability are observed transports to the same target. Another visible phone is never substituted. Older records without that selector require exactly one reachable eligible iPhone; ambiguity fails closed. Zero matching devices becomes a truthful waiting state.
 
 The person may need to:
 
@@ -47,6 +47,6 @@ The exact bundle must appear in the intended device inventory before status is *
 
 ## Recipient builds from the network
 
-A recipient independently verifies the public release, safely extracts source, and builds using their own Xcode development team. Menlo may derive a stable recipient-local bundle namespace through build-setting overrides when the original identifier cannot be registered; it does not silently rewrite downloaded source. Unsupported capabilities fail with an exact reason.
+On the GitHub path, a recipient checks the repository identity and selected full commit, reviews source, and builds using their own Xcode development team. Historical Registry releases additionally require their signed-catalog, source-archive, receipt, and witness verification. Menlo may derive a stable recipient-local bundle namespace through build-setting overrides when the original identifier cannot be registered; it does not silently rewrite downloaded source. Unsupported capabilities fail with an exact reason.
 
-Provisioning expiration remains visible. Refresh rebuilds and signs the same verified release with no AI call and no new Registry checkpoint.
+Provisioning expiration remains visible. Refresh rebuilds and signs the same verified source with no AI call; it does not publish a new version.

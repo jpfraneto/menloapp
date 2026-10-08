@@ -7,9 +7,9 @@ Use the app first. Pick one real point of friction, then describe the current an
 
 > The breathing circle stops without a signal. When the timer ends, give one soft haptic pulse and show “Done” for two seconds.
 
-## Send from Mac or Companion
+## Send from Mac or Menlo on iPhone
 
-Open the app and choose **What should change?** on the Mac, or **Evolve App** in the paired Companion. A request may contain text, on-device speech transcription, and up to eight PNG/JPEG references.
+Open the app and choose **What should change?** on the Mac, or **Evolve App** in paired Menlo on iPhone. A request may contain text, on-device speech transcription, and up to eight PNG/JPEG references.
 
 The signed Companion payload binds the stable project or Shot identity, current private source-state token or exact accepted base, request bytes, attachment blob references, originating device, timestamp, and optional follow-up relationship.
 
@@ -27,6 +27,6 @@ The transition permits one implementation invocation and at most one targeted re
 
 After the harness exits successfully, Menlo still requires a real Xcode build and signature verification. For a physical delivery, it installs through `xcrun devicectl`, then queries the phone's application inventory for the exact bundle identifier. Only that final observation is **Installed**.
 
-If the verified artifact is waiting for an unlocked, trusted, unique phone, status is **Ready to install**. Reconnecting the phone resumes from the artifact instead of rewriting the app.
+If the verified artifact is waiting for the unlocked, trusted, intended iPhone, status is **Ready to install**. Reconnecting the phone resumes from the artifact instead of rewriting the app.
 
 Next: understand the [product mental model](/guide/product/mental-model/) or the full [command lifecycle](/guide/architecture/command-lifecycle/).

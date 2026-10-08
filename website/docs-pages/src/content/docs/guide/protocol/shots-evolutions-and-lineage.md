@@ -3,6 +3,9 @@ title: Shots, Evolutions, and lineage
 description: The frozen record chain, additive coherent-intention lineage, exact bases, Genomes, Expressions, Versions, Organs, and Feedback.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 ## Frozen Shot records
 
 `tohseno.shot/1` begins at sequence `1` with `previous = null`. Every later record references the immediately preceding Evolution commitment. `bundle_version` equals `sequence`; ShotID, BuilderID, bundle ID, and Fascia identifier remain stable. Timestamps are exact UTC `YYYY-MM-DDTHH:MM:SSZ`.

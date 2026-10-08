@@ -3,6 +3,9 @@ title: Contract generation 0.8
 description: Reproducible contract definitions, active generation evidence, BuilderAccount, ShotRegistry v2, commit/reveal, and checkpoint sequencing.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 Generation 0.8.0 is the active client-trusted public-witness generation. It adds successor BuilderAccount and ShotRegistry behavior without rewriting frozen v0.7 encodings.
 
 ## Definition is not activation

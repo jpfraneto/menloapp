@@ -32,10 +32,13 @@ function assert(condition: unknown, message: string): asserts condition {
 const home = await readFile(join(distRoot, "index.html"), "utf8");
 assert(home.includes("Menlo documentation"), "docs home must use the current Menlo identity");
 assert(home.includes("Your GitHub app. On their iPhone."), "docs must lead with iOS distribution");
-assert(home.includes("No gas. No source upload."), "docs must explain GitHub distribution");
+assert(home.includes("menloapp deploy"), "docs must teach the published CLI command");
+assert(home.includes("npm i -g menloapp"), "docs must use the published npm package");
+assert(home.includes("exact-version"), "docs must explain version-preserving sharing");
 const statusPage = await readFile(join(distRoot, "guide/reference/current-status/index.html"), "utf8");
-assert(statusPage.includes("1.3.0-rc.1"), "current status must describe the published Menlo candidate");
-assert(statusPage.includes("not implemented yet"), "current status must disclose current notification limits");
+const cliPackage = JSON.parse(await readFile(join(projectRoot, "../../packages/cli/package.json"), "utf8"));
+assert(statusPage.includes(cliPackage.version), "current status must describe the current published CLI");
+assert(statusPage.includes("not implemented"), "current status must disclose current notification limits");
 assert(!statusPage.includes("Production Claims writes and the Claims relayer are disabled"), "retired availability snapshot must not ship");
 assert(home.includes("Start where you are"), "docs home must lead with the three useful paths");
 assert(home.includes("data-page-ai"), "docs home must include the page-level AI handoff");
@@ -44,7 +47,17 @@ assert(!home.includes('href="/docs.css"'), "the retired tutorial stylesheet must
 assert(!home.includes('src="/docs.js"'), "the retired tutorial script must not ship");
 
 const guideFiles = (await htmlFiles(join(distRoot, "guide"))).filter((path) => path.endsWith("index.html"));
-assert(guideFiles.length === 40, `expected 40 documentation pages, found ${guideFiles.length}`);
+assert(guideFiles.length === 43, `expected 43 documentation pages, found ${guideFiles.length}`);
+const onboarding = await readFile(join(distRoot, "guide/start/install-and-onboard/index.html"), "utf8");
+assert(onboarding.includes("optional afterward"), "app-first onboarding must keep Menlo on iPhone optional");
+assert(onboarding.includes("menloapp setup"), "fresh-start setup must use the current launcher");
+const reviews = await readFile(join(distRoot, "guide/security/source-reviews/index.html"), "utf8");
+assert(reviews.includes("no inherited reviews"), "source reviews must not inherit across versions");
+assert(reviews.includes("never authorizes a recipient build"), "reviews must preserve local build consent");
+const legacy = await readFile(join(distRoot, "guide/product/ship-claim-update/index.html"), "utf8");
+assert(legacy.includes("Historical Registry path"), "legacy publication must be visibly scoped");
+const aiCorpus = await readFile(join(distRoot, "llms-full.txt"), "utf8");
+assert(aiCorpus.includes("ADR 0043") && aiCorpus.includes("ADR 0044"), "AI feed must include current onboarding and review authority");
 assert(await exists(join(distRoot, "pagefind", "pagefind.js")), "Pagefind search index is missing");
 assert(await exists(join(distRoot, "sitemap-index.xml")), "sitemap is missing");
 assert(await exists(join(distRoot, "llms.txt")), "AI-readable documentation index is missing");
@@ -63,6 +76,9 @@ for (const member of ["mac", "ledger", "echo-dot", "orbit", "tink", "ione", "com
 const allHtml = await htmlFiles(distRoot);
 for (const file of allHtml) {
   const content = await readFile(file, "utf8");
+  assert(!content.includes("github.com/jpfraneto/tohseno"), `obsolete repository URL in ${file}`);
+  assert(!content.includes("menlo deploy"), `obsolete consumer command in ${file}`);
+  assert(!content.includes("1.3.0-rc.1"), `obsolete preview instructions in ${file}`);
   for (const match of content.matchAll(/href="(\/[^"]*)"/g)) {
     const href = match[1].split("#", 1)[0].split("?", 1)[0];
     if (!href || href.startsWith("/_astro/") || href.startsWith("/pagefind/")) continue;
@@ -72,6 +88,11 @@ for (const file of allHtml) {
     }
     const target = href === "/" ? join(distRoot, "index.html") : join(distRoot, href, "index.html");
     assert(await exists(target), `broken internal link ${href} in ${file}`);
+    const fragment = match[1].split("#")[1];
+    if (fragment) {
+      const targetContent = await readFile(target, "utf8");
+      assert(targetContent.includes(`id="${decodeURIComponent(fragment)}"`), `broken anchor ${match[1]} in ${file}`);
+    }
   }
 }
 

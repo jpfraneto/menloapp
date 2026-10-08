@@ -3,11 +3,16 @@ title: Person-to-person network
 description: How source is deliberately shipped, independently verified, locally signed, installed, and forked.
 ---
 
+:::note[Historical Registry path]
+This page describes retained Registry releases and the explicit `--legacy-registry` compatibility path. Ordinary GitHub distribution uses `menloapp deploy` and `menloapp try`, with no Registry gas, Claim, or Companion publication approval. [Use the current sharing guide](/guide/start/share-an-app/).
+:::
+
+
 The network moves native software as inspectable source plus narrow public evidence. It skips App Store submission and review for this direct path; it does not skip Xcode, Apple signing, provisioning, Trust, Developer Mode, or physical device verification.
 
 ## Publish deliberately
 
-`tohseno init [path]` non-destructively prepares an ordinary Xcode project as a public candidate with a stable random ShotID. `tohseno deploy` is the explicit Ship/Update command. Private creation and evolution do not publish automatically.
+`tohseno init [path]` non-destructively prepares an ordinary Xcode project as a public candidate with a stable random ShotID. `tohseno deploy --legacy-registry` is the explicit historical Ship/Update command. Private creation and evolution do not publish automatically.
 
 The Mac creates a deterministic sanitized snapshot in a temporary owner-only directory. It excludes VCS internals, build output, DerivedData, user data, caches, environment files, private Menlo state, pairing/log state, Apple signing material, and known secrets. `.gitignore` is not used as the security boundary.
 

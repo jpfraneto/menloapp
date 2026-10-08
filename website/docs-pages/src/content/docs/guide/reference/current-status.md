@@ -1,26 +1,34 @@
 ---
-title: Current status
-description: GitHub distribution is in preview; published artifacts, working paths, and remaining human acceptance.
+title: Current availability
+description: Published CLI and website evidence, native artifact limits, and what still needs physical acceptance.
 ---
 
-Checked September 16, 2026. [Live directory status](https://tohseno.com/api/menlo/v1/status) and [Mac download metadata](https://tohseno.com/api/distribution/v1/macos) show current service configuration.
+Checked October 8, 2026, against the repository’s [evidence record](https://github.com/jpfraneto/menloapp/blob/main/docs/STATE.md). [Live directory status](https://menloapp.lol/api/menlo/v1/status) and [Mac download metadata](https://menloapp.lol/api/distribution/v1/macos) expose current service configuration.
 
-## GitHub distribution preview
+## Published CLI and website
 
-MENLO registers public GitHub apps without gas or another source upload. The real [Hello from MENLO](https://tohseno.com/hello-menlo) link was created with the packed CLI. A subsequent GitHub push changed the live head and produced a one-commit comparison without another deploy.
+**`menloapp` 1.6.0 is published on npm.** A fresh registry installation and deploy/review help checks passed. Use `npm i -g menloapp`; the former preview tarball and `tohseno` npm instructions are obsolete for new installations.
 
-The candidate client fetched that live source, verified it, built with Xcode, and signed locally. An isolated workspace with no paired phone stopped at **ready for iPhone**, with no installed-commit record. Physical installation and an on-device update still require human acceptance.
+The live website serves public GitHub app listings, exact-version handoffs, sharing controls, and generated share cards. Live checks passed for version identity, historical version selection, malformed-version rejection, browser review sign-in availability, and rejection of anonymous review writes. The signed native runtime manifest remained unchanged during that website deployment.
 
-## Published clients
+Deploy returns a final version link after generated metadata is pushed. `try` preserves the full commit and numeric repository identity. Browser and CLI source recommendations bind one commit and build recipe and have no inheritance across versions.
 
-[1.3.0-rc.1](https://github.com/jpfraneto/tohseno/releases/tag/v1.3.0-rc.1) contains the universal Mac app (build 10012), signed native CLI archives, and the small 1.3.0 npm preview package. App and DMG were signed, notarized, stapled, and Gatekeeper-verified. Public download bytes matched their SHA-256 pins.
+## Mac and iPhone releases are separate
 
-The npm registry login needs owner renewal; `npm i -g tohseno` still selects the earlier release until publication. Use the [preview command](/guide/start/install-and-onboard/). GitHub device authorization awaits the operator's Client ID; an existing `gh auth login` session works now. A dedicated server read token is also needed before expanding beyond GitHub's unauthenticated rate limits.
+The live Mac download currently selects **1.3.0-rc.2, build 10013**, a release candidate requiring macOS 14 or newer. The download metadata identifies its exact pinned HTTPS artifact and SHA-256. npm or website publication does not update that artifact. September’s native Settings, sign-in, and icon improvements were locally verified; the evidence record explicitly says the public Mac bundle was not replaced by those local UI builds.
+
+The owner’s intended iPhone has a locally built Menlo installation recorded through CoreDevice inventory. That is separate from a clean-Mac recipient completing the entire public download, source review, local signing, and intended-iPhone path.
+
+## Remaining observations
+
+No real source recommendation was published during the October 8 verification. Desktop/mobile interaction acceptance, X’s actual rendered card, and another person’s physical iPhone installation remain separate, unobserved acceptance facts. A passing test or served page cannot substitute for them.
 
 ## Current limits
 
-Public repositories first. Xcode projects, dependencies, signing capabilities, and intended-phone setup must be compatible. The awake Mac checks updates about every five minutes; Companion syncs while active. Background APNs delivery is not implemented yet.
+Public repositories only. Recipients need compatible Xcode projects, dependencies, capabilities, and Apple provisioning. Local edits are preserved. The awake Mac checks updates; the iPhone client syncs while active. Background APNs update notifications are not implemented.
+
+Menlo on iPhone and private pairing are required for fresh-start intent creation, and optional for trying a linked app. Managed inference remains a separately gated route; local or bring-your-own coding does not require a Menlo subscription.
 
 ## Historical Registry
 
-The earlier generation-0.8 Registry and Claims services retain their signatures, receipts, and exact-release semantics. Their sponsored-upload and ETH-funding rules apply only to the explicit legacy path. GitHub deploy does not use them. Centralized discovery and an off-chain ledger are the current choice; decentralized witnessing can return in v1/v2 when useful.
+Generation-0.8 Registry and Claims records retain their own exact-release verification and authority. They are outside ordinary GitHub distribution. GitHub deploy requires no Registry gas, Claim, or Companion publication approval. Historical pages describe those mechanisms rather than promising current write availability.

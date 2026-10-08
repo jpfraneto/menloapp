@@ -17,7 +17,8 @@ Default paths are shown. Tests override them with isolated roots.
 | Generated app source/history | normally `~/Desktop/Tohseno/<app>/` | engine + owner |
 | Generated execution | `<app>/.tohseno/executions/<execution-id>/` | application + engine |
 | Adopted-project records | `~/.tohseno/service/living-projects-v1/` | workspace service |
-| Recipient network source | normally `~/Developer/Tohseno/` | workspace service + owner |
+| GitHub recipient source | `~/Developer/Menlo/<slug>-<repository-id>/<commit>/` | workspace service + owner |
+| Historical network source | normally `~/Developer/Tohseno/` | workspace service + owner |
 | Installed factory releases | `~/.tohseno/releases/`, `current`, `bin/` | installer/native app |
 | Intelligence selection | `~/.tohseno/service/intelligence-v1.json` + optional Keychain refs | workspace service |
 | Publication jobs | `~/.tohseno/service/network-publications-v1/` | Mac + Companion approvals |
@@ -25,6 +26,10 @@ Default paths are shown. Tests override them with isolated roots.
 | Public catalog, indexes, upload staging, jobs, profiles, aliases | configured `REGISTRY_ROOT` | Registry service |
 | Immutable public source/icon blobs | `REGISTRY_ROOT/blobs/sha256` in filesystem mode or private Cloudflare R2 `sha256/<digest>` objects in R2 mode | Registry blob store |
 | Claims index and relayer jobs | configured durable Registry root | Claims service |
+
+## GitHub registration and recipient state
+
+The public directory persists `github-apps.sqlite` under its configured durable root, with append-only registration and source-review/withdrawal records. GitHub access tokens are not persisted there. Browser review sessions live briefly in process memory. The Mac keeps selected, downloaded, built, and installed commits separately within its local project/library state. These are distinct from historical Registry publication jobs.
 
 ## Permissions and write discipline
 

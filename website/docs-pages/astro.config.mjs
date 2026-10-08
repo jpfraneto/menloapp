@@ -16,13 +16,13 @@ export default defineConfig({
       },
       editLink: {
         baseUrl:
-          "https://github.com/jpfraneto/tohseno/edit/main/website/docs-pages/src/content/docs/",
+          "https://github.com/jpfraneto/menloapp/edit/main/website/docs-pages/src/content/docs/",
       },
       social: [
         {
           icon: "github",
           label: "Menlo on GitHub",
-          href: "https://github.com/jpfraneto/tohseno",
+          href: "https://github.com/jpfraneto/menloapp",
         },
       ],
       head: [
@@ -39,7 +39,7 @@ export default defineConfig({
           tag: "meta",
           attrs: {
             property: "og:image",
-            content: "https://tohseno.com/menlo/hero-sharing.png?v=1",
+            content: "https://menloapp.lol/menlo/hero-sharing.png?v=1",
           },
         },
         {
@@ -56,10 +56,13 @@ export default defineConfig({
             "guide/start/what-is-tohseno",
             "guide/start/requirements",
             "guide/start/install-and-onboard",
+            "guide/start/share-an-app",
+            "guide/product/app-listing",
+            "guide/security/source-reviews",
           ],
         },
         {
-          label: "Build & evolve",
+          label: "Create & evolve",
           items: [
             "guide/start/create-an-app",
             "guide/start/adopt-an-app",
@@ -92,7 +95,7 @@ export default defineConfig({
           ],
         },
         {
-          label: "Protocol",
+          label: "Protocol reference",
           collapsed: true,
           items: [
             "guide/protocol/authority-and-scope",

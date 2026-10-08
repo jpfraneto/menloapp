@@ -3,6 +3,9 @@ title: Public witness and Claims
 description: The ancestry-free public checkpoint, signed catalog, additive Claims contract, exact actions, and non-transferable receipt.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 ## Public checkpoint
 
 `tohseno.public-checkpoint/1` is a narrow ancestry-free projection containing only fixed protocol/schema/scope, generation/chain/Registry coordinates, random ShotID, witness-local sequence, prior public checkpoint, and canonical publication time.

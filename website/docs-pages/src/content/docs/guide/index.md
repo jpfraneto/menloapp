@@ -1,21 +1,21 @@
 ---
-title: Menlo documentation
-description: GitHub identity, living app links, local Xcode builds, and practical feedback.
+title: Menlo guide
+description: Choose the path for sharing an existing app, trying a link, or creating from an idea.
 ---
 
-MENLO connects a public GitHub iOS app to a link someone can use to try it on their iPhone.
-
-- [Deploy or try an app](/guide/start/install-and-onboard/)
-- [Requirements for makers and testers](/guide/start/requirements/)
+- [Share an existing app](/guide/start/share-an-app/)
+- [Try a linked app or start from scratch](/guide/start/install-and-onboard/)
+- [Requirements](/guide/start/requirements/)
+- [Customize the listing and preview](/guide/product/app-listing/)
+- [Review a specific version](/guide/security/source-reviews/)
 - [Current availability](/guide/reference/current-status/)
-- [Create or evolve your own source](/guide/start/evolve-an-app/)
 
 ```text
-GitHub repo → menlo deploy → app link
-    → recipient reviews commit → their Mac builds and signs → intended iPhone
-GitHub push → commits-behind notice → explicit Update → same app on their phone
+Public GitHub app → menloapp deploy → share a version link
+    → recipient reviews source → their Mac builds and signs → intended iPhone
+GitHub push → update available → explicit Update → same app on their phone
 ```
 
-GitHub is the identity and version-control system. MENLO's directory and registration ledger are centralized today; decentralized witnessing is a future choice when useful. The protocol and historical Registry documentation describe their retained boundaries, not prerequisites for GitHub distribution.
+GitHub supplies public identity and source. Menlo runs a centralized directory and append-only registration ledger. The Mac is the build machine for both received apps and private intent-driven creation.
 
-Repository authority: frozen bytes in `protocol/`, accepted decisions in `docs/adr/` (especially ADR 0040), and current evidence in `docs/STATE.md`.
+These are explanatory guides. [Repository authority](/guide/reference/source-of-truth/) defines the product and protocol boundaries.

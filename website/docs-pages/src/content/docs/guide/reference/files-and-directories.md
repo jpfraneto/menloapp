@@ -3,6 +3,10 @@ title: Files and directories
 description: A reference for owner-visible apps, app-local records, service state, native releases, relay data, and public service roots.
 ---
 
+## Public listing source
+
+`<repository>/menloapp/app.json` selects public copy and media. Referenced icons, screenshots, previews, and share artwork are ordinary committed files inside `menloapp/`. The directory reads them from the displayed commit. Its configured durable root contains `github-apps.sqlite`, including append-only registration and review history.
+
 ## Owner-visible source
 
 | Path | Contents |
@@ -11,7 +15,8 @@ description: A reference for owner-visible apps, app-local records, service stat
 | `<app>/.tohseno/` | Integral generated-Shot identity, history and execution boundary |
 | `<app>/.tohseno/TASK.md` | Private exact task packet for one harness execution |
 | `<app>/.tohseno/executions/<execution-id>/` | Prepared identity, events, logs, completion and private receipt |
-| `~/Developer/Tohseno/` | Default visible source for verified network imports/forks |
+| `~/Developer/Menlo/<slug>-<repository-id>/<commit>/` | Exact GitHub recipient checkout |
+| `~/Developer/Tohseno/` | Retained historical network imports/forks |
 | existing project path | Adopted source; Menlo does not add or move repository files |
 
 `.tohseno/` is never blanket-ignored. Exact private and transient children are ignored explicitly. Source-tree commitments exclude the directory under their separate hashing law.

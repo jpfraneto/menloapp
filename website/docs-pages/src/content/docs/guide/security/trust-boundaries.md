@@ -1,40 +1,38 @@
 ---
 title: Trust boundaries
-description: What the phone, Mac, relay, Registry, contracts, coding agent, and Apple each control.
+description: GitHub identity, recipient consent, local Apple authority, and the separate historical protocol.
 ---
 
-Security comes from keeping responsibilities narrow.
+## GitHub and the directory
 
-## Human and phone
+Deploy proves the authenticated GitHub account has push access. Numeric user, owner, and repository IDs anchor identity. The directory stores the registration and recipe in a persistent append-only ledger. It is a centralized service, not an on-chain witness.
 
-Companion proves possession of private pairing keys for private commands and the Builder DeviceKey for public Builder/Claim actions. The DeviceKey private scalar stays in the strongest compatible non-exportable, this-device-only Keychain/Secure Enclave mechanism. Test software keys must be visibly local/test-only.
+The recipient independently checks repository identity and the selected full commit. A URL alone is never build consent. Changing the link’s commit or repository changes what must be verified.
 
-The phone authorizes exact structured actions. It does not prove the Mac built what it claimed or that the chain accepted a transaction.
+## Human source recommendations
 
-## Mac
+The directory verifies the reviewer’s GitHub account and binds the statement to a commit, project, scheme, and scopes. It does not prove the review occurred or certify safety. Maker reviews are labeled, and newer source or a changed recipe gets no inherited review. Review tokens are consumed for identity verification and not persisted in public records or the database.
 
-The Mac owns execution truth: source observed before and after work, harness selection, build outputs, code signature, device selection, installation command, bundle inventory, local history, and publication snapshot. It does not possess the Builder DeviceKey and cannot authorize public publication by itself.
+[Source reviews](/guide/security/source-reviews/) do not authorize another person’s build.
 
-## Coding harness
+## Recipient Mac and Apple
 
-The harness is an untrusted source mutator operating within one bounded request. Its output earns nothing until deterministic engine and Apple gates pass. It receives private intent and necessary local context, so its configured provider route is a real privacy boundary.
+The Mac owns checkout, source classification, local build consent, Xcode execution, code-signature checks, intended-device selection, and installation observation. Apple credentials and signing authority stay with the recipient’s Xcode environment.
 
-## Relay
+Another reachable phone is never substituted for the intended target. Build or signature success cannot replace physical bundle inventory evidence. Apple provisioning and Developer Mode remain authoritative.
 
-The Companion relay sees mailbox/device routing IDs, opaque ciphertext sizes, timestamps, sequence and cursor metadata. It cannot decrypt commands, grant a capability, resolve a Shot, or execute work. APNs, when configured, is only a content-free wake hint.
+## Phone and private relay
 
-## Registry service
+Menlo on iPhone signs private commands under its pairing grant and persists an encrypted outbox. The relay transports ciphertext and routing metadata; it cannot decrypt requests, admit commands, or execute source. Revocation prevents future admission.
 
-The service stores catalog manifests, blobs, indexes and constrained transaction jobs. It can transport public source and submit allowlisted calls. It cannot sign as Builder or claimant. Its database is reconstructable index state, not public authority.
+The coding harness is an untrusted source mutator within a bounded request. It receives necessary private context through the configured route. Its successful exit alone earns no accepted app state.
 
-## Contracts and chain
+## Historical Registry authority
 
-BuilderAccount establishes live public action authority. ShotRegistry witnesses only controller, public checkpoint head, checkpoint count and nonce. `TohsenoClaimsV1` stores immutable edition and Claim facts. Contracts do not know local source paths, private intentions, Apple identities, devices, installations, or human uniqueness.
+On the retained Registry path, the non-exportable Builder DeviceKey authorizes exact structured public actions. The Mac does not possess it. The service submits constrained allowlisted calls; canonical chain evidence, signed manifests, and exact bytes must agree. Claims remain distinct from installation.
 
-## Apple
+This authority is not imposed on ordinary GitHub deploy. GitHub reviews never impersonate DeviceKey-signed attestations or canonical Registry receipts.
 
-Xcode, certificates, provisioning, Trust, Developer Mode, CoreDevice and iOS installation remain an external security boundary. A Menlo Claim or Registry receipt cannot replace them.
+## Browser intention compatibility
 
-## Website handoff
-
-A Browser Draft, Pending Relay Intention, and Local Pending Intention are transport states. None is a Shot. Production handoff stays closed unless the exact release and installer pin are verified.
+Browser Draft, Pending Relay Intention, and Local Pending Intention are transport states, never Shots. Their retained production handoff requires the matching release and verified installer pin.

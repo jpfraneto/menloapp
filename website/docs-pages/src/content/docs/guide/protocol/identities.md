@@ -3,6 +3,9 @@ title: Identities and keys
 description: BuilderID, DeviceKey, recovery, InstallationKey, ShotID, ExpressionID, and the identities that must stay distinct.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 ## Protocol authorities
 
 | Identity | Definition | Purpose |

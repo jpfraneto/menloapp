@@ -1,7 +1,26 @@
 ---
 title: Glossary
-description: Product, architecture, protocol, network, Apple, and release terms used throughout Tohseno.
+description: Product, architecture, protocol, network, Apple, and release terms used throughout Menlo and its retained protocol.
 ---
+
+## Current GitHub product terms
+
+**App link** — Stable directory URL that follows a public repository’s default branch.
+
+**Version link** — App URL pinned to a full Git commit and numeric repository ID.
+
+**Deploy** — Authenticated public GitHub app registration; no Registry gas, Claim, or Companion signature.
+
+**Source review** — A verified GitHub account’s explicit recommendation of one commit and Xcode recipe; not a safety verdict or build consent.
+
+**Menlo on iPhone** — Private intent client for the one Mac factory, retaining the technical Companion bundle identity.
+
+**Installed commit** — Selected source recorded as installed only after verification on the intended physical iPhone.
+
+## Private factory and historical protocol terms
+
+The following terms retain their specific scope. A GitHub registration is not a Shot/Ship, and a GitHub source review is not a DeviceKey Release Attestation.
+
 
 **Accepted Version** — An immutable expression state whose exact verification and required delivery gates passed.
 
@@ -25,7 +44,7 @@ description: Product, architecture, protocol, network, Apple, and release terms 
 
 **Command** — Stable idempotent private request admitted and journaled before semantic work.
 
-**Companion** — iPhone product for private remote requests and human authorization of exact public actions.
+**Companion** — Retained technical name for Menlo on iPhone and its private SDK; on the historical Registry path it also authorizes exact public actions.
 
 **Conformance** — Fail-closed offline result where every applicable exact check passes.
 
@@ -73,7 +92,7 @@ description: Product, architecture, protocol, network, Apple, and release terms 
 
 **State Transition Receipt** — Private per-execution report of preserved intent, route/usage and deterministic gate outcomes.
 
-**Update** — Any public release after the Shot's one Ship.
+**Update** — In GitHub distribution, an explicitly selected newer source commit for local installation. In the historical Registry, any public release after a Shot’s one Ship.
 
 **Updates** — Private high-signal inbox, distinct from a public `shot.updated` event.
 

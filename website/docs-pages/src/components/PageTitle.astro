@@ -82,10 +82,11 @@ const { entry } = Astro.locals.starlightRoute;
 const guide = guideForPath(path);
 const title = entry.data.title;
 const description = String(entry.data.description ?? "A practical part of the Menlo story.");
+const historicalPath = /\/guide\/(?:product\/(?:registry|ship-claim-update)|architecture\/person-to-person-network|protocol\/)/.test(path);
 ---
 
 <h1 id="_top">{title}</h1>
-<p class="distribution-note">MENLO now deploys from GitHub. <a href="/guide/start/install-and-onboard/">Use the current distribution guide</a>. Registry, Ship, and Claim pages describe the retained legacy path.</p>
+{historicalPath && <p class="distribution-note">Retained protocol and historical Registry reference. <a href="/guide/start/share-an-app/">Use the current GitHub sharing guide</a> for ordinary app distribution.</p>}
 
 <div class="page-intro">
   <div class="guide-note">

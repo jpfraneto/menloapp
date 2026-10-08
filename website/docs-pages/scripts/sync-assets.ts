@@ -47,7 +47,7 @@ const docs = await Promise.all(
 const llmsIndex = [
   "# Menlo documentation",
   "",
-  "> MENLO distributes public GitHub iOS apps: deploy once, share a link, build and sign on the recipient Mac. GitHub is identity and version control; the current directory and ledger are centralized. ADR 0040 supersedes chain-based consumer onboarding. Registry, Ship, and Claim pages describe the retained legacy path.",
+  "> Menlo distributes public GitHub iOS apps with menloapp deploy and menloapp try. Share an exact-version link; the recipient reviews source and builds/signs on their own Mac for their intended iPhone. ADR 0040 defines GitHub distribution, ADR 0043 defines app-first versus fresh-start setup, and ADR 0044 defines version links and non-inheriting GitHub source reviews. The directory is centralized. Registry, Ship, and Claim pages describe the retained legacy path.",
   "",
   "This index is generated from the same public Markdown used by the human-readable site.",
   "For a single model-ready corpus, use https://docs.tohseno.com/llms-full.txt.",
@@ -61,7 +61,7 @@ const llmsIndex = [
   "",
 ].join("\n");
 
-const llmsFull = "# Current distribution authority\n\nADR 0040 (2026-09-16): MENLO uses GitHub identity, public repositories, an off-chain directory, exact-commit local builds, and intended-iPhone installation. No gas, Claim, or Companion publication approval is required on this path. Start with /guide/start/install-and-onboard/. Registry, Ship, and Claim material below describes the retained legacy system.\n\n" + docs
+const llmsFull = "# Current distribution authority\n\nADR 0040: Menlo uses GitHub identity, public repositories, and an off-chain directory. Install with npm i -g menloapp; share with menloapp deploy; receive with menloapp try <link>. ADR 0043: fresh-start setup installs and pairs Menlo on iPhone; trying a linked app installs that app first, with Menlo on iPhone optional afterward. ADR 0044: exact-version links preserve the full commit and numeric repository ID; GitHub source recommendations bind one commit/build recipe and never inherit or replace recipient consent. The recipient Mac builds and signs for the intended iPhone. No gas, Claim, or Companion publication approval is required on this path. Start with /guide/start/share-an-app/ or /guide/start/install-and-onboard/. Registry, Ship, and Claim material below describes the retained legacy system.\n\n" + docs
   .map(
     ({ title, route, body }) =>
       `# ${title}\n\nSource: https://docs.tohseno.com${route}\n\n${body}\n`,

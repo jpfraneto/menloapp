@@ -3,6 +3,9 @@ title: Deterministic conformance
 description: What must be checked before a Tohseno artifact, action, generation, or lineage can be called conformant.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 Conformance is offline and fail-closed. It never asks an LLM to infer protocol meaning from prose. A `tohseno.conformance/1` report is conformant only when every applicable check passes; `fail` and `not_checked` both prevent conformance.
 
 ## Local Evolution checks
@@ -37,4 +40,4 @@ The reducer verifies payload/action digests, signatures, adjacency, actor author
 
 Frozen JSON vectors make cross-language behavior testable. Vector generators write to standard output; committed files change only through a deliberate new version or accepted protocol change. Mutation tests cover duplicate JSON, bad lengths, changed bytes, high-s signatures, wrong domains, stale links, and other fail-closed cases.
 
-See the exact [protocol conformance source](https://github.com/jpfraneto/tohseno/blob/main/protocol/CONFORMANCE.md).
+See the exact [protocol conformance source](https://github.com/jpfraneto/menloapp/blob/main/protocol/CONFORMANCE.md).

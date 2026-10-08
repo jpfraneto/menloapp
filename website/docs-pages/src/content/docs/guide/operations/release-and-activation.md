@@ -5,6 +5,10 @@ description: The integrity requirements for a public artifact and the separate a
 
 Source completeness is not release evidence.
 
+## Deploying an app on GitHub
+
+`menloapp deploy` registers the public repository, recipe, and app link. Later pushes need no new Menlo publication. Recipient action selects exact source and retains local consent/signing/device checks. It does not produce a notarized Mac distribution artifact or activate a contract.
+
 ## Native Mac release
 
 A distributable candidate requires:

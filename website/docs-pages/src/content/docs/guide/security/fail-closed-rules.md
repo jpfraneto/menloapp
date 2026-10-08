@@ -8,7 +8,7 @@ description: Conditions that stop Menlo instead of guessing, bypassing, or manuf
 | Stable DMG URL/digest unavailable | Keep download unavailable; do not bypass Gatekeeper |
 | Xcode/account/license incomplete | Ask for the Apple-controlled action |
 | Zero reachable phones | Keep verified artifact Ready to install |
-| Multiple reachable phones | Refuse selection; ask to disconnect ambiguity |
+| Intended iPhone is absent or cannot be resolved | Wait; never substitute another phone. Older unassociated records require one eligible target |
 | Phone locked, untrusted, Developer Mode off | Name the smallest action and wait |
 | Coding harness missing or unauthenticated | Refuse implementation; never switch secretly |
 | Command ID reused with different bytes | Conflict; never mutate the accepted command |
@@ -19,7 +19,10 @@ description: Conditions that stop Menlo instead of guessing, bypassing, or manuf
 | Public archive has unsafe path/link/secret | Refuse publication or extraction |
 | Source requires review | Wait for explicit review; do not auto-build |
 | Unsupported capability | Refuse build and name the reason |
-| Catalog, receipt, head, activation, runtime, or bytes disagree | Refuse Claim/Install/Fork/public verification |
+| GitHub commit or numeric repository identity disagrees | Refuse selected-version installation |
+| New commit or changed build recipe | No inherited source recommendation |
+| Review sign-in absent or expired | Refuse public review writes |
+| Historical catalog, receipt, head, activation, runtime, or bytes disagree | Refuse Claim/Install/Fork/public verification |
 | Pending transaction | Keep pending; never report Shipped, Updated, or Claimed |
 | Claim head becomes stale or edition closes | Contract/action fails; no reservation fiction |
 | Managed balance reservation fails | Do not call provider or spend |

@@ -1,46 +1,39 @@
 ---
 title: Architecture overview
-description: Components, responsibilities, and the boundaries between private execution and public witnessing.
+description: GitHub distribution and private intent execution share one Mac build and delivery boundary.
 ---
 
-Menlo is one product made from several narrow components. Each owns one kind of truth.
+## GitHub distribution
 
-## Runtime components
-
-| Component | Responsibility | Must not do |
-| --- | --- | --- |
-| `Tohseno.app` | Native Mac navigation and product state | Implement a second factory |
-| Local Workspace Service | Authenticate local clients, own journals, recover and reconcile work | Bind publicly or treat UI memory as authority |
-| Application service | Admission, idempotency, factory lease, detached execution | Invent protocol history |
-| Engine | Source lifecycle, bounded harness, deterministic gates, accepted history | Treat an agent result as accepted by itself |
-| Menlo Companion | Private remote requests and human authorization | Hand DeviceKey secrets to Mac/server |
-| Companion relay | Durable opaque mailbox transport | Decrypt or authorize commands |
-| Registry service | Signed catalog, indexes, constrained transaction jobs | Become chain authority or a generic wallet |
-| Protocol crate | Exact bytes, records, digests, signatures, reducers, conformance types | Depend on UI, Apple, RPC, harness, or global filesystem policy |
-| Contracts | Builder authorization, narrow Shot witness, additive Claims receipts | Store prompts, repositories, installs, prices, or private app data |
-
-## Three planes
-
-**Private execution plane:** Companion, encrypted relay, Mac service, local source, coding harness, Xcode, and the physical phone.
-
-**Public evidence plane:** Companion-approved catalog release, content-addressed source, active generation-0.8 BuilderAccount and ShotRegistry, transaction receipt, and current head.
-
-**Additive Claim plane:** separately activated `TohsenoClaimsV1`, exact Claim action, non-transferable receipt, and Claim index.
-
-The planes meet through exact digests and signatures, not shared mutable trust. A server can transport source and transactions but cannot impersonate a Builder. The Mac can build but cannot authorize a public Builder action. The Companion can authorize but does not execute Xcode. The chain can witness public state but cannot prove a private installation.
-
-## One causal path
+| Component | Responsibility |
+| --- | --- |
+| `menloapp` npm launcher | Deploy, try, review, setup, and verified native-runtime entry |
+| GitHub | Public identity, push-access evidence, repository identity, source commits and comparison |
+| Menlo directory | Persistent app registration, build recipe, append-only registration/review history, listings and selected media |
+| App page | Source and version review, sharing, source recommendations, and Mac handoff |
+| Menlo.app and Local Workspace Service | Exact-source retrieval, local consent, Xcode build/sign, durable library and intended-iPhone delivery |
+| Menlo on iPhone | Optional private remote for the same Mac; required by fresh-start intent setup |
 
 ```text
-request persisted
-  → delivered as opaque ciphertext
-  → authenticated and admitted on Mac
-  → one stable execution prepared
-  → bounded harness changes source
-  → deterministic gates verify candidate
-  → recipient-local Apple signing
-  → physical install and bundle inventory observation
-  → accepted history and durable receipts
+public repo → authenticated registration → app/version link
+    → selected commit and recipe → recipient consent
+    → verified checkout → Xcode and local signing → intended iPhone inventory
 ```
 
-Every arrow is a separate failure and recovery boundary. This is why Menlo can say where work stopped without rewriting the meaning of success.
+The directory stores registrations, not GitHub user tokens. It is centralized and uses GitHub’s independently checked numeric identity and source facts. A version link must preserve both commit and repository identity. Source reviews identify a GitHub account and one recipe/commit; they do not confer execution authority.
+
+## Private intent execution
+
+Menlo on iPhone persists a signed request and encrypted outbox. The content-blind relay transports it. The Mac authenticates and durably admits it, binds the exact base, and runs the configured bounded coding harness. Deterministic build, signing, device, and installation gates follow. Closing a UI or losing the cable does not redefine durable state.
+
+The native app, CLI, and private phone client converge on one application service and factory. [The command lifecycle](/guide/architecture/command-lifecycle/) explains that private path; it is not a prerequisite for deploying a public GitHub app.
+
+## Retained protocol and historical network
+
+The pure protocol crate still defines exact records, digests, signatures, reducers, and conformance. Generation-0.8 contracts, DeviceKey-signed catalog releases, and separately activated Claims retain their historical semantics. The public Registry database remains an index rather than chain authority.
+
+These mechanisms do not become GitHub registration, GitHub source reviews, or physical installation evidence. See the [historical person-to-person network](/guide/architecture/person-to-person-network/).
+
+## Separate evidence
+
+Retrieved source, build output, signature verification, and phone inventory are distinct observations. A recommendation is human judgment; a Simulator capture is presentation; a public page is not installation. The Mac remains the one Apple build boundary.

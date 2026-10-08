@@ -1,43 +1,34 @@
 ---
 title: Private and public data
-description: The default privacy boundary and the exact information deliberately made public by Ship and Claim.
+description: What GitHub deployment and source reviews disclose, and what stays local or encrypted.
 ---
 
-Private is the default.
+## Public GitHub distribution
 
-## Stays private
+Sharing uses a public repository. Its source and Git history are already public, including anything you committed accidentally. Menlo does not make a private repository public on your behalf or sanitize its entire history.
 
-- Raw intentions, prompts, feedback, reference images, private lineage and local activity.
-- Absolute source paths, dirty working-tree details, harness logs and execution receipts.
-- Phone and Mac pairing secrets, mailbox capabilities, recovery words, DeviceKey private material and InstallationKey private material.
-- Apple Account credentials, signing private keys, provisioning profiles, certificate material, team and physical installation evidence.
-- Device names, IP addresses, private app data, local Follow preferences and Updates read state.
-- Managed provider secrets, operator tokens, payment credentials and private balance authorization.
+The directory exposes the verified maker/repository identity, app link, registered Xcode recipe, selected commit, and listing metadata. Selected media in `menloapp/` are public. Deploy authorizes publishing the metadata and preview assets it generates and pushes.
 
-An exact intention may be disclosed to the configured coding route because implementation requires it. That is a chosen execution boundary, not publication.
+GitHub source reviews publish the reviewer’s verified GitHub identity, commit, recipe, statement, scopes, notes, and timestamp. Withdrawals preserve history. Do not put credentials or private findings in public review notes.
 
-## A public Ship contains
+User access tokens are not stored in the public directory or its ledger. Browser review sign-in uses short-lived process memory; its authority ends on expiry, sign-out, or server restart.
 
-The sanitized source artifact and a closed Companion-signed catalog: public display metadata, ShotID, BuilderID, exact release identity, source/artifact commitments, bounded Xcode build recipe, minimum platform/device family, dependency facts, safety classification, permissions, optional parent release, public checkpoint and witness coordinates.
+## Private work
 
-The public checkpoint itself is far narrower and contains no source or content digest. The signed catalog and content-addressed blob bind software bytes off-chain to that narrow on-chain witness.
+Private intents, references, local activity, absolute paths, dirty working-tree observations, execution receipts, pairing secrets, DeviceKey material, and Apple signing credentials are separate from GitHub registration. Private phone requests travel as encrypted envelopes.
 
-The server may store those immutable source/icon bytes in a private R2 bucket.
-Bucket/account names and S3 credentials are operational secrets and are not
-part of the catalog, browser configuration, native app, or public response.
-Incoming staging, publication jobs, profiles, aliases, Claims state, and local
-migration evidence do not move to R2.
+A coding request can disclose necessary context to the configured agent/provider. Automatic Simulator preview generation sends the Simulator screen and accessibility structure to the configured local Codex route. Those are execution disclosures, not permission to publish unrelated personal data.
 
-## A public Claim contains
+The public listing and a source recommendation do not prove or publish the recipient’s physical installation. Apple signing identity and phone selection stay in the recipient’s local environment.
 
-Claim deliberately exposes the relationship between one Menlo account and one Shot at an exact release/checkpoint, plus a canonical Claim-mark commitment, per-Shot claim number and global non-transferable token ID.
+## Historical Ship and Claim
 
-It does not publish the physical phone, Mac, source path, Apple identity, install fact, private prompt, device name, raw gesture points, timing, pressure, motion, or behavioral inference. Public profile pages do not automatically aggregate every Claim even though canonical receipts are directly queryable.
+A historical Ship publishes a sanitized source artifact and a closed Companion-signed catalog binding release identity, commitments, recipe, permissions, and public checkpoint. Its narrow on-chain witness does not contain private lineage or intentions.
 
-## App-local Git is not public Registry
+A historical Claim publicly relates one account and Shot at an exact release/checkpoint with a Claim-mark commitment and non-transferable receipt. It does not expose raw gesture points, physical devices, Apple identity, private prompts, or an install fact. These are separate from GitHub registrations and reviews.
 
-The generated app's `.tohseno/` directory includes Git-visible durable continuity plus explicitly ignored private subpaths. Committing that repository is not the same as Ship. Conversely, excluding `.tohseno/` from a source-tree digest avoids self-reference; it does not mean the whole directory should be ignored.
+## App-local Git boundary
 
-## No secret by inference
+Generated `.tohseno/` records include Git-visible continuity and exact ignored private/transient paths. Never blanket-ignore the directory. Excluding it from a source-tree commitment avoids self-reference; it does not establish publication permission.
 
-When the system lacks evidence, it records absent, unknown, private, or not checked. It does not replace missing private or historical facts with guessed prose.
+When evidence is absent, the product records absent or unknown rather than inventing a private or physical fact.

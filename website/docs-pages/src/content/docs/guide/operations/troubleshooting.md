@@ -1,58 +1,60 @@
 ---
 title: Troubleshooting
-description: Walk durable boundaries in order without losing source, replaying intelligence, or manufacturing success.
+description: Find the concrete blocker in deploy, exact-version review, build, or intended-iPhone delivery.
 ---
 
-Start from the last durable fact, not the last screen animation.
+## Deploy cannot find the app
 
-## A Companion request is not moving
+Commit and push the Xcode project to a public GitHub repository. Run from that repository and check the account has push access. Resolve ambiguity explicitly:
 
-1. Confirm Companion persisted the request and shows queued/reconnecting rather than a local validation failure.
-2. Confirm relay reachability and mailbox capability without printing ciphertext or secrets.
-3. On the Mac, inspect paired-device/revocation state, relay cursor, envelope result and command receipt.
-4. Inspect `~/.tohseno/service/command-journal/<command-id>/status.json`.
-5. Inspect the stable app-local execution only after command admission exists.
-
-A relay ACK is not Mac admission. Do not delete the phone outbox manually merely because ciphertext reached the server.
-
-## A job says Waiting to build
-
-Another source job may hold the factory lease. The waiting command is durable and starts automatically. A verified artifact waiting for a cable releases the lease, so a long wait can also indicate a live runner or failed service reconciliation.
-
-Use the explicit service surface:
-
-```text
-tohseno service status
-tohseno service logs
-tohseno service restart
+```sh
+menloapp deploy --project path/App.xcodeproj --scheme App
 ```
 
-Logs are bounded and content-free. Do not add raw prompts, keys or reference bytes for convenience.
+Do not reset unrelated work to satisfy deploy. Commit your app changes yourself; deploy commits only the metadata and captures it creates. If preview tools are unavailable, use `--no-preview` and retain your existing media.
 
-## Ready to install does not advance
+## The app page shows older copy
 
-Check, in order:
+The ordinary page follows the default branch and may take up to 60 seconds to refresh. An exact-version URL intentionally keeps its selected commit. Confirm which link you opened and that the selected `menloapp/app.json` and media were committed and pushed.
 
-1. exactly one intended physical iPhone is connected;
-2. it is unlocked;
-3. the phone trusts the Mac;
-4. Developer Mode is enabled;
-5. Xcode still has an appropriate account/team;
-6. the retained `.app` signature verifies;
-7. `devicectl` can see the device and query the exact bundle.
+## A version link is rejected
 
-Do not rerun the coding harness for a device-only failure.
+Use the complete link returned by deploy or the app page, with a full Git commit and numeric repository ID. Quote it in Terminal to preserve `&`. Branch names, duplicate version parameters, and substituted repository identities are invalid. Do not remove the parameters merely to make a different version install.
 
-## An evolution is stale
+## Review sign-in expired
 
-Another accepted change advanced the exact base. The refusal is correct. Reopen the current app, read the current state, and submit a new explicit request. Do not edit the journal or force the old command onto new source.
+Browser sign-in lasts ten minutes and ends on sign-out or a server restart. Sign in again, check the selected source, then explicitly confirm the recommendation. Signing in alone publishes nothing. Only the original authenticated reviewer can withdraw their recommendation.
 
-## Source is partially changed after failure
+## Xcode or signing stops the build
 
-For adopted repositories, Menlo intentionally has no general rollback because pre-existing owner work may be present. Inspect the recorded baseline and changed-file observation. Decide manually what to keep. Avoid destructive Git commands.
+Open full Xcode, finish its setup/license, and configure your own Apple Account and signing team. Follow the displayed provisioning or entitlement error. A website review cannot resolve Apple authority or unsupported source.
 
-## Public Install, Fork, Ship, or Claim fails
+## Ready for phone does not advance
 
-Walk activation → runtime/constructor state → current Builder authority → canonical receipt/block → current Registry head → signed manifest → source bytes → safety classification → local Apple build. For Claim also check edition policy, account/Shot uniqueness, nonce, deadline, exact current checkpoint and constrained relayer availability.
+Confirm the intended iPhone is reachable, unlocked, trusted, and has Developer Mode enabled. A recorded intended-device association must match; older unassociated records require exactly one eligible phone. Another phone is never substituted.
 
-Never patch an index row to make a public action look canonical.
+Menlo retains the verified artifact and resumes delivery when the missing condition is satisfied. Do not rerun the coding harness for a device-only failure. Installed requires the exact bundle in that phone’s inventory.
+
+## Fresh-start setup stopped
+
+Complete the stated Apple prerequisite and run `menloapp setup` again. Setup completes only after Menlo is installed on the intended phone and private pairing succeeds. Trying a linked app does not require this fresh-start pairing.
+
+## A private intent is waiting
+
+Keep the paired Mac awake. An encrypted relay acknowledgement is not Mac admission. Inspect the app status and, when needed, the durable command journal. Do not delete the phone’s outbox to make a queued request disappear.
+
+Another source job may hold the factory lease. Waiting work is durable; a verified artifact waiting for a phone releases the lease. Advanced native diagnostics include:
+
+```sh
+menloapp service status
+menloapp service logs
+menloapp service restart
+```
+
+## Evolution is stale or failed after source mutation
+
+Reopen the app and submit against its current base. Do not force an old request onto newer source. For partially changed adopted repositories, inspect the recorded baseline and preserve owner work; there is no general automatic rollback.
+
+## Historical Registry actions fail
+
+Inspect activation, runtime, Builder authority, canonical receipt, Registry head, signed manifest, and source bytes. Claim also needs edition, nonce, deadline, and relayer evidence. Never edit an index row to manufacture success. These checks apply to the retained legacy path, not ordinary GitHub deploy.

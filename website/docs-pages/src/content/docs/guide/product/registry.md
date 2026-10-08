@@ -3,6 +3,11 @@ title: Registry
 description: Discover public software facts, privately follow Builders, and receive high-signal updates.
 ---
 
+:::note[Historical Registry path]
+This page describes retained Registry releases and the explicit `--legacy-registry` compatibility path. Ordinary GitHub distribution uses `menloapp deploy` and `menloapp try`, with no Registry gas, Claim, or Companion publication approval. [Use the current sharing guide](/guide/start/share-an-app/).
+:::
+
+
 Registry is the living public world around software. It is not a second factory and not an App Store grid.
 
 ## Discover

@@ -3,6 +3,9 @@ title: Protocol authority and scope
 description: What the Tohseno protocol defines, what it deliberately leaves to products and deployments, and how versions coexist.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 This section is explanatory. The normative sources are `protocol/SPECIFICATION.md`, `protocol/CONFORMANCE.md`, closed schemas, implementation code, and frozen test vectors. If prose here differs, `protocol/` wins.
 
 ## Two versioned layers

@@ -3,6 +3,9 @@ title: Commitments and signatures
 description: Exact input, source-tree, Fascia, canonical JSON, digest, and compact P-256 laws.
 ---
 
+This section explains retained protocol records and verification. GitHub app registrations and source reviews have the separate [ADR 0040/0044 distribution authority](/guide/reference/source-of-truth/); they do not create Shots, Claims, or DeviceKey-signed Registry attestations.
+
+
 ## Canonical JSON
 
 Record, payload, action, checkpoint, and continuity commitments use SHA-256 over RFC 8785 canonical JSON where specified. Duplicate keys must be rejected before canonicalization.

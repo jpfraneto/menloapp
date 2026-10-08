@@ -1,27 +1,32 @@
 ---
 title: Requirements
-description: What makers need to share, and what testers need to build and install.
+description: What makers, recipients, and intent-driven creation need.
 ---
 
 ## To share an existing app
 
-- Node 20+ and Git.
-- A public GitHub repository with a committed, pushed Xcode iOS project or workspace.
-- A GitHub account with write access to that repository.
-- One app scheme; specify `--scheme` when needed. Xcode can discover a scheme on a Mac.
+- Node 20 or newer and Git.
+- A public GitHub repository containing a committed, pushed Xcode iOS project or workspace.
+- A GitHub account with push access.
+- An identifiable application scheme; use `--project` and `--scheme` for ambiguity.
 
-Deployment does not need an iPhone, Companion, wallet, or coding agent. The initial scope is public repositories. Submodules, symlinks, unsupported entitlements, or missing native project files can require project changes before a recipient build succeeds.
+Sharing does not require an iPhone or Menlo’s private phone pairing. Preview generation additionally uses local Xcode and capture tools; it is optional. See [listing media](/guide/product/app-listing/).
 
 ## To try an app
 
-- macOS 14 or newer and full Xcode, opened once to finish installation and accept its license.
-- An Apple Account configured in Xcode and a usable signing team.
-- Your intended iPhone, a data-capable cable for initial setup, Trust, Developer Mode, and Companion pairing.
+- macOS 14 or newer and full Xcode, opened once to finish setup and accept the license.
+- Your Apple Account in Xcode and a usable signing team.
+- Your intended iPhone with Trust and Developer Mode enabled; use a data-capable cable for initial setup.
+- Explicit review and consent for the selected source and build scripts.
 
-Apple credentials remain in Xcode. Apple's provisioning, app/device limits, and expiration still apply. MENLO signs locally for the recipient rather than sharing the maker's Apple credentials.
+Apple credentials stay in Xcode. Apple’s provisioning, app/device limits, entitlement rules, and expiration still apply. Menlo signs locally using the recipient’s identity. Menlo’s iPhone app and private pairing are optional for trying a linked app.
 
-Keep the Mac awake for builds and update checks. Companion receives status while active; background APNs notifications are not implemented. Build scripts and dependencies can require review on the Mac. Source edits are preserved, and a modified downloaded checkout is not silently reset.
+Public source is executable input. Unsupported paths, dependencies, scripts, or entitlements can prevent installation even when a listing is visible. A source review does not override your local consent or those checks.
 
-No coding agent or paid inference is needed to receive an app. Creating or evolving source through the optional factory is a separate workflow.
+## To create or evolve through intents
 
-Next: [deploy or try an app](/guide/start/install-and-onboard/).
+Set up Menlo on the intended iPhone and complete its private connection. Configure an installed, authenticated coding agent on your Mac. Local or bring-your-own execution has no Menlo subscription gate. Managed inference has separate consent, balance, and availability rules.
+
+Keep the Mac awake and reachable for builds. Active clients can sync update status; background APNs update notifications are not implemented. No coding agent or paid inference is required merely to receive an app.
+
+Next: [install and get started](/guide/start/install-and-onboard/).

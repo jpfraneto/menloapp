@@ -1,47 +1,37 @@
 ---
 title: Product mental model
-description: The few product concepts a Menlo user needs, and the technical concepts intentionally kept behind them.
+description: App links, selected source, local builds, and installed versions are separate facts.
 ---
 
-The normal product is deliberately smaller than the machine underneath it.
+## The everyday loop
 
-## The surface
+```text
+menloapp deploy → share a version link → review source
+    → recipient Mac builds and signs → intended iPhone
+```
 
-| Product word | Meaning |
+| Concept | Meaning |
 | --- | --- |
-| One Shot | The one-intention creation gesture; it enters the existing factory, not a second planner. |
-| Living Workshop | The native place where the Mac factory, intended iPhone, app objects, Keeper, and network threshold are projected from real state. |
-| App | A native iPhone app connected to source and history on this Mac. |
-| Create | Begin a new app from an intention. |
-| Adopt | Connect an existing Xcode app without altering its repository. |
-| Evolve | Apply one request to the exact current app state. |
-| Build | The visible path from intent through source and Xcode to a verified app. |
-| Ready to install | A verified artifact exists; the intended phone still needs an action or connection. |
-| Installed | The exact bundle was observed in the physical phone's inventory after installation. |
-| Ship | Make the first public release of one Shot. This happens once. |
-| Update | Make a later public release of the same Shot. |
-| Claim | Publicly record one Menlo identity's encounter with one exact Shot release. |
+| App link | A stable directory entry following the repository’s default branch |
+| Version link | One full Git commit and numeric repository ID |
+| Source review | A GitHub user’s recommendation of one commit and recipe |
+| Build consent | Your explicit permission to execute the selected source locally |
+| Ready for phone | A verified candidate exists and awaits the intended iPhone |
+| Installed | The exact bundle was observed on that physical phone after installation |
+| Update | An explicit choice to build a newer commit for the same local app |
 
-The core abstraction is **App → Intent → App on your iPhone**. The Living
-Workshop makes that relationship spatial without changing it. The person writes
-what should change; the system binds the exact base and handles the continuity
-work.
+The source you downloaded, the artifact you built, and the commit installed on your phone can differ while work is in progress. Menlo preserves those distinctions. Reviews do not migrate to new commits and do not grant build consent.
 
-## The machinery behind the surface
+## Your Mac and iPhone
 
-Internally, Menlo uses Commands, Expressions, Evolutions, Versions, Shots, Genomes, DeviceKeys, BuilderAccounts, checkpoints, receipts, and conformance reports. Those are necessary for durability and verification. They do not belong in the normal creation screen.
+The Mac is the one build machine. Menlo on iPhone is its private intent client: start an app or request a change, then let the Mac build and deliver it. Fresh-start setup installs and pairs that client. Trying a linked app installs the selected app first and leaves phone-client setup optional.
 
-The old Studio execution dashboard, phase renderer, Feedback and Marketing forms, and manual exact-Version controls were deleted intentionally. Details and diagnostics may expose bounded technical facts, but the normal path does not ask a person to operate the engine.
+Creation and evolution stay private until you explicitly publish source. Adopting an existing Xcode project does not publish it or alter its repository. GitHub deployment separately registers public source and a recipe.
 
-## Four truths that never collapse
+## History beneath the product
 
-1. **Intent truth:** the exact bytes the person sent and the exact base they addressed.
-2. **Execution truth:** source, build, signature, installation, and verification observed by the Mac.
-3. **Authority truth:** a scoped Companion DeviceKey approved the exact public action.
-4. **Public truth:** activated contracts, canonical receipts, Registry state, signed catalog, and exact source bytes agree.
+Commands and journals keep requests durable. Generated apps retain Shot, Expression, Evolution, and Version records. Historical Registry releases additionally use Builder DeviceKeys, public checkpoints, one Ship, later Updates, and Claims. None of those historical publication requirements is added to ordinary GitHub deploy.
 
-Keeping these separate prevents attractive but false shortcuts. A relay acknowledgement is not an admitted command. A harness exit is not a build. A build is not an install. A catalog row is not a Registry fact. A pending Claim transaction is not Claimed.
+The deleted Studio dashboard, pipeline renderer, Feedback/Marketing forms, and manual Version controls remain deleted.
 
-## The working rhythm
-
-Use the app. Notice one thing. Request one change. Let the same app return. Public release is optional and explicit; private evolution is the default.
+Next: [Mac app](/guide/product/mac-app/) or [Menlo on iPhone](/guide/product/companion/).

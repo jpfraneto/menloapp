@@ -3,9 +3,9 @@ title: Build and test
 description: The repository verification matrix and focused commands for protocol, Apple, web, lifecycle, and docs work.
 ---
 
-Run the verification appropriate to your change. Release evidence requires the complete matrix from a clean captured commit.
+Choose verification for the changed surface and the concrete invariant at risk. Work directly on `main`, preserve owner work, and exercise the real path when practical. Run a full matrix only when a named security/protocol boundary or authoritative release requirement warrants it.
 
-## Full repository matrix
+## Available verification toolbox
 
 ```sh
 cargo fmt --all -- --check
@@ -32,6 +32,16 @@ node --test studio/tests/static_assets.test.mjs
 ```
 
 The lifecycle scripts use isolated service, Shot, relay and LaunchAgent fixtures. They must not touch the developer's actual LaunchAgent or remove unrelated Keychain entries.
+
+## npm CLI
+
+```sh
+cd packages/cli
+npm test
+npm run test:pack
+```
+
+Use focused tests when adequate; an isolated packed installation checks the shipped launcher path.
 
 ## Protocol-only
 
@@ -62,6 +72,7 @@ cd website/docs-pages
 bun install
 bun run check
 bun run build
+bun run verify
 ```
 
-Starlight validates content/frontmatter and produces static output in `dist/`, including Pagefind search. The build syncs the shared tutorial assets first.
+Starlight validates content/frontmatter and produces static output in `dist/`, including Pagefind search. The build syncs the shared assets and current AI-readable docs first.

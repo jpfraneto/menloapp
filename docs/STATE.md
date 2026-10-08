@@ -4,6 +4,22 @@ Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Public documentation refresh (October 8)
+
+The standalone `docs.tohseno.com` guide now teaches the published `menloapp`
+commands, public GitHub deployment, exact-version sharing, listing metadata and
+Simulator previews, app-first versus fresh-start onboarding, and scoped GitHub
+source reviews. Architecture, privacy, troubleshooting, glossary, and authority
+references distinguish that path from the retained historical Registry. The
+old preview-package instructions and former repository links are removed.
+
+Docs checks and the static build passed. Built-site verification covers all 43
+guide pages, current entry paths, local-consent/review boundaries, historical
+labels, search, sitemap, AI feeds, assets, internal links, and anchors. Live reads
+confirmed npm 1.6.0 and the unchanged Mac 1.3.0-rc.2 build 10013 download pin.
+No protocol, native runtime, contract, or installer authority is changed. Public
+docs deployment and post-deployment observations are recorded separately below.
+
 ## Version-linked distribution and source reviews (October 8)
 
 ADR 0044 implements the distribution loop over the existing GitHub app path.

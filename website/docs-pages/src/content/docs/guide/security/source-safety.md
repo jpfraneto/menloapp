@@ -1,41 +1,32 @@
 ---
 title: Source and build safety
-description: How Menlo snapshots, scans, classifies, extracts, and builds source from another person.
+description: Review the selected GitHub commit before local execution and preserve its source identity.
 ---
 
-Public source is executable input. Inspectable does not mean safe.
+Public source is executable input. GitHub identity and a human recommendation do not make it safe to run.
 
-## Deterministic snapshot
+## Select exact source
 
-The Builder's Mac copies source into a new owner-only temporary root without changing the original. Paths are NFC-normalized, `/` separated, sorted by unsigned UTF-8 bytes, collision-checked, relative and bounded. Files are copied as exact bytes with deterministic archive metadata.
+An ordinary app link resolves the registered repository’s default-branch head. A version link pins a full commit and numeric repository ID. The listing, source link, recipe, Mac handoff, and Terminal command must agree on that selection. GitHub must confirm the identity and commit before installation is offered.
 
-Rejected inputs include:
+The Mac retrieves the selected source into its local workspace and verifies the commit. Existing edits are preserved; a modified checkout is not silently reset or merged with a different release. Unsupported symlinks, submodules, dependencies, or capabilities stop the supported import/build path with a reason.
 
-- symlinks, hard links and special files;
-- absolute paths, traversal and archive ambiguity;
-- normalized or Apple-case collisions;
-- oversized files, path counts or total trees;
-- VCS internals, build output, DerivedData, caches and user data;
-- environment files, logs and private Menlo state;
-- Apple signing/provisioning material and known secret paths;
-- high-confidence detected secrets.
+## Give local build consent
 
-Failure reports name paths without printing secret contents. `.gitignore` is never the security policy.
+Opening a URL or seeing a review never starts source execution. Review the source and build recipe before choosing to build. A recipe can execute Run Script phases, dependency code, plugins, or other tools on your Mac.
 
-## Recipient extraction
+The local classifier distinguishes narrow ordinary iOS builds, source requiring explicit Mac review, and unsupported source. Review-classified input waits for your explicit approval of that exact commit; unsupported input does not build. A published recommendation cannot override classification or local consent.
 
-The recipient downloads by the official URL resolved from the verified catalog, checks byte length and SHA-256, extracts into a new safe root, re-applies path rules, and recomputes the source-tree commitment. Existing directories are not merged blindly.
+## Build and install
 
-## Build classification
+Xcode runs on the recipient’s Mac using the recipient’s signing identity. Menlo verifies the candidate signature and delivers only to the intended iPhone. It reports Installed after observing the exact bundle in the phone’s inventory.
 
-**Green** permits automatic build only for a narrow ordinary iOS app with pinned dependencies and no arbitrary Run Script phase, custom executable, unsafe build rule or package/compiler plugin, unsupported entitlement, or unsafe archive structure.
+A newer commit is a separate update choice. Downloaded, built, ready, and installed commit records do not collapse into one status. Local signing preserves Apple authority; it does not sanitize malicious application behavior.
 
-**Review** keeps source visible and requires **I Reviewed the Source — Build** before any `xcodebuild` invocation. Reasons are explicit.
+## Historical source archives
 
-**Unsupported** never builds in the current product.
+The retained Registry path instead verifies a signed catalog, archive length/SHA-256, source-tree commitment, canonical receipt, and live witness. Its sanitized snapshot and extraction reject traversal, unsafe links, special files, path collisions, oversized trees, known secret paths, and high-confidence secrets. `.gitignore` is not that security boundary.
 
-## Local signing does not sanitize code
+Those archive/canonical-witness rules keep their historical scope. GitHub deploy does not create a catalog signature or a Registry receipt.
 
-Using the recipient's own Xcode identity preserves Apple's signing boundary; it does not make malicious source benign. The source classifier, human review, dependency pins, entitlement restrictions, and safe extraction happen first.
-
-Install and Fork share verification but produce different local identities. A Fork creates a new child identity and preserves one exact parent-release relation; it does not grant the parent's Builder authority.
+Next: [review a specific version](/guide/security/source-reviews/) or [Apple delivery](/guide/architecture/apple-delivery/).

@@ -3,7 +3,7 @@ title: Adopt an existing app
 description: Connect a real Xcode project to Menlo without rewriting its repository.
 ---
 
-Adoption is Menlo's primary entry point.
+Adoption connects an existing project to the private intent factory. To share public GitHub source instead, use [menloapp deploy](/guide/start/share-an-app/).
 
 ## Choose one Xcode container
 
@@ -20,7 +20,7 @@ The private adopted-project record includes:
 - Git revision and paths already dirty at adoption;
 - bounded repository instructions such as `AGENTS.md`, `CLAUDE.md`, `MASTER_PROMPT.md`, README, and existing Menlo metadata;
 - a real unsigned Simulator build result;
-- whether the exact bundle is already installed when exactly one phone is reachable.
+- whether the exact bundle is already installed when the intended phone can be resolved.
 
 The stable identity is a random `project_<uuid>`. It is not a protocol digest and is not derived only from a path. Choosing the same canonical container, scheme, and bundle identifier again preserves that identity.
 

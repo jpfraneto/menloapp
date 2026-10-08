@@ -1,30 +1,41 @@
 ---
 title: Menlo documentation
-description: GitHub to iPhone. Deploy once, share a link, and get practical feedback.
+description: Share your iPhone app from GitHub. Try a specific version on your own device.
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-**Your GitHub app. On their iPhone.** MENLO connects a public GitHub repository to a living app link. A tester reviews a commit, builds and signs it on their own Mac, and tries it on their intended iPhone.
+**Your GitHub app. On their iPhone.** Menlo turns a public iOS repository into an app link. Share it, review the exact source, and use your own Mac to build and sign it for your intended iPhone.
 
 ## Start where you are
 
 <CardGrid>
-  <LinkCard title="Share an app you’ve built" description="Connect GitHub, run menlo deploy, and send the link." href="/guide/start/install-and-onboard/" />
-  <LinkCard title="Try someone’s app" description="Review the source, build on your Mac, and get it onto your iPhone." href="/guide/start/install-and-onboard/#try-someone-elses-app" />
-  <LinkCard title="Build or change an app" description="Use the optional local factory to create or evolve your own source." href="/guide/start/evolve-an-app/" />
+  <LinkCard title="Share an app you’ve built" description="Run menloapp deploy in your public GitHub project and share the version link." href="/guide/start/share-an-app/" />
+  <LinkCard title="Try someone’s app" description="Review the selected source, then build and install with your Mac and Apple identity." href="/guide/start/install-and-onboard/#try-someone-elses-app" />
+  <LinkCard title="Start with an idea" description="Set up Menlo on your iPhone. Send an intent; your Mac makes the app." href="/guide/start/install-and-onboard/#start-from-scratch" />
 </CardGrid>
 
-## Deploy once. Push as usual.
+## Share in two commands
 
-The app follows its GitHub default branch. Later pushes appear as updates; testers choose when their Mac builds the next commit. Companion shows how many commits the installed app is behind.
+From your committed, pushed public GitHub app folder:
 
-## No gas. No source upload.
+```sh
+npm i -g menloapp
+menloapp deploy
+```
 
-GitHub supplies identity, profiles, and version control. MENLO runs a centralized directory and off-chain registration ledger today. Decentralized witnessing is a possible v1/v2 step when it earns its cost.
+Deploy returns your app link and an exact-version link for sharing. It creates missing listing metadata and can record a Simulator preview. [Customize your app page](/guide/product/app-listing/).
 
-The package remains named `tohseno`; `menlo` is an alias. The 1.3.0 preview has a direct installer while npm publication and GitHub sign-in setup are completed. [Use the working preview path](/guide/start/install-and-onboard/) or [check current status](/guide/reference/current-status/).
+## One app link. Specific versions.
 
-[Try Hello from MENLO](https://tohseno.com/hello-menlo) · [Download MENLO for Mac](https://tohseno.com/download/macos) · [Explore apps](https://tohseno.com/apps).
+The ordinary link follows your repository’s default branch. An exact-version link keeps the commit and repository identity you shared, even after another push. Recipients choose when to update; a newer commit does not silently replace the selected version or the installed app.
 
-Apple signing, provisioning, Trust, and Developer Mode still apply. Earlier Registry and Claim documentation describes the retained legacy system, outside the normal GitHub path.
+[Learn about source reviews](/guide/security/source-reviews/): a signed-in GitHub user can recommend one commit and build recipe. Reviews never carry over to new source and never replace your own build consent.
+
+## What happens on your Mac
+
+The website is the listing and review surface. Your Mac retrieves the selected source, runs Xcode, and uses your Apple signing identity. Your intended iPhone receives the result after Trust, Developer Mode, and installation checks. Trying a linked app does not require installing Menlo on the iPhone first.
+
+[Explore apps](https://menloapp.lol/) · [Download Menlo for Mac](https://menloapp.lol/download/macos) · [Check availability](/guide/reference/current-status/).
+
+No wallet, gas, Claim, or Companion publication approval is required for this GitHub path. The retained [historical Registry](/guide/product/registry/) has its own rules.

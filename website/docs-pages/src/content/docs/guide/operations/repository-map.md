@@ -19,6 +19,7 @@ description: Where each product, protocol, service, contract, and compatibility 
 | `companion/apple/TohsenoCompanion/` | Native iPhone Companion product |
 | `sdk/apple/TohsenoCompanionKit/` | Swift private wire, crypto, storage and client SDK |
 | `companion/` | Rust private wire, pairing, capability, envelope and vectors |
+| `packages/cli/` | `menloapp` npm launcher, GitHub deployment, listing metadata, previews, version links and source-review commands |
 | `cli/` | CLI, loopback Workspace Service, LaunchAgent lifecycle and Companion coordinator |
 | `application/` | Command admission, journals, idempotency, presentation, factory lease and execution manager |
 | `engine/` | Shot lifecycle, source materialization, harness and deterministic gates |
@@ -42,12 +43,12 @@ description: Where each product, protocol, service, contract, and compatibility 
 | `network/` | Catalog, sanitized-source, recipient, Claim and public-network logic |
 | `node/` | Public action validation/storage and rebuildable indexes |
 | `website/apps/companion-relay/` | Content-blind private mailbox transport |
-| `website/apps/site/` | Public site, Registry/Claims service, managed compute, web handoff |
+| `website/apps/site/` | Public GitHub directory, app/version pages, source reviews, plus retained Registry/Claims, managed compute and web handoff |
 | `release/` | Immutable activation/readiness/evidence records |
 
 ## Documentation site
 
-`website/docs-pages/` is the standalone Astro Starlight site for `docs.tohseno.com`. It owns the familiar documentation shell, Pagefind search, quiet character guides, per-page AI handoff, and generated `llms.txt` corpus. `website/apps/site/public/docs.html` remains only a compatibility surface on the main website and is not included in the standalone docs build.
+`website/docs-pages/` is the standalone Astro Starlight site for `docs.tohseno.com`. It owns the familiar documentation shell, Pagefind search, quiet character guides, per-page AI handoff, and generated `llms.txt` corpus. The main website’s `/docs` route redirects here; its older static tutorial is excluded from this build.
 
 ## Historical and compatibility material
 

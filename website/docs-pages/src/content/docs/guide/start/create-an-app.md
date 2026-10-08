@@ -3,7 +3,7 @@ title: Create an app
 description: Turn one concrete intention and optional visual references into a local native iPhone app.
 ---
 
-Creation is the secondary path for a person who does not already have an Xcode project.
+Start with [fresh-start setup](/guide/start/install-and-onboard/#start-from-scratch) to install and pair Menlo on your intended iPhone. Then send a creation intent from Menlo on iPhone or the Mac’s existing composer. Configure a local/BYO coding route before implementation.
 
 ## Write the intention
 
