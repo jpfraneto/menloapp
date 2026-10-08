@@ -20,6 +20,17 @@ confirmed npm 1.6.0 and the unchanged Mac 1.3.0-rc.2 build 10013 download pin.
 No protocol, native runtime, contract, or installer authority is changed. Public
 docs deployment and post-deployment observations are recorded separately below.
 
+Documentation source `23302e8` is published to the existing Cloudflare Pages
+production project as `https://8cf7e04f.tohseno-docs.pages.dev`. The build was
+refreshed after the commit so generated last-updated dates reflect October 8.
+Live HTTP checks passed for both public `/docs` entry redirects, home, sharing,
+onboarding, listing media, reviews, availability, historical Registry scope,
+both AI feeds, search script/index manifest, and sitemap. Authored output agrees
+with the local build after excluding Cloudflare's existing edge-added analytics
+tag. The native Mac download digest remains unchanged. Browser controls were
+unavailable in this session, so click-through and visual acceptance are not
+claimed.
+
 ## Version-linked distribution and source reviews (October 8)
 
 ADR 0044 implements the distribution loop over the existing GitHub app path.
