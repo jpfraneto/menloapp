@@ -4,6 +4,28 @@ Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menloapp docs activation (October 8)
+
+The owner added the Namecheap `docs` CNAME to `menloapp-docs.pages.dev`.
+Both authoritative nameservers and Google/Cloudflare public DNS return that
+record. Cloudflare now reports `docs.menloapp.lol` active, with active domain
+verification and HTTPS validation. Certificate-checked HTTPS requests succeeded
+against the public DNS addresses; the local system resolver briefly retained
+its earlier negative lookup.
+
+Website source `6a30dbe` is live in successful Railway deployment
+`fc082a6e-1429-45aa-9a41-3bb9040ab632`, uploaded from an archive of committed
+`main`. Both public website domains now return the Menlo docs destination for
+GET and HEAD `/docs`; full redirected requests reach the refreshed docs.
+Docs source `c0e7b35` is published as
+`https://01c5272d.menloapp-docs.pages.dev`, including the Menloapp image origin
+in its content security policy. Twelve live docs/page/search/sitemap/AI-feed
+paths match the authored static build after excluding Cloudflare's edge-added
+analytics tag. Website health passed, and Mac download metadata plus both
+signed native/CLI release manifests remain byte-identical to pre-deployment
+reads. This completes the domain and docs handoff; it adds no physical app
+installation evidence.
+
 ## Menloapp documentation hosting name (October 8)
 
 The owner requires `menloapp` for new domains, hosting projects, packages, and
