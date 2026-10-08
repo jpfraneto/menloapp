@@ -6,6 +6,7 @@
 !packages/cli/
 !packages/cli/src/
 !packages/cli/src/presentation.js
+!packages/cli/src/review-policy.js
 **/node_modules
 **/.env
 **/.env.*
