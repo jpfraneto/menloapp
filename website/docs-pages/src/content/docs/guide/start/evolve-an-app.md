@@ -1,32 +1,24 @@
 ---
-title: Evolve an app
-description: Request one concrete change against the exact accepted app state and carry it back to the iPhone.
+title: Change an app
+description: Ask for one specific improvement.
 ---
 
-Use the app first. Pick one real point of friction, then describe the current and desired behavior.
+Open the app and choose **What should change?** on Mac, or **Evolve App** in paired Menlo on iPhone.
 
-> The breathing circle stops without a signal. When the timer ends, give one soft haptic pulse and show “Done” for two seconds.
+Describe the current behavior and the change:
 
-## Send from Mac or Menlo on iPhone
+> The timer ends silently. Add one soft haptic pulse and show “Done” for two seconds.
 
-Open the app and choose **What should change?** on the Mac, or **Evolve App** in paired Menlo on iPhone. A request may contain text, on-device speech transcription, and up to eight PNG/JPEG references.
-
-The signed Companion payload binds the stable project or Shot identity, current private source-state token or exact accepted base, request bytes, attachment blob references, originating device, timestamp, and optional follow-up relationship.
+You can add up to eight PNG/JPEG references.
 
 ## Exact-base behavior
 
-The base is selected by the product when you open or submit the composer. You do not choose a Version number. If another accepted change advances the app before admission, the request is rejected as stale. Menlo never silently rebases it onto different source.
-
-## Bounded implementation
-
-The configured harness receives the exact request, references, repository instructions, current observation, and safety constraints. It is told to inspect first, preserve unrelated work, avoid destructive Git, and never commit, push, publish, or deploy implicitly.
-
-The transition permits one implementation invocation and at most one targeted repair for a concrete code or build defect. Both share one wall-clock budget. Device, signing, provisioning, network, lineage, and protocol conditions never trigger another intelligence pass.
+Your request uses the app’s current source. If another accepted change arrives first, reopen the app and submit again. Requests are never silently applied to a different base.
 
 ## Acceptance
 
-After the harness exits successfully, Menlo still requires a real Xcode build and signature verification. For a physical delivery, it installs through `xcrun devicectl`, then queries the phone's application inventory for the exact bundle identifier. Only that final observation is **Installed**.
+Your Mac implements the change, builds, and signs it. **Installed** means the exact app bundle was observed on your intended iPhone.
 
-If the verified artifact is waiting for the unlocked, trusted, intended iPhone, status is **Ready to install**. Reconnecting the phone resumes from the artifact instead of rewriting the app.
+**Ready to install** means the verified build is waiting for that phone. Reconnect it to resume; no new coding pass is needed.
 
-Next: understand the [product mental model](/guide/product/mental-model/) or the full [command lifecycle](/guide/architecture/command-lifecycle/).
+Changes stay private until you explicitly publish them. [Implementation details](/guide/architecture/command-lifecycle/).

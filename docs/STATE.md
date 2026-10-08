@@ -4,6 +4,21 @@ Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menloapp docs simplification (October 8)
+
+The public docs now use plain task guides without character portraits,
+character introductions, or per-page AI panels. The home leads with share,
+try, and create; the sidebar keeps six starting tasks and a collapsed More
+section. Technical and historical material remains reachable through the
+reference index, search, and existing URLs.
+
+Thirteen core pages have 51% fewer source words (5,086 to 2,486); the home
+is reduced from 342 to 117. Exact-version selection, local build consent,
+recipient Apple signing, intended-iPhone delivery, and historical scope remain
+explicit. Astro check, static build, built-site asset/link/anchor verification,
+and absence checks for characters and AI panels passed. This is explanatory
+docs work, with no protocol, native artifact, or deployment-authority change.
+
 ## Menloapp docs activation (October 8)
 
 The owner added the Namecheap `docs` CNAME to `menloapp-docs.pages.dev`.

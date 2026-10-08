@@ -5,15 +5,12 @@ export default defineConfig({
   site: "https://docs.menloapp.lol",
   integrations: [
     starlight({
-      title: "Menlo",
+      title: "menloapp",
       description:
-        "GitHub to iPhone: deploy once, share a link, and try apps on your own device.",
+        "Share, install, and create iPhone apps.",
       favicon: "/menlo-mark.svg",
       logo: { src: "./public/menlo-mark.svg", alt: "", replacesTitle: false },
       customCss: ["./src/styles/starlight.css"],
-      components: {
-        PageTitle: "./src/components/PageTitle.astro",
-      },
       editLink: {
         baseUrl:
           "https://github.com/jpfraneto/menloapp/edit/main/website/docs-pages/src/content/docs/",
@@ -21,7 +18,7 @@ export default defineConfig({
       social: [
         {
           icon: "github",
-          label: "Menlo on GitHub",
+          label: "menloapp on GitHub",
           href: "https://github.com/jpfraneto/menloapp",
         },
       ],
@@ -32,7 +29,7 @@ export default defineConfig({
             rel: "alternate",
             type: "text/plain",
             href: "/llms.txt",
-            title: "Menlo documentation for AI agents",
+            title: "menloapp docs for AI agents",
           },
         },
         {
@@ -51,91 +48,26 @@ export default defineConfig({
       sidebar: [
         { label: "Home", link: "/" },
         {
-          label: "Start here",
+          label: "Get started",
           items: [
-            "guide/start/what-is-tohseno",
             "guide/start/requirements",
-            "guide/start/install-and-onboard",
             "guide/start/share-an-app",
-            "guide/product/app-listing",
-            "guide/security/source-reviews",
-          ],
-        },
-        {
-          label: "Create & evolve",
-          items: [
+            "guide/start/install-and-onboard",
             "guide/start/create-an-app",
-            "guide/start/adopt-an-app",
             "guide/start/evolve-an-app",
-            "guide/product/mental-model",
-            "guide/product/mac-app",
-            "guide/product/companion",
-            "guide/product/app-workspace",
-          ],
-        },
-        {
-          label: "Historical Registry",
-          collapsed: true,
-          items: [
-            "guide/product/registry",
-            "guide/product/ship-claim-update",
-            "guide/architecture/person-to-person-network",
-          ],
-        },
-        {
-          label: "How it works",
-          collapsed: true,
-          items: [
-            "guide/architecture/overview",
-            "guide/architecture/factory",
-            "guide/architecture/command-lifecycle",
-            "guide/architecture/apple-delivery",
-            "guide/architecture/persistence",
-            "guide/architecture/managed-compute",
-          ],
-        },
-        {
-          label: "Protocol reference",
-          collapsed: true,
-          items: [
-            "guide/protocol/authority-and-scope",
-            "guide/protocol/identities",
-            "guide/protocol/shots-evolutions-and-lineage",
-            "guide/protocol/commitments-and-signatures",
-            "guide/protocol/generation-0-8",
-            "guide/protocol/public-witness-and-claims",
-            "guide/protocol/conformance",
-          ],
-        },
-        {
-          label: "Trust & privacy",
-          collapsed: true,
-          items: [
-            "guide/security/trust-boundaries",
-            "guide/security/private-and-public-data",
-            "guide/security/fail-closed-rules",
-            "guide/security/source-safety",
-          ],
-        },
-        {
-          label: "Operate & develop",
-          collapsed: true,
-          items: [
-            "guide/operations/repository-map",
-            "guide/operations/build-and-test",
-            "guide/operations/release-and-activation",
             "guide/operations/troubleshooting",
           ],
         },
         {
-          label: "Reference",
+          label: "More",
           collapsed: true,
           items: [
+            "guide/product/app-listing",
+            "guide/security/source-reviews",
+            "guide/security/source-safety",
+            "guide/start/adopt-an-app",
             "guide/reference/current-status",
-            "guide/reference/states-and-errors",
-            "guide/reference/files-and-directories",
-            "guide/reference/glossary",
-            "guide/reference/source-of-truth",
+            { label: "Technical reference", link: "/guide/" },
           ],
         },
       ],

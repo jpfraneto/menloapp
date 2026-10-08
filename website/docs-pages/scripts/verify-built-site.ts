@@ -30,8 +30,8 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const home = await readFile(join(distRoot, "index.html"), "utf8");
-assert(home.includes("Menlo documentation"), "docs home must use the current Menlo identity");
-assert(home.includes("Your GitHub app. On their iPhone."), "docs must lead with iOS distribution");
+assert(home.includes("menloapp docs"), "docs home must use the menloapp identity");
+assert(home.includes("Recipients build it on their own Mac"), "docs must lead with iOS distribution");
 assert(home.includes("menloapp deploy"), "docs must teach the published CLI command");
 assert(home.includes("npm i -g menloapp"), "docs must use the published npm package");
 assert(home.includes("exact-version"), "docs must explain version-preserving sharing");
@@ -42,8 +42,7 @@ const cliPackage = JSON.parse(await readFile(join(projectRoot, "../../packages/c
 assert(statusPage.includes(cliPackage.version), "current status must describe the current published CLI");
 assert(statusPage.includes("not implemented"), "current status must disclose current notification limits");
 assert(!statusPage.includes("Production Claims writes and the Claims relayer are disabled"), "retired availability snapshot must not ship");
-assert(home.includes("Start where you are"), "docs home must lead with the three useful paths");
-assert(home.includes("data-page-ai"), "docs home must include the page-level AI handoff");
+assert(home.includes("Share an app") && home.includes("Try an app") && home.includes("Create an app"), "docs home must lead with the three useful paths");
 assert(!home.includes("data-minute-player"), "the retired minute-player tutorial must not ship");
 assert(!home.includes('href="/docs.css"'), "the retired tutorial stylesheet must not ship");
 assert(!home.includes('src="/docs.js"'), "the retired tutorial script must not ship");
@@ -67,19 +66,12 @@ assert(await exists(join(distRoot, "sitemap-index.xml")), "sitemap is missing");
 assert(await exists(join(distRoot, "llms.txt")), "AI-readable documentation index is missing");
 assert(await exists(join(distRoot, "llms-full.txt")), "AI-readable documentation corpus is missing");
 
-for (const file of guideFiles) {
-  const content = await readFile(file, "utf8");
-  assert(content.includes("data-page-ai"), `page-level AI handoff is missing in ${file}`);
-  assert(content.includes("guide-note"), `character guide is missing in ${file}`);
-}
-
-for (const member of ["mac", "ledger", "echo-dot", "orbit", "tink", "ione", "companion", "tick", "hearth"]) {
-  assert(await exists(join(distRoot, "crew", `${member}.webp`)), `crew portrait ${member} is missing`);
-}
+assert(!(await exists(join(distRoot, "crew"))), "character portraits must not ship");
 
 const allHtml = await htmlFiles(distRoot);
 for (const file of allHtml) {
   const content = await readFile(file, "utf8");
+  assert(!content.includes("guide-note") && !content.includes("/crew/") && !content.includes("data-page-ai"), `character callouts or AI panels in ${file}`);
   assert(!content.includes("github.com/jpfraneto/tohseno"), `obsolete repository URL in ${file}`);
   assert(!content.includes("menlo deploy"), `obsolete consumer command in ${file}`);
   assert(!content.includes("1.3.0-rc.1"), `obsolete preview instructions in ${file}`);
@@ -100,4 +92,4 @@ for (const file of allHtml) {
   }
 }
 
-console.log(`Verified lightweight home, ${guideFiles.length} guided docs pages, AI feeds, search, sitemap, and internal links.`);
+console.log(`Verified lightweight home, ${guideFiles.length} docs pages, AI feeds, search, sitemap, and internal links.`);

@@ -48,7 +48,7 @@ description: Where each product, protocol, service, contract, and compatibility 
 
 ## Documentation site
 
-`website/docs-pages/` is the standalone Astro Starlight site for `docs.menloapp.lol`. It owns the familiar documentation shell, Pagefind search, quiet character guides, per-page AI handoff, and generated `llms.txt` corpus. The main website’s `/docs` route redirects here; its older static tutorial is excluded from this build.
+`website/docs-pages/` is the standalone Astro Starlight site for `docs.menloapp.lol`. It owns the documentation pages, Pagefind search, and generated `llms.txt` corpus. The main website’s `/docs` route redirects here; its older static tutorial is excluded from this build.
 
 ## Historical and compatibility material
 

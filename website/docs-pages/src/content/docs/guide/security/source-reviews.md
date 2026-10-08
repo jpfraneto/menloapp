@@ -1,44 +1,26 @@
 ---
-title: Review a specific version
-description: Publish or withdraw a GitHub source recommendation bound to one commit and build recipe.
+title: Review a version
+description: Recommend the exact source you examined.
 ---
 
-An app page can show this explicit human recommendation:
-
-> I reviewed this version's source and recommend it for installation.
-
-The reviewer is identified through GitHub. The statement binds one numeric repository ID, full source commit, Xcode project and scheme, examined scopes, public notes, policy version, and timestamp. Maker recommendations are labeled.
+A source review is a public, GitHub-authenticated recommendation for one repository, commit, and Xcode build recipe. It is human judgment, not a safety guarantee. Maker reviews are labeled.
 
 ## Review in the browser
 
-1. Open the exact-version link and choose **Review this version**.
-2. Examine the linked source and build recipe. Include dependency, networking, or other scopes only if you examined them.
-3. Sign in with GitHub using the displayed device code and verification page.
-4. Confirm the source-review checkbox and publish the recommendation. Your GitHub identity, scopes, and notes are public.
+1. Open an exact-version link and choose **Review this version**.
+2. Read the source and build recipe.
+3. Sign in with GitHub using the displayed device code.
+4. Select only scopes you examined, add any public notes, and confirm the review checkbox.
 
-Signing in does not publish a review. Browser authority lasts ten minutes and ends on sign-out, expiry, or server restart. Only you can withdraw or replace your own recommendation. Withdrawal preserves its history in the append-only ledger.
+Signing in does not publish a review. The session expires after ten minutes. Only you can withdraw your review; its history remains recorded.
 
 ## Review from Terminal
 
 ```sh
-menloapp review 'https://menloapp.lol/your-app?commit=<full-commit>&repository=<numeric-id>'
-```
-
-Use a real exact-version link. The command shows the selected source and statement before confirmation and does not execute that source.
-
-Add examined scopes and public notes:
-
-```sh
-menloapp review 'YOUR_EXACT_VERSION_LINK' --scope dependencies --scope networking --notes 'What I examined'
+menloapp review 'YOUR_EXACT_VERSION_LINK'
 menloapp review 'YOUR_EXACT_VERSION_LINK' --withdraw
 ```
 
-Unattended publication requires both an exact-version link and `--confirm`, after you have reviewed the source. An ordinary link follows the latest head, so use an exact-version link to preserve what you examined.
+Replace the placeholder with the full version link. The command asks for confirmation and does not execute the app source. Use `--scope` and `--notes` to describe what you examined; `--confirm` is for unattended publication after an actual review.
 
-## What a recommendation means
-
-It is self-reported human judgment. GitHub identity verification does not prove the review occurred, and Menlo does not issue a safety verdict. New commits and changed build recipes receive no inherited reviews.
-
-A review never authorizes a recipient build. You still choose whether to run the selected source on your Mac, use your own Apple signing identity, and install on your intended iPhone. These GitHub recommendations are separate from historical DeviceKey-signed Registry Release Attestations.
-
-Next: [source and build safety](/guide/security/source-safety/).
+New commits and changed build recipes receive no inherited reviews. A recommendation never authorizes a recipient build: each person still reviews and approves execution on their own Mac.

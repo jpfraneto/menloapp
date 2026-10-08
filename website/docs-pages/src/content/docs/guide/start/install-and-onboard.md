@@ -1,58 +1,44 @@
 ---
-title: Install and get started
-description: Try the linked app first, or set up Menlo on your iPhone to create from intents.
+title: Try an app
+description: Review the source, then build and install on your iPhone.
 ---
 
 ## Try someone else's app
 
-You need a Mac with full Xcode, your own Apple signing identity, and your intended iPhone. [Check the requirements](/guide/start/requirements/).
+You need [a Mac with Xcode and your intended iPhone](/guide/start/requirements/#to-try-an-app).
 
-1. Open the app link and choose **Get app**. Check the maker, repository, build recipe, and selected source commit.
-2. [Download Menlo for Mac](https://menloapp.lol/download/macos). Open the signed, notarized DMG, drag **Menlo.app** into Applications, and open it. If you arrived from a version link, the browser remembers a deliberate Mac-download handoff in that session; return to the listing to resume that version.
-3. Continue into Menlo’s source review. Give explicit permission for the selected source to build. Opening the URL or reading a recommendation alone never authorizes execution.
-4. Your Mac retrieves and verifies that commit, builds with Xcode, and signs with your Apple identity. Follow the specific Apple setup instructions if signing, Trust, or Developer Mode is incomplete.
-5. Keep the intended iPhone reachable and unlocked for delivery. Menlo checks the exact app bundle in that phone’s inventory before reporting installation. A build waiting for the phone remains ready; another visible phone is never substituted.
+1. Open the app link and choose **Get app**. Check the repository, source commit, and build recipe.
+2. [Download the Mac app](https://menloapp.lol/download/macos), open the DMG, and drag **Menlo.app** into Applications. Return to the listing to continue.
+3. Review the selected source and approve the build. Build scripts run on your Mac; opening a link does not authorize them.
+4. Your Mac builds with Xcode and signs with your Apple identity. Follow any displayed Apple setup steps.
+5. Keep your intended iPhone unlocked and reachable. Installation is confirmed against that phone’s app inventory.
 
-The app you came for installs first. Menlo’s iPhone app and its private pairing are optional afterward.
+The linked app installs first. Menlo on iPhone is optional afterward.
 
-Terminal is another entry point:
+### From Terminal
 
 ```sh
 npm i -g menloapp
-menloapp try https://menloapp.lol/hello-menlo
+menloapp try 'YOUR_APP_LINK'
 ```
 
-For a selected version, paste the full link and quote it so the shell preserves `&`:
-
-```sh
-menloapp try 'https://menloapp.lol/your-app?commit=<full-commit>&repository=<numeric-id>'
-```
-
-Use a real returned version link, not the placeholders. On an iPhone, use the system share sheet to send that version to your Mac. The iPhone does not run Xcode.
+Replace `YOUR_APP_LINK` with the full link. Keep the quotes: exact-version links contain `&`.
 
 ## Start from scratch
+
+To send app-building requests from your iPhone:
 
 ```sh
 npm i -g menloapp
 menloapp
 ```
 
-Connect and unlock your intended iPhone. Setup checks Xcode and your Apple signing, builds and installs Menlo on the phone, and guides you through its private connection to the Mac. Setup completes only when installation and pairing evidence agree.
+Connect and unlock your intended iPhone. Setup installs Menlo on it and completes the private connection to your Mac. Configure your Mac’s coding agent, then send an intent from the phone.
 
-If an Apple prerequisite stops setup, follow the displayed action, then resume:
-
-```sh
-menloapp setup
-```
-
-Open Menlo on your iPhone to send intents. Your Mac uses the configured coding route, builds, signs, and delivers the resulting apps. Existing libraries remain accessible when the phone is away or pairing is incomplete.
-
-npm installation itself installs the launcher. It does not implicitly install the iPhone app; help, deploy, and trying a linked app do not start fresh-start setup.
+If setup stops, complete the displayed prerequisite and resume with `menloapp setup`. Existing libraries remain accessible when the phone is away.
 
 ## Keep an installed app up to date
 
-The maker pushes to GitHub as usual. The awake Mac checks for updates; the paired iPhone client syncs while active. Choose **Update on my Mac** to build the selected next commit.
+The maker pushes to GitHub. Your awake Mac checks for updates; choose **Update on my Mac** to build the next commit.
 
-Only an ancestor comparison can report “N commits behind.” Divergent or rewritten history and unavailable GitHub evidence are shown explicitly. Failed updates preserve the installed version; local edits are not silently reset. An exact-version link stays pinned until you separately choose newer source.
-
-Next: [share your own app](/guide/start/share-an-app/) or [create from an idea](/guide/start/create-an-app/).
+An exact-version link stays pinned. Failed updates preserve the installed version, and local edits are not silently reset.

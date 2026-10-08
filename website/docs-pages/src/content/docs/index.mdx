@@ -1,41 +1,23 @@
 ---
-title: Menlo documentation
-description: Share your iPhone app from GitHub. Try a specific version on your own device.
+title: menloapp docs
+description: Share, install, and create iPhone apps.
 ---
 
-import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+menloapp lets you share an iOS app from GitHub. Recipients build it on their own Mac and install it on their iPhone.
 
-**Your GitHub app. On their iPhone.** Menlo turns a public iOS repository into an app link. Share it, review the exact source, and use your own Mac to build and sign it for your intended iPhone.
+- [Share an app](/guide/start/share-an-app/) — publish a link to your GitHub project.
+- [Try an app](/guide/start/install-and-onboard/#try-someone-elses-app) — review, build, and install it.
+- [Create an app](/guide/start/create-an-app/) — describe what you want to make.
 
-## Start where you are
+## Quick start: share
 
-<CardGrid>
-  <LinkCard title="Share an app you’ve built" description="Run menloapp deploy in your public GitHub project and share the version link." href="/guide/start/share-an-app/" />
-  <LinkCard title="Try someone’s app" description="Review the selected source, then build and install with your Mac and Apple identity." href="/guide/start/install-and-onboard/#try-someone-elses-app" />
-  <LinkCard title="Start with an idea" description="Set up Menlo on your iPhone. Send an intent; your Mac makes the app." href="/guide/start/install-and-onboard/#start-from-scratch" />
-</CardGrid>
-
-## Share in two commands
-
-From your committed, pushed public GitHub app folder:
+In your committed, pushed public GitHub app folder:
 
 ```sh
 npm i -g menloapp
 menloapp deploy
 ```
 
-Deploy returns your app link and an exact-version link for sharing. It creates missing listing metadata and can record a Simulator preview. [Customize your app page](/guide/product/app-listing/).
+Share the returned exact-version link to keep the source commit you deployed. Push to GitHub to make updates available; recipients choose when to install them.
 
-## One app link. Specific versions.
-
-The ordinary link follows your repository’s default branch. An exact-version link keeps the commit and repository identity you shared, even after another push. Recipients choose when to update; a newer commit does not silently replace the selected version or the installed app.
-
-[Learn about source reviews](/guide/security/source-reviews/): a signed-in GitHub user can recommend one commit and build recipe. Reviews never carry over to new source and never replace your own build consent.
-
-## What happens on your Mac
-
-The website is the listing and review surface. Your Mac retrieves the selected source, runs Xcode, and uses your Apple signing identity. Your intended iPhone receives the result after Trust, Developer Mode, and installation checks. Trying a linked app does not require installing Menlo on the iPhone first.
-
-[Explore apps](https://menloapp.lol/) · [Download Menlo for Mac](https://menloapp.lol/download/macos) · [Check availability](/guide/reference/current-status/).
-
-No wallet, gas, Claim, or Companion publication approval is required for this GitHub path. The retained [historical Registry](/guide/product/registry/) has its own rules.
+[Requirements](/guide/start/requirements/) · [Troubleshooting](/guide/operations/troubleshooting/) · [Reference](/guide/)
