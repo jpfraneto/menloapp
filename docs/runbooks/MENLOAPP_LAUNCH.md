@@ -2,12 +2,37 @@
 
 The GitHub repository is `https://github.com/jpfraneto/menloapp`, on `main`.
 The local checkout is `/Users/kithkui/code/menloapp`.
-The npm package is published as `menloapp@1.5.1`; its only executable is
+The npm package is published as `menloapp@1.6.0`; its only executable is
 `menloapp`. Existing `tohseno`/`menlo` installations can coexist with it.
 
 This change implements the owner's September 16 naming and public-media
 extension to [ADR 0040](../adr/0040-menlo-github-distribution.md). It does not
 publish a new native artifact, change Apple signing, or activate a contract.
+
+## Exact version sharing and source reviews: October 8
+
+CLI `menloapp@1.6.0` is published as npm latest from source `c9f0c6e` after
+owner browser approval. Downloaded registry bytes match the reviewed
+33,464-byte tarball, SHA-256
+`4a3819f07e1704859c431285f0f557b2429ec6a551b266ee4ed953d84bb92032`.
+A fresh isolated install reports 1.6.0 and passes deploy/review help checks.
+Deploy now returns an exact version link and X sharing URL, fills missing
+repository copy and an unambiguous committed icon, and preserves existing
+presentation. `try` retains version/repository pins; `review` records an
+explicit GitHub-authenticated recommendation of that source and recipe.
+The signed native runtime remains pinned to 1.3.0.
+
+The matching website source `6db4375` is live in successful deployment
+`1e0b6af7-fc4d-4043-9e7e-5b17ddad3a3a`. Live checks passed for exact/historical
+app links and handoff, canonical/OG metadata, the screenshot share card,
+deployed assets, review reads, browser login availability and rejection of
+unauthenticated writes. The signed native runtime manifest is unchanged.
+The initial upload was received despite a CLI timeout and its image included
+the review policy. Follow-up `0b21e45` makes that file's Docker-context inclusion
+explicit; deployment `8647e61e-9d97-4ac9-a257-7d37500113f4` was initializing at
+the one status check. The already-live path is not blocked by that refresh.
+Browser interaction and another person's physical iPhone installation remain
+separate, unobserved acceptance steps.
 
 ## App discovery and share previews: September 18
 
@@ -171,7 +196,7 @@ menloapp --version
 menloapp deploy --help
 ```
 
-Version 1.5.1 is published. For a future CLI change, update the package version,
+Version 1.6.0 is published. For a future CLI change, update the package version,
 run its relevant checks, and commit/push the source before publishing:
 
 ```sh
@@ -185,7 +210,8 @@ Use `npm login` if the session has expired, and complete any browser/2FA prompt
 yourself. A package name/version is immutable once published, so a later fix
 needs a new version. See [npm publish](https://docs.npmjs.com/cli/v11/commands/npm-publish/).
 No postinstall script runs. Publishing this JavaScript package does not rebuild
-or relabel the signed native runtime; 1.4.0 and the 1.5.x versions retain the exact 1.3.0 runtime pin.
+or relabel the signed native runtime; versions 1.4.0 through 1.6.0 retain the
+exact 1.3.0 runtime pin.
 
 ## 4. Deploy and try an app
 

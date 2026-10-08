@@ -42,9 +42,25 @@ or real recommendation was published. Generated share artwork was inspected.
 Browser automation was unavailable, so desktop/mobile interaction acceptance
 and another person's physical iPhone installation remain unobserved.
 
-The source and CLI 1.6.0 package are prepared locally. They are not yet published
-or deployed: the existing npm session returns 401 and needs the owner's browser
-sign-in before package publication and the matching website rollout.
+Distribution source `c9f0c6e` is pushed to main. Follow-ups `6db4375` and
+`0b21e45` include the shared review policy in the production Docker image and
+build context; imports and shared-module inclusion passed in an isolated copy
+of that image's file layout. The owner completed npm sign-in and
+publishing approval. CLI 1.6.0 is published; its downloaded registry tarball
+matches the reviewed 33,464-byte package exactly, with SHA-256
+`4a3819f07e1704859c431285f0f557b2429ec6a551b266ee4ed953d84bb92032`.
+A fresh isolated installation reports `menloapp 1.6.0` and passes deploy/review
+help checks. Website source `6db4375` is live in successful Railway deployment
+`1e0b6af7-fc4d-4043-9e7e-5b17ddad3a3a`. Live HTTP checks passed for health,
+the durable app directory, exact and historical version handoff, canonical/OG
+metadata, a 1200 × 630 share image, deployed script/style agreement, malformed
+version rejection, empty reviews, browser login availability and anonymous
+review-write rejection. The live screenshot share card was visually inspected,
+and the signed CLI runtime manifest matches the pre-deployment bytes exactly.
+No real recommendation was submitted. The follow-up Docker-context inclusion
+from `0b21e45` was accepted as deployment
+`8647e61e-9d97-4ac9-a257-7d37500113f4`, initializing at the one status check;
+it does not block the already-live product behavior.
 
 ## Native Settings cleanup (September 26)
 
