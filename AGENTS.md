@@ -11,6 +11,9 @@ This repository also has an explicit operating philosophy:
 
 Do not turn ordinary product work into release ceremony.
 
+Use `menloapp` for new product-facing domains, hosting projects, packages, and
+deployment names.
+
 ---
 
 ## Where authority lives

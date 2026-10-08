@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "tohseno-docs-pages",
+      "name": "menloapp-docs",
       "dependencies": {
         "@astrojs/starlight": "0.41.10",
         "astro": "7.2.9",

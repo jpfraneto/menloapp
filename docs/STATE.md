@@ -4,6 +4,15 @@ Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menloapp documentation hosting name (October 8)
+
+The owner requires `menloapp` for new domains, hosting projects, packages, and
+deployment names; that preference is recorded in `AGENTS.md`. The current docs
+package and Cloudflare Pages project are named `menloapp-docs`. The public domain
+remains `docs.menloapp.lol`; its required Namecheap CNAME is host `docs` pointing
+to `menloapp-docs.pages.dev`. This supersedes the earlier DNS target below.
+The updated main-site redirect remains held until real DNS and HTTPS work.
+
 ## Menlo documentation domain (October 8)
 
 The owner corrected the intended public destination to `docs.menloapp.lol`.

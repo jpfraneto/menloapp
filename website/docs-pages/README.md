@@ -23,12 +23,12 @@ Deploy the verified output from committed `main` to the existing Cloudflare Page
 project using the operator’s authenticated Wrangler session:
 
 ```sh
-wrangler pages deploy dist --project-name tohseno-docs --branch main
+wrangler pages deploy dist --project-name menloapp-docs --branch main
 ```
 
-The project retains its internal `tohseno-docs` name. Its Menlo custom domain
+The hosting project is `menloapp-docs`. Its custom domain
 is `docs.menloapp.lol`, with a Namecheap `CNAME` for host `docs` pointing to
-`tohseno-docs.pages.dev`. Cloudflare must validate that record and HTTPS before
+`menloapp-docs.pages.dev`. Cloudflare must validate that record and HTTPS before
 the main website’s updated docs redirect is deployed.
 
 Check the public `/docs` redirect, home, changed guides, and AI feeds after
