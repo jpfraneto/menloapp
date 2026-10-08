@@ -93,7 +93,7 @@ describe("public pages", () => {
     const response = await application.fetch(request("/"));
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).toContain("<title>Discover apps — Menlo</title>");
+    expect(body).toContain("<title>Open source. Direct to iPhone. — Menlo</title>");
     expect(body).toContain("npm i -g menloapp");
     expect(body).toContain("menloapp deploy");
     expect(body).toContain('aria-label="Discover apps"');

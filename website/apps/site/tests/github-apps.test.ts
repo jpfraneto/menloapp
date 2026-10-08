@@ -224,8 +224,10 @@ test("public discovery lists each app once and leaves updates to installed-app c
   expect(feed.apps).toHaveLength(1);
   expect(f.requests.some(path => path.endsWith("/commits"))).toBe(false);
   const page = await f.router.renderIndex();
-  expect(page).toContain("BYPASS THE APP STORES.");
-  expect(page.match(/href="\/test-app"/g)).toHaveLength(1);
+  expect(page).toContain("SOFTWARE IS INFINITE.");
+  expect(page).toContain('<a class="ml-station" href="/test-app">');
+  expect(page.match(/class="ml-app" href="\/test-app"/g)).toHaveLength(1);
+  expect(page.match(/href="\/test-app"/g)).toHaveLength(2);
   expect(page).not.toContain("Latest activity");
   expect(page).not.toContain("deployed an update");
   expect(page).not.toContain("A useful improvement");

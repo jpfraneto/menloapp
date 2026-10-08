@@ -7,7 +7,7 @@ export default defineConfig({
     starlight({
       title: "Menlo",
       description:
-        "Share, install, and create iPhone apps.",
+        "Share, install, and create open-source iPhone apps on the Menlo network.",
       favicon: "/menlo-favicon.svg",
       logo: {
         light: "./public/menlo-mark.svg",
@@ -46,7 +46,7 @@ export default defineConfig({
         },
         {
           tag: "meta",
-          attrs: { name: "theme-color", content: "#f6f3ea" },
+          attrs: { name: "theme-color", content: "#101612" },
         },
       ],
       lastUpdated: true,

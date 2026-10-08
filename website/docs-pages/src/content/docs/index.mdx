@@ -1,9 +1,19 @@
 ---
 title: Documentation
-description: Share, install, and create iPhone apps.
+description: Share, install, and create open-source iPhone apps on the Menlo network.
+hero:
+  title: Software is infinite.
+  tagline: Menlo gives it rails.
+  actions:
+    - text: Share an app
+      link: /guide/start/share-an-app/
+      icon: right-arrow
+    - text: Try an app
+      link: /guide/start/install-and-onboard/#try-someone-elses-app
+      variant: minimal
 ---
 
-menloapp lets you share an iOS app from GitHub. Recipients build it on their own Mac and install it on their iPhone.
+Menlo is a network for passing open-source iPhone apps from one person to another. You publish an app from a public GitHub repository and send a link. Recipients build it on their own Mac, sign it with their own Apple identity, and install it on their iPhone.
 
 - [Share an app](/guide/start/share-an-app/) — publish a link to your GitHub project.
 - [Try an app](/guide/start/install-and-onboard/#try-someone-elses-app) — review, build, and install it.
@@ -19,5 +29,14 @@ menloapp deploy
 ```
 
 Share the returned exact-version link to keep the source commit you deployed. Push to GitHub to make updates available; recipients choose when to install them.
+
+## How an app travels
+
+1. **Build.** Describe the app you want in Menlo for Mac, or bring an Xcode project you already have.
+2. **Push.** Commit it to a public GitHub repository. The repository is the app's identity.
+3. **Deploy.** `menloapp deploy` checks that you can push to the repository and returns a link to the exact commit.
+4. **Hand off.** The recipient reads the source, approves a build on their own Mac, and installs it on their iPhone.
+
+A Menlo link says who published an app, which repository it comes from, and the exact commit. It does not say the app is safe; see [source safety](/guide/security/source-safety/).
 
 [Requirements](/guide/start/requirements/) · [Troubleshooting](/guide/operations/troubleshooting/) · [Reference](/guide/)

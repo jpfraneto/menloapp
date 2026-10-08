@@ -1,17 +1,27 @@
+@font-face {
+  font-family: "MenloApp";
+  src: url("/fonts/MenloApp-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Same night map and rail colours as the menloapp.lol landing page. */
 :root {
+  --menlo-brand: "MenloApp", -apple-system, BlinkMacSystemFont, sans-serif;
   --sl-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
   --sl-font-system-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-  --sl-color-accent-low: #203728;
-  --sl-color-accent: #89b18a;
-  --sl-color-accent-high: #dcead7;
-  --sl-color-white: #fffdf7;
-  --sl-color-gray-1: #f6f3ea;
-  --sl-color-gray-2: #d6d5c9;
-  --sl-color-gray-3: #a6aa9c;
-  --sl-color-gray-4: #737866;
-  --sl-color-gray-5: #34392f;
-  --sl-color-gray-6: #242820;
-  --sl-color-black: #181c16;
+  --sl-color-accent-low: #0f3a2e;
+  --sl-color-accent: #20f4c4;
+  --sl-color-accent-high: #b9fbe6;
+  --sl-color-white: #f2f0e6;
+  --sl-color-gray-1: #e4e5da;
+  --sl-color-gray-2: #c3c9bb;
+  --sl-color-gray-3: #aab3a4;
+  --sl-color-gray-4: #6f7d6c;
+  --sl-color-gray-5: #2e3a31;
+  --sl-color-gray-6: #18201b;
+  --sl-color-black: #101612;
 }
 
 :root[data-theme="light"] {
@@ -36,8 +46,41 @@ body {
 h1,
 h2,
 h3 {
-  font-family: Georgia, "Times New Roman", serif;
-  letter-spacing: -0.025em;
+  font-family: var(--menlo-brand);
+  font-synthesis: none;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+/* One rail under the header, in the four line colours of the network map. */
+header.header {
+  border-bottom: 0;
+}
+header.header::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 4px;
+  background: linear-gradient(90deg, #38a148 0 25%, #d8b955 25% 50%, #cb714b 50% 75%, #81769a 75%);
+}
+
+.hero {
+  padding-block: 2.5rem 1.5rem;
+  text-align: start;
+}
+.hero h1 {
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+.hero .tagline {
+  color: var(--sl-color-accent);
+  font: 700 clamp(1.25rem, 2.6vw, 1.75rem) / 1.15 var(--menlo-brand);
+  font-synthesis: none;
+}
+
+.sl-markdown-content pre {
+  border-radius: 12px;
 }
 
 .sl-markdown-content a {
@@ -66,7 +109,7 @@ h3 {
   }
 }
 
-.site-title { font-family: Georgia, "Times New Roman", serif; letter-spacing: -0.04em; font-size: 2rem; color: var(--sl-color-white); }
+.site-title { font-family: var(--menlo-brand); font-synthesis: none; letter-spacing: -0.02em; font-size: 1.75rem; color: var(--sl-color-white); }
 .site-title img { width: 2rem; height: 2rem; }
 :focus-visible { outline: 2px solid var(--sl-color-accent); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }
