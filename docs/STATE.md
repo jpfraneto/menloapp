@@ -17,6 +17,11 @@ Docs check/build/built-site verification, website typecheck, and 24 focused
 documentation/HTTP route tests passed.
 The updated main-site redirect is held from production until that destination
 works; the current live redirect continues to the functioning historical host.
+Docs source `742b9fb` is deployed as
+`https://5400a9f5.tohseno-docs.pages.dev`; its home, sitemap and both AI feeds
+serve the Menlo domain references. Cloudflare's observed custom-domain state
+is `pending` with `CNAME record not set`. This is prepared/deployed source, not
+a claim that `docs.menloapp.lol` already resolves or serves HTTPS.
 
 ## Public documentation refresh (October 8)
 
