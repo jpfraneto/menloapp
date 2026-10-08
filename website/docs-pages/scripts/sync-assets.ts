@@ -74,7 +74,14 @@ await rm(join(publicRoot, "modules"), { recursive: true, force: true });
 await rm(join(publicRoot, "docs.css"), { force: true });
 await rm(join(publicRoot, "docs.js"), { force: true });
 
+// Match the main website's current logo; Starlight selects the explicit theme variant.
+const logo = (await readFile(join(sourceRoot, "menlo", "menlo-mark.svg"), "utf8"))
+  .replace(/<style>[\s\S]*?<\/style>/g, "");
+
 await Promise.all([
+  writeFile(join(publicRoot, "menlo-mark.svg"), logo),
+  writeFile(join(publicRoot, "menlo-mark-dark.svg"), logo.replaceAll('fill="#202720"', 'fill="#F2F0E6"')),
+  cp(join(sourceRoot, "menlo", "favicon.svg"), join(publicRoot, "menlo-favicon.svg")),
   cp(join(sourceRoot, "favicon.png"), join(publicRoot, "favicon.png")),
   cp(join(sourceRoot, "fonts"), join(publicRoot, "fonts"), { recursive: true }),
   mkdir(join(publicRoot, "modules"), { recursive: true }).then(() =>

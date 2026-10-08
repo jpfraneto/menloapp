@@ -4,6 +4,15 @@ Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menlo docs header identity (October 8)
+
+The docs header now reads **Menlo**, with the current connected-app logo and
+favicon from the main website. Asset sync derives light/dark logo variants from
+that shared source, preserving the green and mint colors instead of inverting
+the whole image. The home heading is Documentation. Astro check, build,
+built-site link verification, and inspection of both generated header assets
+passed.
+
 ## Menloapp docs simplification (October 8)
 
 The public docs now use plain task guides without character portraits,

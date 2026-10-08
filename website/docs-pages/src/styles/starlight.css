@@ -66,8 +66,7 @@ h3 {
   }
 }
 
-.site-title { font-family: Georgia, "Times New Roman", serif; letter-spacing: -0.04em; font-size: 2rem; text-transform: lowercase; color: var(--sl-color-white); }
+.site-title { font-family: Georgia, "Times New Roman", serif; letter-spacing: -0.04em; font-size: 2rem; color: var(--sl-color-white); }
 .site-title img { width: 2rem; height: 2rem; }
-:root:not([data-theme="light"]) .site-title img { filter: invert(1); }
 :focus-visible { outline: 2px solid var(--sl-color-accent); outline-offset: 3px; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation: none !important; transition: none !important; } }

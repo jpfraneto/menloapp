@@ -5,11 +5,16 @@ export default defineConfig({
   site: "https://docs.menloapp.lol",
   integrations: [
     starlight({
-      title: "menloapp",
+      title: "Menlo",
       description:
         "Share, install, and create iPhone apps.",
-      favicon: "/menlo-mark.svg",
-      logo: { src: "./public/menlo-mark.svg", alt: "", replacesTitle: false },
+      favicon: "/menlo-favicon.svg",
+      logo: {
+        light: "./public/menlo-mark.svg",
+        dark: "./public/menlo-mark-dark.svg",
+        alt: "",
+        replacesTitle: false,
+      },
       customCss: ["./src/styles/starlight.css"],
       editLink: {
         baseUrl:

@@ -30,7 +30,7 @@ function assert(condition: unknown, message: string): asserts condition {
 }
 
 const home = await readFile(join(distRoot, "index.html"), "utf8");
-assert(home.includes("menloapp docs"), "docs home must use the menloapp identity");
+assert(home.includes("Documentation"), "docs home must identify the documentation");
 assert(home.includes("Recipients build it on their own Mac"), "docs must lead with iOS distribution");
 assert(home.includes("menloapp deploy"), "docs must teach the published CLI command");
 assert(home.includes("npm i -g menloapp"), "docs must use the published npm package");
