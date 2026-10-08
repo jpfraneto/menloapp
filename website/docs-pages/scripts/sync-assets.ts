@@ -91,7 +91,7 @@ await Promise.all([
       "  Referrer-Policy: no-referrer",
       "  Cross-Origin-Opener-Policy: same-origin",
       "  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()",
-      "  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://tohseno.com data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+      "  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://menloapp.lol data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
       "",
       "/_astro/*",
       "  Cache-Control: public, max-age=31536000, immutable",
