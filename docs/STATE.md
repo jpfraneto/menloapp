@@ -19,6 +19,14 @@ explicit. Astro check, static build, built-site asset/link/anchor verification,
 and absence checks for characters and AI panels passed. This is explanatory
 docs work, with no protocol, native artifact, or deployment-authority change.
 
+Docs source `56895d1` is deployed to `docs.menloapp.lol` as
+`https://227f8824.menloapp-docs.pages.dev`. Eight live page/reference/feed/search
+responses match the authored build after excluding Cloudflare's analytics tag;
+HTML checks confirm the removed character and AI UI is absent. The real main
+website `/docs` redirect reaches the simplified home. HTTPS certificate checks
+were retained while using the previously observed public DNS target to bypass
+the local resolver's negative cache.
+
 ## Menloapp docs activation (October 8)
 
 The owner added the Namecheap `docs` CNAME to `menloapp-docs.pages.dev`.
