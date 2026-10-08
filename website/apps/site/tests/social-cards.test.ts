@@ -18,6 +18,16 @@ test("long names and descriptions still produce a bounded card, and oversized ra
   expect(() => renderSocialCard({ title: "App", description: "", url: "https://menloapp.lol/app", icon: { bytes: bomb, type: "image/png" } })).toThrow("16 megapixels");
 });
 
+test("a real screenshot changes the share card while retaining its dimensions and decode bounds", () => {
+  const input = { title: "Screenshot App", description: "Try this app on your iPhone", url: "https://menloapp.lol/app" };
+  const plain = renderSocialCard(input);
+  const screenshot = renderSocialCard({ ...input, screenshot: { bytes: plain, type: "image/png" } });
+  expect([screenshot.readUInt32BE(16), screenshot.readUInt32BE(20)]).toEqual([1200, 630]);
+  expect(screenshot.equals(plain)).toBe(false);
+  const bomb = Buffer.from(plain); bomb.writeUInt32BE(100000, 16);
+  expect(() => renderSocialCard({ ...input, screenshot: { bytes: bomb, type: "image/png" } })).toThrow("16 megapixels");
+});
+
 test("Anky's legacy artwork matches the verified public source icon and cannot be inherited by another release", async () => {
   const digest = "0xbfedc96908c631e6cb65bade0e7ee3d3002e0afb08d82a797d435f50211a0744";
   const source = "0xb39de082c43c69a3dc517578f319a3fe878c455961ea5ae015106cbd24884bec";

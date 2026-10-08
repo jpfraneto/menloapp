@@ -24,6 +24,13 @@ Do not turn ordinary product work into release ceremony.
 
 2. **`docs/adr/`** — accepted architectural decisions.
 
+   ADR 0044 governs exact-version sharing and GitHub-authenticated source
+   recommendations on the ADR 0040 distribution path. Reviews bind the commit,
+   repository, reviewer and build recipe, remain append-only and withdrawable,
+   and never imply a safety guarantee or inherit across versions. These are
+   distinct from DeviceKey-signed Registry Release Attestations. Recipient
+   source-execution consent, Apple signing and intended-iPhone authority remain.
+
    ADR 0043 makes fresh-start onboarding install Menlo on the intended iPhone
    and complete its private connection so the person can send intents there.
    A person arriving through an app link installs that app first; Menlo on

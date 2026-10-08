@@ -1,8 +1,50 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-09-26. This is the plain-language
+Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Version-linked distribution and source reviews (October 8)
+
+ADR 0044 implements the distribution loop over the existing GitHub app path.
+App pages offer sharing on X and the system share sheet, including an exact
+version link for sending an app from iPhone to Mac. A deliberate Mac-download
+handoff is remembered in that browser session and resumes the selected commit.
+The version page, metadata, source link, Mac handoff and Terminal command agree
+on the same commit and numeric repository identity. Newer source is a separate
+choice. Generated share cards can show the first selected screenshot.
+
+CLI 1.6.0 fills empty app descriptions from public repository copy, copies an
+unambiguous committed normal AppIcon into the public folder, preserves existing
+artwork/copy, and returns an X sharing URL and final version link after its
+generated metadata is pushed. Interactive Mac deploy copies the app link.
+Version-pinned `try` preserves its commit and repository identity through the
+existing native command. Native runtime pins remain unchanged.
+
+GitHub source reviews are public, scoped human recommendations of one commit
+and build recipe. The app page supports GitHub Device Flow, a ten-minute
+HttpOnly/SameSite browser session, explicit source-review confirmation, public
+notes and withdrawal. CLI `review` provides the same statement and scopes.
+The directory verifies the GitHub account; reviews and withdrawals are
+append-only and identical repetitions are idempotent. User tokens are never
+persisted or returned to the browser. New commits and changed recipes receive
+no inherited reviews, and maker recommendations are labeled. These are distinct
+from historical DeviceKey-signed Registry attestations and imply no safety
+guarantee or recipient build consent.
+
+Local verification passed: website typecheck and 49 focused website checks,
+plus 56 CLI checks including isolated packaged installation. An isolated local
+HTTP preview loaded real public Anky metadata, served exact-version controls,
+and rejected a branch name in place of a full commit. Its real GitHub sign-in
+request returned the expected verification destination and public code without
+returning the private device code or provider token. No account authorization
+or real recommendation was published. Generated share artwork was inspected.
+Browser automation was unavailable, so desktop/mobile interaction acceptance
+and another person's physical iPhone installation remain unobserved.
+
+The source and CLI 1.6.0 package are prepared locally. They are not yet published
+or deployed: the existing npm session returns 401 and needs the owner's browser
+sign-in before package publication and the matching website rollout.
 
 ## Native Settings cleanup (September 26)
 

@@ -5,6 +5,8 @@ import { createHash } from "node:crypto";
 import { HttpError } from "./security.ts";
 import { renderSocialCard, socialCardResponse } from "./social-cards.ts";
 import { renderAppListing, renderAppDirectory, type AppDirectory, type AppActivity } from "./menlo-listings.ts";
+import { createReviewLedger } from "./github-reviews.ts";
+import { createReviewLogin } from "./github-review-login.ts";
 import { PRESENTATION_PATH, MAX_PRESENTATION_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, validatePresentation, presentationFiles, mediaType, validateMediaBytes } from "../../../../packages/cli/src/presentation.js";
 
 export interface GitHubAppsConfig {
@@ -73,6 +75,7 @@ export function validateRecipe(project: unknown, scheme: unknown) {
 export function createGitHubApps(config: GitHubAppsConfig, options: {
   fetch?: typeof fetch;
   legacySlugExists?: (slug: string) => Promise<boolean>;
+  now?: () => number;
 } = {}) {
   const remote = options.fetch ?? fetch;
   let db: Database | undefined;
@@ -85,6 +88,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       CREATE TRIGGER IF NOT EXISTS immutable_registration_updates BEFORE UPDATE ON registration_events BEGIN SELECT RAISE(ABORT, 'registration ledger is append-only'); END;
       CREATE TRIGGER IF NOT EXISTS immutable_registration_deletes BEFORE DELETE ON registration_events BEGIN SELECT RAISE(ABORT, 'registration ledger is append-only'); END;`);
   }
+  const reviewLedger = createReviewLedger(db);
   const cache = new Map<string, { until: number; value: Promise<any> }>();
   let directoryCache: { until: number; value: Promise<AppDirectory> } | undefined;
   let rateWindow = Date.now(), reads = 0, writes = 0;
@@ -113,6 +117,12 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     }
     return value;
   }
+  async function reviewerIdentity(token: string) {
+    const user = await github("/user", token);
+    if (!Number.isSafeInteger(user.id) || user.id <= 0 || typeof user.login !== "string" || !/^[A-Za-z0-9-]{1,39}$/.test(user.login)) throw new HttpError(502, "GitHub reviewer identity is unavailable");
+    return { id: user.id, login: user.login as string };
+  }
+  const reviewLogin = createReviewLogin(config, remote, reviewerIdentity, options.now);
   function find(slug: string): GitHubApp | undefined {
     const row = db?.query("SELECT record FROM apps WHERE slug = ?").get(slug) as { record: string } | null;
     return row ? JSON.parse(row.record) : undefined;
@@ -133,6 +143,19 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       github_url: `https://github.com/${repo.full_name}`, profile_url: `https://github.com/${repo.owner.login}`,
       public_url: `${config.baseUrl}/${app.slug}`, open_url: `menlo://app/${app.slug}?commit=${commit.sha}&repository=${app.repository_id}`,
       checked_at: new Date().toISOString().replace(/\.\d{3}Z$/, "Z") };
+  }
+  async function version(app: GitHubApp, params: URLSearchParams) {
+    const commit = params.get("commit"), repositoryID = params.get("repository");
+    if (params.getAll("commit").length > 1 || params.getAll("repository").length > 1 || commit !== null && !SHA.test(commit) || repositoryID !== null && (!commit || repositoryID !== String(app.repository_id))) throw new HttpError(400, "Use a full app version and its matching repository identity");
+    const latest = await current(app);
+    if (commit && commit !== latest.head_commit) {
+      const selected = await github(`/repos/${app.repository}/commits/${commit}`, config.readToken, true);
+      if (selected.sha !== commit) throw new HttpError(409, "GitHub could not verify the selected app version");
+    }
+    const selectedCommit = commit ?? latest.head_commit;
+    return { ...latest, latest_commit: latest.head_commit, head_commit: selectedCommit, version_pinned: commit !== null,
+      version_url: `${config.baseUrl}/${app.slug}?commit=${selectedCommit}&repository=${app.repository_id}`,
+      open_url: `menlo://app/${app.slug}?commit=${selectedCommit}&repository=${app.repository_id}` };
   }
   async function fileInfo(repository: string, commit: string, file: string, token = config.readToken, cached = true) {
     const parts = file.split("/");
@@ -177,6 +200,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     const media = await presentation(app.repository, app.head_commit);
     return { ...app, name: media?.name ?? app.name, description: media?.description ?? app.description, subtitle: media?.subtitle ?? "",
       website: media?.website ?? null, tokenAddress: media?.tokenAddress ?? null, githubRepo: app.github_url, menloLink: app.public_url,
+      ...reviewLedger.list(app, app.head_commit),
       presentation: media ? { ...media, githubRepo: app.github_url, menloLink: app.public_url } : null };
   }
   function mediaURL(app: GitHubApp, commit: string, file: string) {
@@ -218,14 +242,35 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     // The usual URL pins the metadata and icon to the commit displayed on the page.
     const app = commit ? await current(record) : undefined;
     const selected = app && commit ? await presentation(app.repository, commit) : null;
-    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v1`, async () => {
-      let icon;
+    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v2`, async () => {
+      let icon, screenshot;
       if (selected?.icon && commit) {
-        const response = await mediaResponse(new Request(mediaURL(record, commit, selected.icon)), slug, commit, selected.icon);
-        icon = { bytes: Buffer.from(await response.arrayBuffer()), type: mediaType(selected.icon) };
+        try {
+          const response = await mediaResponse(new Request(mediaURL(record, commit, selected.icon)), slug, commit, selected.icon);
+          icon = { bytes: Buffer.from(await response.arrayBuffer()), type: mediaType(selected.icon) };
+        } catch { /* A failed asset uses a labeled initial, never unverified bytes. */ }
       }
-      return renderSocialCard({ title: selected?.name ?? record.name, description: selected?.description ?? record.description, url: `${config.baseUrl}/${slug}`, icon });
+      if (selected?.screenshots[0] && commit) {
+        try {
+          const file = selected.screenshots[0];
+          const response = await mediaResponse(new Request(mediaURL(record, commit, file)), slug, commit, file);
+          screenshot = { bytes: Buffer.from(await response.arrayBuffer()), type: mediaType(file) };
+        } catch { /* A missing preview must not prevent sharing the app. */ }
+      }
+      try { return renderSocialCard({ title: selected?.name ?? record.name, description: selected?.description ?? record.description, url: `${config.baseUrl}/${slug}`, icon, screenshot }); }
+      catch { return renderSocialCard({ title: selected?.name ?? record.name, description: selected?.description ?? record.description, url: `${config.baseUrl}/${slug}` }); }
     });
+  }
+  async function reviewRequest(request: Request, slug: string, params: URLSearchParams) {
+    if (!params.get("commit")) throw new HttpError(400, "A review must select one exact Git commit");
+    const app = await version(requireApp(slug), params);
+    if (request.method === "GET") return json({ schema: "menlo.github-reviews/1", repository_id: app.repository_id, commit: app.head_commit, ...reviewLedger.list(app, app.head_commit) });
+    const authorization = request.headers.get("Authorization") ?? "";
+    if (authorization && (!/^Bearer [A-Za-z0-9_]+$/.test(authorization) || authorization.length > 1024)) throw new HttpError(401, "Sign in with GitHub to review this version");
+    const user = authorization ? await reviewerIdentity(authorization.slice(7)) : reviewLogin.reviewer(request);
+    let body;
+    try { body = JSON.parse(await boundedText(request.body, 8192)); } catch (error) { if (error instanceof HttpError) throw error; throw new HttpError(400, "Invalid source review"); }
+    return json(reviewLedger.append(app, app.head_commit, { id: user.id, login: user.login }, body), 201);
   }
   async function directory(): Promise<AppDirectory> {
     if (directoryCache && directoryCache.until > Date.now()) return directoryCache.value;
@@ -322,9 +367,14 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       const url = new URL(request.url);
       if (!url.pathname.startsWith("/api/menlo/v1/")) return undefined;
       try {
-        rateLimit(request.method === "POST");
+        const polling = url.pathname === "/api/menlo/v1/review-login/poll" && request.method === "POST";
+        rateLimit(request.method === "POST" && !polling || request.method === "DELETE");
+        const loginResponse = await reviewLogin.fetch(request);
+        if (loginResponse) return loginResponse;
         if (url.pathname === "/api/menlo/v1/status" && request.method === "GET") return json({ schema: "menlo.status/1", available: !!db, github_client_id: config.clientId ?? null, source: "github", ledger: "offchain", visibility: "public" });
         if (url.pathname === "/api/menlo/v1/apps" && request.method === "POST") return await register(request);
+        const reviews = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/reviews$/.exec(url.pathname);
+        if (reviews && ["GET", "POST"].includes(request.method)) return await reviewRequest(request, reviews[1]!, url.searchParams);
         const asset = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/media\/([a-f0-9]{40})\/(menloapp\/[A-Za-z0-9_./-]+)$/.exec(url.pathname);
         if (asset && ["GET", "HEAD"].includes(request.method)) return await mediaResponse(request, asset[1]!, asset[2]!, asset[3]!);
         const share = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/og\.png$/.exec(url.pathname);
@@ -334,7 +384,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
         if (url.pathname === "/api/menlo/v1/apps") return json({ apps: (db?.query("SELECT record FROM apps ORDER BY rowid DESC LIMIT 100").all() as { record: string }[] ?? []).map(row => JSON.parse(row.record)) });
         const match = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)(\/compare)?$/.exec(url.pathname);
         if (!match) throw new HttpError(404, "Not found");
-        const app = await current(requireApp(match[1]!));
+        const app = match[2] ? await current(requireApp(match[1]!)) : await version(requireApp(match[1]!), url.searchParams);
         if (!match[2]) return json(await presented(app));
         const base = url.searchParams.get("base") ?? "";
         if (!SHA.test(base)) throw new HttpError(400, "Comparison requires the full installed commit");
@@ -347,11 +397,11 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
         return json({ error: error instanceof HttpError ? error.message : "MENLO could not reach GitHub. Try again shortly." }, error instanceof HttpError ? error.status : 503);
       }
     },
-    async render(slug: string): Promise<string | undefined> {
+    async render(slug: string, params = new URLSearchParams()): Promise<string | undefined> {
       const record = find(slug);
       if (!record) return undefined;
       let app: Awaited<ReturnType<typeof presented>> | undefined;
-      try { app = await presented(await current(record)); } catch { /* No stale install button when GitHub identity cannot be checked. */ }
+      try { app = await presented(await version(record, params)); } catch (error) { if (error instanceof HttpError && error.status === 400) throw error; /* No stale install button when GitHub identity cannot be checked. */ }
       return renderAppListing(config.baseUrl, record, app);
     },
     async renderIndex(): Promise<string> {

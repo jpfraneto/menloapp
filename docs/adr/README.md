@@ -2,6 +2,11 @@
 
 Accepted ADRs are authoritative architecture decisions beneath `protocol/`.
 
+[ADR 0044](0044-version-linked-distribution-and-source-reviews.md) keeps social
+recommendations, source reviews and installation attached to one GitHub commit.
+It adds GitHub-authenticated, scoped human recommendations and withdrawals on
+the GitHub distribution path, with no inherited reviews or safety verdict.
+
 [ADR 0043](0043-first-app-onboarding.md) makes fresh-start onboarding install
 Menlo on the intended iPhone and complete private pairing. An app link keeps
 that app first across restart, with Menlo on iPhone optional afterward.

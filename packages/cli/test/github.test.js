@@ -244,3 +244,18 @@ test("common deploy typos suggest the command without executing it", () => {
   for (const typo of ["deplpy", "deply", "deplloy", "depoly"]) assert.equal(suggestedCommand(typo), "deploy");
   for (const command of ["deploy", "create", "init", "doctor", undefined]) assert.equal(suggestedCommand(command), null);
 });
+
+test("deploy fills empty copy from the repository and returns a share link pinned to its final pushed metadata", async t => {
+  const { root, commit, git } = await repository(t);
+  const ui = interfaceFor();
+  const network = requests(commit, { post: body => Response.json({ public_url: `https://menloapp.lol/${body.slug}`, repository_id: 12 }) });
+  const copied = [];
+  await deploy([root, "--no-preview"], { ui, ...network, env: { GH_TOKEN: "fixture-secret" }, copyLink: url => { copied.push(url); } });
+  const finalCommit = git("rev-parse", "HEAD");
+  assert.notEqual(finalCommit, commit);
+  assert.equal(JSON.parse(git("show", `${finalCommit}:menloapp/app.json`)).description, "An app");
+  assert.deepEqual(copied, ["https://menloapp.lol/app"]);
+  assert.match(ui.output[0], /App link copied/);
+  assert.ok(ui.output[0].includes(`commit=${finalCommit}&repository=12`));
+  assert.match(ui.output[0], /https:\/\/twitter.com\/intent\/tweet/);
+});

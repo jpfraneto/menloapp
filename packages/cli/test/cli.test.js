@@ -255,3 +255,11 @@ test("try accepts a MENLO link or slug and preserves explicit native review cont
   for (const value of ["https://evil.test/app", "https://user@menloapp.lol/app", "https://menloapp.lol/app?token=secret", "../app", "--helpful"]) assert.throws(() => tryArguments([value]));
   assert.equal(tryArguments(["--help"]), null);
 });
+
+test("version links keep source and repository pins through the existing native installer", () => {
+  const sha = "a".repeat(40);
+  const link = `https://menloapp.lol/anky?commit=${sha}&repository=123#get-app`;
+  assert.deepEqual(tryArguments([link, "--approve-mac-review"]), ["github", "install", "anky", "--commit", sha, "--repository-id", "123", "--approve-mac-review"]);
+  for (const value of [`https://menloapp.lol/anky?commit=${sha}&commit=${sha}`, "https://menloapp.lol/anky?commit=main", `https://menloapp.lol/anky?repository=123`, `https://menloapp.lol/anky?commit=${sha}&repository=9007199254740992`]) assert.throws(() => tryArguments([value]));
+  assert.throws(() => tryArguments([link, "--commit", "b".repeat(40)]), /already selects/);
+});

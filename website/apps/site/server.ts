@@ -634,7 +634,7 @@ export async function createApplication(
       else if (/^\/claims\/[1-9]\d*$/.test(pathname)) content = await claims.renderReceipt(pathname.slice(8));
       else if (/^\/s\/[0-9a-f]{64}$/.test(pathname)) content = await registry.renderShot(`0x${pathname.slice(3)}`);
       else if (/^\/@[^/]+$/.test(pathname)) content = await registry.renderBuilder(decodeURIComponent(pathname.slice(2)));
-      else content = await githubApps.render(pathname.slice(1)) ?? await registry.renderHumanRoute(pathname);
+      else content = await githubApps.render(pathname.slice(1), url.searchParams) ?? await registry.renderHumanRoute(pathname);
       if (!content) throw new HttpError(404, "Not found");
       return headResponse(html(content), method);
     }

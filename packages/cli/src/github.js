@@ -4,7 +4,7 @@ import path from "node:path";
 import process from "node:process";
 import { choose, continueAfter, deployUI, openBrowser, shellQuote } from "./deploy-ui.js";
 
-import { setupPresentation, readCommittedPresentation, updatePresentationLinks, commitPresentation, previewNeedsRefresh } from "./project-presentation.js";
+import { setupPresentation, readCommittedPresentation, updatePresentationLinks, fillPresentationDescription, fillPresentationIcon, commitPresentation, previewNeedsRefresh } from "./project-presentation.js";
 import { recordExperience } from "./record.js";
 import { previewTools } from "./experience-agent.js";
 
@@ -254,6 +254,8 @@ export async function deploy(args, dependencies = {}) {
   }
   const generated = [];
   if (await setupPresentation(local.root, project.name)) generated.push("menloapp/app.json", "menloapp/README.md");
+  if (await fillPresentationDescription(local.root, repo.description)) generated.push("menloapp/app.json");
+  generated.push(...await fillPresentationIcon(local.root, project.commit));
   const presentation = await readCommittedPresentation(local.root, project.commit);
   if (!options.noPreview && (options.record || previewNeedsRefresh(local.root, project.commit, presentation))) {
     const missing = (dependencies.previewTools || previewTools)();
@@ -311,7 +313,17 @@ export async function deploy(args, dependencies = {}) {
     ui.log("Saved your GitHub and MENLO links to menloapp/app.json.");
   }
   result = { ...result, githubRepo: `https://github.com/${project.repository}`, menloLink: result.public_url };
+  const finalCommit = git(local.root, "rev-parse", "HEAD");
+  if (Number.isSafeInteger(result.repository_id) && result.repository_id > 0) result.version_url = `${result.public_url}?commit=${finalCommit}&repository=${result.repository_id}`;
+  result.share_on_x_url = `https://twitter.com/intent/tweet?${new URLSearchParams({ text: project.name, url: result.public_url })}`;
   if (options.json) ui.print(JSON.stringify(result));
-  else ui.print(`\nYour app is live:\n${result.public_url}\n\nShare this link. Testers open it in MENLO to build and run the app on their iPhone.\nKeep pushing to ${repo.default_branch}; this link follows your code automatically.\n`);
+  else {
+    let copied = false;
+    try {
+      const copyLink = dependencies.copyLink ?? ui.copyLink;
+      if (copyLink) copied = copyLink(result.public_url) !== false;
+    } catch { /* The app is deployed even if the clipboard is unavailable. */ }
+    ui.print(`\nYour app is live:\n${result.public_url}\n\n${copied ? "App link copied. " : ""}Share this link. Testers open it in MENLO to build and run the app on their iPhone.\nShare on X: ${result.share_on_x_url}\n${result.version_url ? `This exact version: ${result.version_url}\n` : ""}Keep pushing to ${repo.default_branch}; this link follows your code automatically.\n`);
+  }
   return 0;
 }

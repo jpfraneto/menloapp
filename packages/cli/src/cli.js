@@ -1,4 +1,5 @@
 import { NPM_CLI_VERSION } from "./constants.js";
+import { parseAppLink } from "./app-link.js";
 
 export const HELP = `MENLO · menloapp ${NPM_CLI_VERSION}
 
@@ -6,6 +7,7 @@ export const HELP = `MENLO · menloapp ${NPM_CLI_VERSION}
   menloapp setup            Continue iPhone setup.
   menloapp deploy [path]     Share your app. Get a live URL.
   menloapp try <link>        Install an app on your iPhone.
+  menloapp review <link>     Recommend a version you reviewed.
 
   menloapp init [path]       Edit your app page before deploying
   menloapp open              Open MENLO on your Mac
@@ -29,14 +31,9 @@ Discover apps at https://menloapp.lol`;
 
 export function tryArguments(args) {
   if (!args.length || args.includes("--help") || args.includes("-h")) return null;
-  let slug = args[0];
-  if (slug.startsWith("https://")) {
-    const url = new URL(slug);
-    if (url.origin !== "https://menloapp.lol" || url.username || url.password || url.search || url.hash) throw new Error("Use a menloapp.lol app link.");
-    slug = url.pathname.replace(/^\/|\/$/g, "");
-  }
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length < 2 || slug.length > 64) throw new Error("Use menloapp try https://menloapp.lol/your-app");
-  return ["github", "install", slug, ...args.slice(1)];
+  const { slug, commit, repositoryID } = parseAppLink(args[0]);
+  if (commit && args.slice(1).some(arg => /^(--commit|--repository-id)(=|$)/.test(arg))) throw new Error("The link already selects a version. Remove the extra version options.");
+  return ["github", "install", slug, ...(commit ? ["--commit", commit] : []), ...(repositoryID ? ["--repository-id", repositoryID] : []), ...args.slice(1)];
 }
 
 export function suggestedCommand(value) {

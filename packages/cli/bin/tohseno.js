@@ -8,11 +8,13 @@ import { installAuthorizedNative } from "../src/installer.js";
 import { openProduct, startProduct } from "../src/start.js";
 import { initPresentation } from "../src/project-presentation.js";
 import { deploy } from "../src/github.js";
+import { review } from "../src/review.js";
 
 async function main() {
   const raw = process.argv.slice(2);
   if (raw[0] === "init") return initPresentation(raw.slice(1));
   const commandIndex = raw[0] === "--json" ? 1 : 0;
+  if (raw[commandIndex] === "review") return review([...raw.slice(commandIndex + 1), ...raw.slice(0, commandIndex)]);
   const suggestion = suggestedCommand(raw[commandIndex]);
   if (suggestion) throw new Error(`Unknown command: ${raw[commandIndex]}. Did you mean menloapp ${suggestion}?`);
   if (raw[commandIndex] === "deploy" && !raw.includes("--legacy-registry")) {

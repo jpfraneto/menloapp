@@ -54,15 +54,18 @@ function lines(value: string, width: number, size: number, maximum: number, bold
   return result;
 }
 
-export function renderSocialCard(value: { title: string; description: string; url: string; icon?: { bytes: Buffer; type: string } }): Buffer {
+export function renderSocialCard(value: { title: string; description: string; url: string; icon?: { bytes: Buffer; type: string }; screenshot?: { bytes: Buffer; type: string } }): Buffer {
   if (value.icon) validateIconDimensions(value.icon.bytes, value.icon.type);
-  const title = lines(value.title, 860, 58, 2, true);
-  const description = lines(value.description, 1040, 34, 3);
+  if (value.screenshot) validateIconDimensions(value.screenshot.bytes, value.screenshot.type);
+  const title = lines(value.title, value.screenshot ? 540 : 860, 58, 2, true);
+  const description = lines(value.description, value.screenshot ? 690 : 1040, 34, 3);
   const address = lines(value.url.replace(/^https?:\/\//, "").replace(/\/$/, ""), 1040, 30, 1)[0] ?? "";
   const icon = value.icon
     ? `<image x="80" y="80" width="132" height="132" clip-path="url(#icon)" preserveAspectRatio="xMidYMid meet" xlink:href="data:${value.icon.type};base64,${value.icon.bytes.toString("base64")}"/>`
     : `<rect x="80" y="80" width="132" height="132" rx="28" fill="#e1e8d8"/>${text(Array.from(value.title)[0]?.toUpperCase() || "M", 116, 167, 64, true, "#315b3b")}`;
-  return new Resvg(svg(`<defs><clipPath id="icon"><rect x="80" y="80" width="132" height="132" rx="28"/></clipPath></defs><rect width="1200" height="630" fill="#f6f3ea"/>${icon}${title.map((line, i) => text(line, 252, title.length === 1 ? 165 : 132 + i * 76, 58, true)).join("")}${description.map((line, i) => text(line, 80, 316 + i * 50, 34, false, "#616457")).join("")}<path d="M80 498H1120" stroke="#d6d5c9" stroke-width="2"/>${text(address, 80, 561, 30, false, "#315b3b")}`), { font }).render().asPng();
+  const screenshot = value.screenshot ? `<rect x="870" y="48" width="260" height="534" rx="36" fill="#242820"/><image x="880" y="58" width="240" height="514" clip-path="url(#screen)" preserveAspectRatio="xMidYMid meet" xlink:href="data:${value.screenshot.type};base64,${value.screenshot.bytes.toString("base64")}"/>` : "";
+  const lineEnd = value.screenshot ? 790 : 1120;
+  return new Resvg(svg(`<defs><clipPath id="icon"><rect x="80" y="80" width="132" height="132" rx="28"/></clipPath><clipPath id="screen"><rect x="880" y="58" width="240" height="514" rx="26"/></clipPath></defs><rect width="1200" height="630" fill="#f6f3ea"/>${icon}${title.map((line, i) => text(line, 252, title.length === 1 ? 165 : 132 + i * 76, 58, true)).join("")}${description.map((line, i) => text(line, 80, 316 + i * 50, 34, false, "#616457")).join("")}<path d="M80 498H${lineEnd}" stroke="#d6d5c9" stroke-width="2"/>${text(value.screenshot ? lines(address, 710, 30, 1)[0] ?? "" : address, 80, 561, 30, false, "#315b3b")}${screenshot}`), { font }).render().asPng();
 }
 
 // Bound decoded pixels as well as download bytes before handing an icon to the renderer.

@@ -78,6 +78,52 @@ export async function updatePresentationLinks(root, repository, menloLink) {
   return true;
 }
 
+export async function fillPresentationDescription(root, description) {
+  if (typeof description !== "string" || !description.trim()) return false;
+  const file = path.join(root, PRESENTATION_PATH);
+  if (!(await lstat(file)).isFile()) throw new Error("menloapp/app.json must be a regular file.");
+  const value = validatePresentation(JSON.parse(await readFile(file, "utf8")));
+  if (value.description) return false;
+  await writeFile(file, JSON.stringify(validatePresentation({ ...value, description: description.slice(0, 4000) }), null, 2) + "\n");
+  return true;
+}
+
+/** Reuse one unambiguous committed app icon; never guess between app targets. */
+export async function fillPresentationIcon(root, commit) {
+  const file = path.join(root, PRESENTATION_PATH);
+  if (!(await lstat(file)).isFile()) throw new Error("menloapp/app.json must be a regular file.");
+  const value = validatePresentation(JSON.parse(await readFile(file, "utf8")));
+  if (value.icon) return [];
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { maxBuffer: MAX_IMAGE_BYTES + 1024, stdio: ["ignore", "pipe", "pipe"] });
+  const entries = new Map(git("ls-tree", "-r", "-z", commit).toString("utf8").split("\0").filter(Boolean).map(line => { const [info, name] = line.split("\t"); return [name, info.split(" ")[0]]; }));
+  const catalogs = [...entries.keys()].filter(name => /\/[^/]+\.appiconset\/Contents\.json$/.test(name));
+  if (catalogs.length !== 1 || entries.get(catalogs[0]) !== "100644" || !catalogs[0].endsWith("/AppIcon.appiconset/Contents.json")) return [];
+  const read = (name, maximum) => {
+    if (entries.get(name) !== "100644" || Number(git("cat-file", "-s", `${commit}:${name}`).toString()) > maximum) return null;
+    return git("show", `${commit}:${name}`);
+  };
+  const contents = read(catalogs[0], MAX_PRESENTATION_BYTES);
+  if (!contents) return [];
+  let catalog;
+  try { catalog = JSON.parse(contents.toString("utf8")); } catch { return []; }
+  if (!Array.isArray(catalog.images)) return [];
+  const choices = catalog.images.filter(image => image && !image.appearances && typeof image.filename === "string" && /^[A-Za-z0-9_.-]+\.(png|jpe?g)$/.test(image.filename));
+  const pixels = image => (parseFloat(image.size) || 0) * (parseFloat(image.scale) || 1);
+  choices.sort((a, b) => pixels(b) - pixels(a));
+  for (const image of choices) {
+    const source = `${path.posix.dirname(catalogs[0])}/${image.filename}`;
+    const bytes = read(source, MAX_IMAGE_BYTES);
+    if (!bytes) continue;
+    const destination = `menloapp/icon.${image.filename.split(".").at(-1)}`;
+    try { validateMediaBytes(destination, bytes); } catch { continue; }
+    try { await writeFile(path.join(root, destination), bytes, { flag: "wx" }); }
+    catch (error) { if (error.code === "EEXIST") return []; throw error; }
+    await writeFile(file, JSON.stringify(validatePresentation({ ...value, icon: destination }), null, 2) + "\n");
+    return [PRESENTATION_PATH, destination];
+  }
+  return [];
+}
+
 export function previewNeedsRefresh(root, commit, presentation) {
   if (!presentation?.preview) return true;
   if (presentation.preview.kind !== "simulator") return false;

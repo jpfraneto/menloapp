@@ -1,5 +1,5 @@
 import { createInterface } from "node:readline";
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import process from "node:process";
 
 export function shellQuote(value) {
@@ -25,10 +25,16 @@ function ask(question) {
 }
 
 export function deployUI(options) {
+  const interactive = !options.json && !options.dryRun && process.env.MENLO_NONINTERACTIVE !== "1" && Boolean(process.stdin.isTTY && process.stderr.isTTY);
   return {
-    interactive: !options.json && !options.dryRun && process.env.MENLO_NONINTERACTIVE !== "1" && Boolean(process.stdin.isTTY && process.stderr.isTTY),
+    interactive,
     log: options.json || options.dryRun ? () => {} : text => console.error(text),
     print: text => console.log(text), ask, open: openBrowser,
+    copyLink: url => {
+      if (process.platform !== "darwin" || !interactive) return false;
+      execFileSync("/usr/bin/pbcopy", [], { input: url, timeout: 2000, stdio: ["pipe", "ignore", "ignore"] });
+      return true;
+    },
   };
 }
 

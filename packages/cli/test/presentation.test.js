@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { validatePresentation, presentationFiles } from "../src/presentation.js";
-import { setupPresentation, readCommittedPresentation, updatePresentationLinks, commitPresentation, previewNeedsRefresh } from "../src/project-presentation.js";
+import { setupPresentation, readCommittedPresentation, updatePresentationLinks, commitPresentation, previewNeedsRefresh, fillPresentationIcon } from "../src/project-presentation.js";
 import { selectSimulator } from "../src/record.js";
 
 test("scaffold is public, preserves owner edits, and reads the commit instead of the working copy", async t => {
@@ -78,4 +78,29 @@ test("deploy fills confirmed links and will not auto-commit unrelated owner chan
   assert.throws(() => commitPresentation(root, ["menloapp/app.json"], "main"), /Other files changed/);
   assert.equal(git("rev-parse", "HEAD"), head);
   assert.equal(await readFile(path.join(root, "private.txt"), "utf8"), "owner work");
+});
+
+test("automatic icons use committed normal artwork and preserve existing public assets", async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "menloapp-icon-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const git = (...args) => execFileSync("git", ["-C", root, "-c", "user.name=Test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null", ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  await setupPresentation(root, "App");
+  const catalog = path.join(root, "App/Assets.xcassets/AppIcon.appiconset");
+  await mkdir(catalog, { recursive: true });
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jV1sAAAAASUVORK5CYII=", "base64");
+  await writeFile(path.join(catalog, "icon.png"), png);
+  await writeFile(path.join(catalog, "Contents.json"), JSON.stringify({ images: [{ size: "1024x1024", filename: "dark.png", appearances: [{ appearance: "luminosity", value: "dark" }] }, { size: "1024x1024", filename: "icon.png" }] }));
+  git("init", "-q"); git("add", "."); git("commit", "-qm", "App");
+  const commit = git("rev-parse", "HEAD");
+  await writeFile(path.join(catalog, "icon.png"), "uncommitted private-looking bytes");
+  assert.deepEqual(await fillPresentationIcon(root, commit), ["menloapp/app.json", "menloapp/icon.png"]);
+  assert.deepEqual(await readFile(path.join(root, "menloapp/icon.png")), png);
+  assert.equal(JSON.parse(await readFile(path.join(root, "menloapp/app.json"), "utf8")).icon, "menloapp/icon.png");
+  assert.deepEqual(await fillPresentationIcon(root, commit), []);
+  await writeFile(path.join(root, "menloapp/app.json"), JSON.stringify({ version: 1, name: "App" }));
+  assert.deepEqual(await fillPresentationIcon(root, commit), []);
+  assert.deepEqual(await readFile(path.join(root, "menloapp/icon.png")), png);
+  const other = path.join(root, "Other/Alternate.appiconset"); await mkdir(other, { recursive: true });
+  await writeFile(path.join(other, "Contents.json"), "{}"); git("add", "Other"); git("commit", "-qm", "Ambiguous icon");
+  assert.deepEqual(await fillPresentationIcon(root, "HEAD"), []);
 });
