@@ -13,6 +13,13 @@ remains `docs.menloapp.lol`; its required Namecheap CNAME is host `docs` pointin
 to `menloapp-docs.pages.dev`. This supersedes the earlier DNS target below.
 The updated main-site redirect remains held until real DNS and HTTPS work.
 
+Source `6724e12` is deployed to `https://menloapp-docs.pages.dev` as production
+deployment `https://e36091f7.menloapp-docs.pages.dev`. The build, built-site
+verification, and frozen package lock check passed. Live home, sitemap and
+both AI feeds returned 200 with `docs.menloapp.lol` references. The custom-domain
+association was moved to `menloapp-docs`; its observed state is initializing
+with verification pending. The earlier CNAME instruction is superseded.
+
 ## Menlo documentation domain (October 8)
 
 The owner corrected the intended public destination to `docs.menloapp.lol`.
