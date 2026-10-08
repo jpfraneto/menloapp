@@ -19,7 +19,7 @@ describe("documentation handoff", () => {
       new Request("http://localhost:3000/docs"),
     );
     expect(response.status).toBe(308);
-    expect(response.headers.get("Location")).toBe("https://docs.tohseno.com/");
+    expect(response.headers.get("Location")).toBe("https://docs.menloapp.lol/");
     expect(response.headers.get("Cache-Control")).toBe("public, max-age=300");
     expect(await response.text()).toBe("");
   });
@@ -37,7 +37,7 @@ describe("documentation handoff", () => {
       new Request("http://localhost:3000/docs", { method: "HEAD" }),
     );
     expect(response.status).toBe(308);
-    expect(response.headers.get("Location")).toBe("https://docs.tohseno.com/");
+    expect(response.headers.get("Location")).toBe("https://docs.menloapp.lol/");
     expect(await response.text()).toBe("");
   });
 

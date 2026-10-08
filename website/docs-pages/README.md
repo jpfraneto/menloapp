@@ -1,6 +1,6 @@
 # Menlo documentation
 
-The static Astro Starlight site served at https://docs.tohseno.com. The main
+The static Astro Starlight site served at https://docs.menloapp.lol. The main
 website’s `/docs` route redirects here, including “I want to go deeper.”
 
 Edit `src/content/docs/` and keep the explanation consistent with `protocol/`,
@@ -25,6 +25,11 @@ project using the operator’s authenticated Wrangler session:
 ```sh
 wrangler pages deploy dist --project-name tohseno-docs --branch main
 ```
+
+The project retains its internal `tohseno-docs` name. Its Menlo custom domain
+is `docs.menloapp.lol`, with a Namecheap `CNAME` for host `docs` pointing to
+`tohseno-docs.pages.dev`. Cloudflare must validate that record and HTTPS before
+the main website’s updated docs redirect is deployed.
 
 Check the public `/docs` redirect, home, changed guides, and AI feeds after
 deployment. This publishes explanatory docs; it does not release the native app,

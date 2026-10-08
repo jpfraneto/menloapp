@@ -4,6 +4,20 @@ Written 2026-07-30, amended through 2026-10-08. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menlo documentation domain (October 8)
+
+The owner corrected the intended public destination to `docs.menloapp.lol`.
+Docs canonical URLs, sitemap, AI feed links, repository-map explanation, and
+the main website's `/docs` redirect source now use that domain. The existing
+Cloudflare Pages project remains `tohseno-docs`; its new custom-domain association
+was accepted with pending validation. `menloapp.lol` uses Namecheap DNS, where
+the required `docs` CNAME is absent. Activation requires the owner to add host
+`docs` pointing to `tohseno-docs.pages.dev`, then real DNS/HTTPS observation.
+Docs check/build/built-site verification, website typecheck, and 24 focused
+documentation/HTTP route tests passed.
+The updated main-site redirect is held from production until that destination
+works; the current live redirect continues to the functioning historical host.
+
 ## Public documentation refresh (October 8)
 
 The standalone `docs.tohseno.com` guide now teaches the published `menloapp`

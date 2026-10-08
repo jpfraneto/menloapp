@@ -616,7 +616,7 @@ export async function createApplication(
           new Response(null, {
             status: 308,
             headers: {
-              location: "https://docs.tohseno.com/",
+              location: "https://docs.menloapp.lol/",
               "cache-control": "public, max-age=300",
             },
           }),

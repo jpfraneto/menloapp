@@ -143,7 +143,7 @@ describe("public pages", () => {
     const application = await testApplication();
     const docs = await application.fetch(request("/docs"));
     expect(docs.status).toBe(308);
-    expect(docs.headers.get("location")).toBe("https://docs.tohseno.com/");
+    expect(docs.headers.get("location")).toBe("https://docs.menloapp.lol/");
 
     const privacy = await application.fetch(request("/privacy"));
     expect(privacy.status).toBe(200);

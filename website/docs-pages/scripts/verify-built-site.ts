@@ -35,6 +35,8 @@ assert(home.includes("Your GitHub app. On their iPhone."), "docs must lead with 
 assert(home.includes("menloapp deploy"), "docs must teach the published CLI command");
 assert(home.includes("npm i -g menloapp"), "docs must use the published npm package");
 assert(home.includes("exact-version"), "docs must explain version-preserving sharing");
+assert(home.includes('href="https://docs.menloapp.lol/"'), "docs home must use the Menlo canonical domain");
+assert(!home.includes("docs.tohseno.com"), "docs home must not advertise the former domain");
 const statusPage = await readFile(join(distRoot, "guide/reference/current-status/index.html"), "utf8");
 const cliPackage = JSON.parse(await readFile(join(projectRoot, "../../packages/cli/package.json"), "utf8"));
 assert(statusPage.includes(cliPackage.version), "current status must describe the current published CLI");
@@ -58,6 +60,8 @@ const legacy = await readFile(join(distRoot, "guide/product/ship-claim-update/in
 assert(legacy.includes("Historical Registry path"), "legacy publication must be visibly scoped");
 const aiCorpus = await readFile(join(distRoot, "llms-full.txt"), "utf8");
 assert(aiCorpus.includes("ADR 0043") && aiCorpus.includes("ADR 0044"), "AI feed must include current onboarding and review authority");
+assert(aiCorpus.includes("Source: https://docs.menloapp.lol/"), "AI feed must use the Menlo docs domain");
+assert(!aiCorpus.includes("docs.tohseno.com"), "AI feed must not point back to the former domain");
 assert(await exists(join(distRoot, "pagefind", "pagefind.js")), "Pagefind search index is missing");
 assert(await exists(join(distRoot, "sitemap-index.xml")), "sitemap is missing");
 assert(await exists(join(distRoot, "llms.txt")), "AI-readable documentation index is missing");

@@ -2,7 +2,7 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
-  site: "https://docs.tohseno.com",
+  site: "https://docs.menloapp.lol",
   integrations: [
     starlight({
       title: "Menlo",
