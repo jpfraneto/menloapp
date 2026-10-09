@@ -760,6 +760,21 @@ export async function createApplication(
       );
     }
 
+    // Every app also answers at /<slug>/latest and /<github-login>/<slug>.
+    // Checked last so these links never shadow an existing route.
+    const appPath = /^\/([A-Za-z0-9-]{1,39})\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname);
+    const appSlug = appPath && githubApps.resolvePath(appPath[1]!, appPath[2]!);
+    if (appSlug && appPath![2] === "latest") {
+      return headResponse(withSecurityHeaders(new Response(null, {
+        status: 302,
+        headers: { location: `/${appSlug}`, "cache-control": "no-store" },
+      })), method);
+    }
+    if (appSlug) {
+      const content = await githubApps.render(appSlug, url.searchParams);
+      if (content) return headResponse(html(content), method);
+    }
+
     throw new HttpError(404, "Not found");
   }
 

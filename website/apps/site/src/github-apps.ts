@@ -35,7 +35,7 @@ export interface GitHubApp {
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9_.-]{1,100}$/;
 const SHA = /^[a-f0-9]{40}$/;
-const RESERVED = new Set(["api", "auth", "apps", "claims", "docs", "download", "healthz", "install", "privacy", "registry", "releases", "s", "buy", "menlo", "login", "logout"]);
+const RESERVED = new Set(["api", "auth", "apps", "claims", "docs", "download", "healthz", "install", "privacy", "registry", "releases", "s", "buy", "menlo", "login", "logout", "latest"]);
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 function json(value: unknown, status = 200) {
   return Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
@@ -362,6 +362,13 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
   }
   return {
     find,
+    /** Resolve /<slug>/latest and /<github-login>/<slug> to a registered app slug. */
+    resolvePath(first: string, second: string): string | undefined {
+      if (second === "latest") return find(first)?.slug;
+      const app = find(second), login = first.toLowerCase();
+      // The name in the link must be the maker or the repository owner; it is never decorative.
+      return app && [app.publisher.login, app.repository.split("/")[0]!].some(name => name.toLowerCase() === login) ? app.slug : undefined;
+    },
     close: () => db?.close(),
     async fetch(request: Request): Promise<Response | undefined> {
       const url = new URL(request.url);
