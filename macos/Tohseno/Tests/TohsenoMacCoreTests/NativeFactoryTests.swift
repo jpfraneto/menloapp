@@ -1051,9 +1051,9 @@ final class NativeFactoryTests: XCTestCase {
             encoding: .utf8
         )
         XCTAssertTrue(script.contains("set background picture of view_options"))
-        XCTAssertTrue(script.contains("set position of item \"Tohseno.app\""))
+        XCTAssertTrue(script.contains("set position of item \"Menlo.app\""))
         XCTAssertTrue(script.contains("set position of item \"Applications\""))
-        XCTAssertTrue(script.contains("-volname Tohseno"))
+        XCTAssertTrue(script.contains("-volname Menlo"))
     }
 
     @MainActor
