@@ -179,9 +179,17 @@ pub async fn resolve(slug: &str) -> Result<GitHubApp, BoxError> {
     Ok(app)
 }
 
+// A single-commit download of a large public repository can take many minutes
+// on an ordinary connection; local Git operations stay tightly bounded.
+const GIT_DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(20 * 60);
+
 async fn git(root: &Path, args: &[&str]) -> Result<String, BoxError> {
+    git_within(Duration::from_secs(180), root, args).await
+}
+
+async fn git_within(limit: Duration, root: &Path, args: &[&str]) -> Result<String, BoxError> {
     let output = tokio::time::timeout(
-        Duration::from_secs(180),
+        limit,
         tokio::process::Command::new("git")
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
@@ -205,7 +213,8 @@ async fn git(root: &Path, args: &[&str]) -> Result<String, BoxError> {
             .kill_on_drop(true)
             .output(),
     )
-    .await??;
+    .await
+    .map_err(|_| "Downloading this app's source took too long and was stopped. Check your connection and try again; existing source was kept.")??;
     if !output.status.success() {
         return Err("Git could not retrieve or verify this exact public commit. Check the repository and your connection; existing source was kept.".into());
     }
@@ -317,7 +326,8 @@ pub async fn install(
         git(temp.path(), &["init", "--quiet"]).await?;
         let remote = format!("https://github.com/{}.git", app.repository);
         git(temp.path(), &["remote", "add", "origin", &remote]).await?;
-        git(
+        git_within(
+            GIT_DOWNLOAD_TIMEOUT,
             temp.path(),
             &["fetch", "--depth=1", "--no-tags", "origin", &request.commit],
         )
