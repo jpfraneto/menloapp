@@ -1,0 +1,98 @@
+# Menlo
+
+> Menlo is a way to share open-source iPhone apps without an app store. A maker publishes a public GitHub repository with one command and gets a link. Anyone who opens the link can read the source, build it on their own Mac with Xcode, sign it with their own Apple ID, and run it on their own iPhone.
+
+This file is for AI agents and coding assistants. It explains what Menlo is and how to use it on someone's behalf. Human docs: https://docs.menloapp.lol (index for models: https://docs.menloapp.lol/llms.txt).
+
+## What Menlo is, and is not
+
+- The repository is the app. Menlo stores a small public listing (slug, repository, Xcode project, scheme). It never hosts source, binaries, or user tokens.
+- Menlo never builds or signs for anyone. The recipient's Mac builds the source and the recipient's Apple identity signs it.
+- A Menlo link says who published an app, which repository it comes from, and which commit. It does not say the app is safe. That judgment belongs to the person who reads the source and chooses to build.
+- Only public GitHub repositories containing a committed Xcode project or workspace for an iOS app are supported.
+
+## Requirements
+
+- Sharing an app: Node.js 20 or newer, git, a GitHub account with push access to the public repository.
+- Installing an app: a Mac running macOS 14 or newer, Xcode, an Apple ID, and the iPhone the app is for.
+
+## Share an app
+
+Run this in the app's repository, with the work committed and pushed:
+
+```sh
+npm i -g menloapp
+menloapp deploy
+```
+
+`deploy` signs in to GitHub with a device code (a person must approve it in a browser), finds the Xcode project and scheme, and prints the app link. Useful options: `--project <path>`, `--scheme <name>`, `--app-slug <slug>`, `--name <name>`, `--record` to regenerate the preview recording, `--no-preview` to skip it. Run `menloapp deploy --help` for the rest.
+
+After the first deploy, pushing to the default branch is enough: the app link follows the latest commit there. Deploy again only to change the project, scheme, or slug.
+
+## App links
+
+- `https://menloapp.lol/<slug>` — the app; always the latest commit on the default branch.
+- `https://menloapp.lol/<slug>/latest` — the same thing, spelled out.
+- `https://menloapp.lol/<github-login>/<slug>` — the same app under its maker's GitHub login.
+- `https://menloapp.lol/<slug>?commit=<40-hex-sha>&repository=<numeric-id>` — one exact version. Use this when recommending code you reviewed.
+
+## Install an app
+
+On the recipient's Mac, either open the app link and choose Get app (this hands off to Menlo for Mac, https://menloapp.lol/download/macos), or run:
+
+```sh
+npx menloapp try https://menloapp.lol/<slug>
+```
+
+Menlo downloads the selected commit from GitHub, builds it with Xcode, signs it with the recipient's Apple identity, and installs it on their connected iPhone. Apple may require the person to unlock the phone, tap Trust, enable Developer Mode, or sign in to Xcode. Those steps need the human; do not try to work around them.
+
+## Review a version
+
+```sh
+npx menloapp review 'https://menloapp.lol/<slug>?commit=<sha>&repository=<id>'
+```
+
+This publishes, under the reviewer's GitHub account, the statement that they reviewed that version's source and recommend it. A review covers one commit and one build recipe and never carries over to a newer version. Only publish a review a human has actually made and confirmed; never review on your own initiative.
+
+## The app page: menloapp/app.json
+
+`deploy` creates `menloapp/app.json` in the repository. Edit it, commit, and push to change the listing.
+
+```json
+{
+  "version": 1,
+  "name": "Your App",
+  "subtitle": "A short reason to try it",
+  "description": "What it does and who it helps.",
+  "icon": "menloapp/icon.png",
+  "screenshots": ["menloapp/screenshot-1.png"],
+  "preview": { "path": "menloapp/preview.mp4", "kind": "screen-recording" },
+  "ogImage": null,
+  "website": null
+}
+```
+
+- Limits: name 100 characters, subtitle 160, description 4,000; up to three screenshots.
+- Media must be ordinary committed files inside `menloapp/`: PNG or JPEG up to 10 MiB, MP4 up to 50 MiB. No URLs, symlinks, or Git LFS pointers.
+- `preview.kind` is `simulator`, `device`, or `screen-recording`.
+- Guide: https://docs.menloapp.lol/guide/product/app-listing/
+
+## Read-only API
+
+All responses are JSON and need no authentication.
+
+- `GET https://menloapp.lol/api/menlo/v1/apps` — registered apps.
+- `GET https://menloapp.lol/api/menlo/v1/apps/<slug>` — one app with its current commit and listing. Add `?commit=<sha>&repository=<id>` for an exact version.
+- `GET https://menloapp.lol/api/menlo/v1/apps/<slug>/reviews?commit=<sha>` — source reviews of that version.
+- `GET https://menloapp.lol/api/menlo/v1/activity` — the feed shown on the home page.
+
+## Other commands
+
+- `menloapp init [path]` — create or edit the app page before deploying.
+- `menloapp open` — open Menlo on this Mac.
+- `menloapp doctor` — check this Mac.
+- `menloapp --help` — everything else.
+
+## Source
+
+Menlo itself is open source: https://github.com/jpfraneto/menloapp

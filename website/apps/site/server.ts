@@ -398,6 +398,7 @@ const STATIC_FILES: Record<
     type: "application/pdf",
     revalidate: true,
   },
+  "/llms.txt": { file: "llms.txt", type: "text/plain; charset=utf-8", revalidate: true },
   "/og.png": { file: "og.png", type: "image/png" },
   "/menlo/og.png": { file: "menlo/og.png", type: "image/png" },
   "/og-buy.png": { file: "og-buy.png", type: "image/png" },

@@ -123,9 +123,10 @@ describe("public pages", () => {
     expect(body).toContain("<title>Bypass the AppStore. — Menlo</title>");
     expect(body).toContain("npm i -g menloapp");
     expect(body).toContain("menloapp deploy");
-    expect(body).toContain('aria-label="Discover apps"');
+    expect(body).toContain("<h1>Shipped on Menlo</h1>");
+    expect(body).toContain('id="compose"');
+    expect(body).toContain('href="/llms.txt">llms.txt</a>');
     expect(body).not.toContain("Latest activity");
-    expect(body).toContain('href="/apps" aria-current="page">Discover</a>');
     expect(body).not.toContain("From GitHub to their iPhone");
     const apps = await application.fetch(request("/apps"));
     expect(apps.status).toBe(200);

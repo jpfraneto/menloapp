@@ -229,3 +229,53 @@ for (const form of document.querySelectorAll("[data-review-form]")) {
   form.addEventListener("submit", event => { event.preventDefault(); if (form.elements.confirm.checked) publish("recommend"); });
   withdraw.addEventListener("click", () => publish("withdraw"));
 }
+
+// Copy buttons that confirm in their own label, then return to it.
+for (const button of document.querySelectorAll("[data-flash-copy]")) {
+  const label = button.textContent;
+  let timer;
+  button.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(button.dataset.flashCopy); button.textContent = button.dataset.flashLabel; }
+    catch { button.textContent = "Copy failed"; }
+    clearTimeout(timer);
+    timer = setTimeout(() => { button.textContent = label; }, 2000);
+  });
+}
+
+// Previews play only while they are on screen.
+const previews = document.querySelectorAll("video[data-play-in-view]");
+if (previews.length && "IntersectionObserver" in window && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) entry.target.play().catch(() => {});
+      else entry.target.pause();
+    }
+  }, { threshold: 0.5 });
+  for (const video of previews) observer.observe(video);
+}
+
+// Every post is in the page; a long feed is revealed one page at a time.
+for (const feed of document.querySelectorAll("[data-feed]")) {
+  const size = Number(feed.dataset.feed), posts = Array.from(feed.children);
+  if (posts.length <= size) continue;
+  let shown = size;
+  const more = document.createElement("div");
+  more.className = "ml-feed-more";
+  const button = document.createElement("button");
+  button.className = "ml-button ml-button-secondary ml-pill";
+  button.type = "button";
+  button.textContent = "Load more";
+  more.append(button);
+  const update = () => {
+    posts.forEach((post, index) => { post.hidden = index >= shown; });
+    more.hidden = shown >= posts.length;
+  };
+  button.addEventListener("click", () => {
+    const next = posts[shown];
+    shown += size;
+    update();
+    next?.querySelector("a")?.focus();
+  });
+  feed.after(more);
+  update();
+}

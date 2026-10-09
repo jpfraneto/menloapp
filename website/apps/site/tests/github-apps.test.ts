@@ -153,13 +153,12 @@ test("app pages and API use committed metadata and pin every asset to that commi
   expect(deployed.name).toBe("Committed App");
   const page = (await f.router.render("test-app"))!;
   expect(page).toContain("Committed App");
-  expect(page).toContain("A useful app");
-  expect(page).toContain("Simulator preview");
-  expect(page).toContain("<video controls playsinline");
+  expect(page).toContain("First line\nSecond line");
+  expect(page).toContain("<video muted loop playsinline");
   expect(page).toContain(`/media/${sha}/menloapp/icon.png`);
   expect(page.match(/alt="Committed App screenshot/g)?.length).toBe(3);
   expect(page).not.toContain("Ignored request name");
-  expect(page).toContain('<summary class="ml-button ml-get-button">Get app</summary>');
+  expect(page).toContain('<summary class="ml-button ml-pill ml-get-button">Get app</summary>');
   expect(page).toContain("Get Committed App on your iPhone");
   expect(page).toContain(`href="menlo://app/test-app?commit=${sha}&amp;repository=12">Open in Menlo</a>`);
   expect(page).toContain('href="/download/macos" data-remember-app>Download Menlo</a>');
@@ -230,14 +229,16 @@ test("public discovery lists each app once and leaves updates to installed-app c
   expect(feed.apps).toHaveLength(1);
   expect(f.requests.some(path => path.endsWith("/commits"))).toBe(false);
   const page = await f.router.renderIndex();
-  expect(page).toContain("SOFTWARE IS INFINITE.");
-  expect(page).toContain('<a class="ml-station" href="/test-app">');
-  expect(page.match(/class="ml-app" href="\/test-app"/g)).toHaveLength(1);
+  expect(page).toContain("<h1>Shipped on Menlo</h1>");
+  expect(page).not.toContain("SOFTWARE IS INFINITE.");
+  expect(page.match(/<li class="ml-post">/g)).toHaveLength(1);
+  // The preview tile and Get app both open the app; Source pins the published commit.
   expect(page.match(/href="\/test-app"/g)).toHaveLength(2);
+  expect(page).toContain('data-flash-copy="https://tohseno.com/test-app"');
+  expect(page).toContain(`href="https://github.com/maker/TestApp/tree/${f.state.head}"`);
   expect(page).not.toContain("Latest activity");
   expect(page).not.toContain("deployed an update");
   expect(page).not.toContain("A useful improvement");
-  expect(page).not.toContain("/commit/");
   expect(page).not.toContain("Before MENLO");
   const comparison = await (await f.request("GET", `apps/test-app/compare?base=${sha}`))!.json();
   expect(comparison.commits_behind).toBe(3);
@@ -255,7 +256,11 @@ test("discovery keeps actual publication history when GitHub is unavailable and 
   expect(feed.events.length).toBe(1);
   expect(feed.events[0].kind).toBe("published");
   expect(feed.apps[0].listing).toBeUndefined();
-  expect(await f.router.renderIndex()).toContain("Some app details are temporarily unavailable");
+  // A post never waits on details that failed to load, and the feed shows no error banner.
+  const page = await f.router.renderIndex();
+  expect(page.match(/<li class="ml-post">/g)).toHaveLength(1);
+  expect(page).toContain('href="https://github.com/maker/TestApp"');
+  expect(page).not.toContain("temporarily unavailable");
 });
 
 test("app share metadata is server-rendered and serves a real 1200 by 630 PNG to crawlers", async () => {
