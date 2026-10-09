@@ -3,7 +3,7 @@ set -eu
 
 repository_root="$(CDPATH= cd -- "$(dirname -- "$0")/../../.." && pwd -P)"
 app="${1:-$repository_root/dist/native/Tohseno.app}"
-output="${2:-$repository_root/dist/native/Tohseno-1.2.0-rc.11.dmg}"
+output="${2:-$repository_root/dist/native/Menlo-1.3.0-rc.3.dmg}"
 [ -d "$app/Contents" ] && [ ! -L "$app" ] || { printf '%s\n' 'create-dmg.sh: app bundle is missing or unsafe.' >&2; exit 1; }
 case "$output" in "$repository_root"/dist/*.dmg|"$repository_root"/dist/*/*.dmg) ;; *) printf '%s\n' 'create-dmg.sh: output must be below repository dist/.' >&2; exit 2 ;; esac
 stage="$(mktemp -d "${TMPDIR:-/tmp}/tohseno-dmg.XXXXXX")"
@@ -18,23 +18,23 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 mkdir "$payload"
-cp -R "$app" "$payload/Tohseno.app"
+cp -R "$app" "$payload/Menlo.app"
 ln -s /Applications "$payload/Applications"
 mkdir "$payload/.background"
 sips -s format png "$repository_root/macos/Tohseno/Packaging/dmg-background.svg" \
   --out "$payload/.background/background.png" >/dev/null
 mkdir -p "$(dirname -- "$output")"
-hdiutil create -fs HFS+ -volname Tohseno -srcfolder "$payload" -format UDRW -ov "$read_write" >/dev/null
+hdiutil create -fs HFS+ -volname Menlo -srcfolder "$payload" -format UDRW -ov "$read_write" >/dev/null
 attach_output="$(hdiutil attach -readwrite -noverify -noautoopen "$read_write")"
 device="$(printf '%s\n' "$attach_output" | awk '/^\/dev\// { print $1; exit }')"
 mount_point="$(printf '%s\n' "$attach_output" | awk -F '\t' '/\/Volumes\// { print $NF; exit }')"
-[ -n "$device" ] && [ "$mount_point" = "/Volumes/Tohseno" ] || {
+[ -n "$device" ] && [ "$mount_point" = "/Volumes/Menlo" ] || {
   printf '%s\n' 'create-dmg.sh: the writable Finder layout volume did not mount safely.' >&2
   exit 1
 }
 osascript <<'APPLESCRIPT'
 tell application "Finder"
-  tell disk "Tohseno"
+  tell disk "Menlo"
     open
     set current view of container window to icon view
     tell container window
@@ -47,7 +47,7 @@ tell application "Finder"
     set icon size of view_options to 92
     set text size of view_options to 13
     set background picture of view_options to file ".background:background.png"
-    set position of item "Tohseno.app" to {145, 214}
+    set position of item "Menlo.app" to {145, 214}
     set position of item "Applications" to {495, 214}
     update without registering applications
     delay 2
