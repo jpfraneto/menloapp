@@ -88,6 +88,33 @@ const landingStylePath = fileURLToPath(
 const INSTALL_COMMAND = "curl -fsSL https://tohseno.com/oneshot.sh | bash";
 
 describe("public pages", () => {
+  test("homepage shares include a branded, fetchable large-image card without JavaScript", async () => {
+    const application = await testApplication();
+    const response = await application.fetch(request("/", { headers: { "User-Agent": "Twitterbot/1.0" } }));
+    const body = await response.text();
+    expect(body).toContain('<meta property="og:site_name" content="MENLO">');
+    expect(body).toContain('<meta property="og:title" content="Menlo — Open source. Direct to iPhone.">');
+    expect(body).toContain('<meta property="og:url" content="http://localhost:3000/">');
+    expect(body).toContain('<meta name="twitter:card" content="summary_large_image">');
+    expect(body).toContain('<meta property="og:image:width" content="1200">');
+    expect(body).toContain('<meta property="og:image:height" content="630">');
+    const imageURL = body.match(/<meta property="og:image" content="([^"]+)"/)![1]!;
+    const bytes = readFileSync(new URL("../public/menlo/og.png", import.meta.url));
+    const revision = new Bun.CryptoHasher("sha256").update(bytes).digest("hex").slice(0, 12);
+    expect(imageURL).toBe(`http://localhost:3000/menlo/og.png?v=${revision}`);
+    expect(body).toContain(`<meta name="twitter:image" content="${imageURL}">`);
+    const image = await application.fetch(new Request(imageURL));
+    expect(image.status).toBe(200);
+    expect(image.headers.get("Content-Type")).toBe("image/png");
+    const png = Buffer.from(await image.arrayBuffer());
+    expect(png.equals(bytes)).toBe(true);
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+    const head = await application.fetch(new Request(imageURL, { method: "HEAD" }));
+    expect(head.status).toBe(200);
+    expect(head.headers.get("Content-Type")).toBe("image/png");
+    expect(await head.text()).toBe("");
+  });
+
   test("serves GitHub-first MENLO distribution and retains the historical Registry", async () => {
     const application = await testApplication();
     const response = await application.fetch(request("/"));

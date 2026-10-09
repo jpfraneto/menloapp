@@ -4,6 +4,13 @@ import { homeDescription, homeTitle, landingCloser, landingDirectoryHeading, lan
 import { mediaType } from "../../../../packages/cli/src/presentation.js";
 import { REVIEW_STATEMENT, type GitHubSourceReview } from "./github-reviews.ts";
 import { REVIEW_POLICY, REVIEW_SCOPES } from "../../../../packages/cli/src/review-policy.js";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+
+// Give crawlers a new image URL whenever the homepage artwork changes.
+const homeImageRevision = createHash("sha256")
+  .update(readFileSync(new URL("../public/menlo/og.png", import.meta.url)))
+  .digest("hex").slice(0, 12);
 
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 export interface AppListing extends GitHubApp {
@@ -114,5 +121,11 @@ export function renderAppDirectory(baseUrl: string, directory: AppDirectory) {
     const app = record.listing;
     return `<a class="ml-app" href="/${record.slug}">${icon(baseUrl, record, app)}<div class="ml-app-copy"><h2>${escape(app?.name ?? record.name)}</h2><p>${escape(app?.subtitle || app?.description || record.description)}</p><span class="ml-author">${avatar(record.publisher)}By @${escape(record.publisher.login)}</span></div><span class="ml-discover-action" aria-hidden="true">→</span></a>`;
   };
-  return menloPage(homeTitle, homeDescription, baseUrl, `<main id="main" class="ml-home">${landingHero(directory.apps.map(record => ({ slug: record.slug, name: record.listing?.name ?? record.name })))}<section class="ml-section" id="apps" aria-label="Discover apps"><div class="ml-container">${landingDirectoryHeading()}<div class="ml-install-note"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3" y="3" width="14" height="10" rx="1"/><path d="M1 16h18M8 13v3m4-3v3"/></svg><span>Installing an app requires a Mac, Xcode, and your iPhone.</span></div>${directory.listings_unavailable ? `<p class="ml-feed-notice" role="status">Some app details are temporarily unavailable. <a href="/apps">Try again</a></p>` : ""}<div class="ml-app-grid">${directory.apps.length ? directory.apps.map(appCard).join("") : `<div class="ml-empty"><h2>The first apps will appear here.</h2><p>Have something to share? Turn your public GitHub app into a link.</p><a class="ml-button" href="#deploy" data-open-sheet="deploy">Share your app</a></div>`}</div></div></section>${landingStory()}${landingCloser()}</main>`);
+  return menloPage(homeTitle, homeDescription, baseUrl, `<main id="main" class="ml-home">${landingHero(directory.apps.map(record => ({ slug: record.slug, name: record.listing?.name ?? record.name })))}<section class="ml-section" id="apps" aria-label="Discover apps"><div class="ml-container">${landingDirectoryHeading()}<div class="ml-install-note"><svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="3" y="3" width="14" height="10" rx="1"/><path d="M1 16h18M8 13v3m4-3v3"/></svg><span>Installing an app requires a Mac, Xcode, and your iPhone.</span></div>${directory.listings_unavailable ? `<p class="ml-feed-notice" role="status">Some app details are temporarily unavailable. <a href="/apps">Try again</a></p>` : ""}<div class="ml-app-grid">${directory.apps.length ? directory.apps.map(appCard).join("") : `<div class="ml-empty"><h2>The first apps will appear here.</h2><p>Have something to share? Turn your public GitHub app into a link.</p><a class="ml-button" href="#deploy" data-open-sheet="deploy">Share your app</a></div>`}</div></div></section>${landingStory()}${landingCloser()}</main>`, {
+    title: `Menlo — ${homeTitle}`,
+    description: homeDescription,
+    url: new URL("/", baseUrl).href,
+    image: new URL(`/menlo/og.png?v=${homeImageRevision}`, baseUrl).href,
+    imageType: "image/png", generated: true,
+  });
 }

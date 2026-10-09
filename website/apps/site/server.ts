@@ -399,6 +399,7 @@ const STATIC_FILES: Record<
     revalidate: true,
   },
   "/og.png": { file: "og.png", type: "image/png" },
+  "/menlo/og.png": { file: "menlo/og.png", type: "image/png" },
   "/og-buy.png": { file: "og-buy.png", type: "image/png" },
   "/favicon.png": { file: "favicon.png", type: "image/png" },
   "/tohseno-logo.png": { file: "tohseno-logo.png", type: "image/png" },
