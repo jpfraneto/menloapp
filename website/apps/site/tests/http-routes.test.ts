@@ -93,7 +93,7 @@ describe("public pages", () => {
     const response = await application.fetch(request("/", { headers: { "User-Agent": "Twitterbot/1.0" } }));
     const body = await response.text();
     expect(body).toContain('<meta property="og:site_name" content="MENLO">');
-    expect(body).toContain('<meta property="og:title" content="Menlo — Open source. Direct to iPhone.">');
+    expect(body).toContain('<meta property="og:title" content="Menlo — Bypass the AppStore.">');
     expect(body).toContain('<meta property="og:url" content="http://localhost:3000/">');
     expect(body).toContain('<meta name="twitter:card" content="summary_large_image">');
     expect(body).toContain('<meta property="og:image:width" content="1200">');
@@ -120,7 +120,7 @@ describe("public pages", () => {
     const response = await application.fetch(request("/"));
     expect(response.status).toBe(200);
     const body = await response.text();
-    expect(body).toContain("<title>Open source. Direct to iPhone. — Menlo</title>");
+    expect(body).toContain("<title>Bypass the AppStore. — Menlo</title>");
     expect(body).toContain("npm i -g menloapp");
     expect(body).toContain("menloapp deploy");
     expect(body).toContain('aria-label="Discover apps"');

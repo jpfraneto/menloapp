@@ -34,7 +34,7 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
 <text x="72" y="342" font-family="MenloApp" font-size="76" font-weight="700" fill="#f2f0e6">INFINITE.</text>
 <text x="72" y="408" font-family="MenloApp" font-size="36" font-weight="700" fill="#20f4c4">Menlo gives it rails.</text>
 <path d="M72 502H1128" stroke="#334336"/>
-<text x="72" y="558" font-family="Noto Sans" font-size="22" font-weight="700" letter-spacing="2" fill="#f2f0e6">OPEN SOURCE. DIRECT TO IPHONE.</text>
+<text x="72" y="558" font-family="Noto Sans" font-size="22" font-weight="700" letter-spacing="2" fill="#f2f0e6">Bypass the AppStore.</text>
 <text x="1128" y="558" text-anchor="end" font-family="Noto Sans" font-size="22" fill="#aab3a4">menloapp.lol</text>
 </svg>`;
 

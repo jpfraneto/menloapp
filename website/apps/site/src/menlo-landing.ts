@@ -1,7 +1,7 @@
 import { escapeHTML as escape } from "./social-cards.ts";
 import { macDownload } from "./menlo-shell.ts";
 
-export const homeTitle = "Open source. Direct to iPhone.";
+export const homeTitle = "Bypass the AppStore.";
 export const homeDescription = "Discover and share open-source iPhone apps. Publish from GitHub, send a link, and build on your own Mac with your own Apple identity.";
 
 // The map is a fixed drawing. Stations are filled, most recent first, only

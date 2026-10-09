@@ -10,7 +10,7 @@ const MENLO_COIN_ADDRESS: string = "";
 
 export const discoveryDescription = "Bypass the app stores. Get real people using your apps, honest feedback, and a better shot at winning.";
 // Titles of the pages that are the Discover destination itself.
-const DISCOVER_TITLES = new Set(["Discover apps", "Open source. Direct to iPhone."]);
+const DISCOVER_TITLES = new Set(["Discover apps", "Bypass the AppStore."]);
 
 export function macDownload(id: string): string {
   return `<div class="ml-mac-download"><a class="ml-button ml-download-button" href="/download/macos" aria-describedby="${id}">${macIcon}<span>Download for Mac</span>${downloadIcon}</a><span class="ml-download-detail" id="${id}">Release candidate · macOS 14+</span></div>`;
