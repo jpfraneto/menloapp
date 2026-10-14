@@ -1,8 +1,29 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-10-08. This is the plain-language
+Written 2026-07-30, amended through 2026-10-14. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Native creation confirmation timeout (October 14)
+
+Owner creation of Room through the real Mac composer displayed a loopback
+timeout even though the factory admitted the exact prompt and launched Codex.
+The private command journal records its running execution, and the native
+selected-app view shows the ongoing build. This is observed admission and
+execution, not completed build or physical installation evidence.
+
+The Mac client now allows 60 seconds for create/evolve admission, separately
+from the unattended build. Named creation and evolution recover one ambiguous
+transport failure by resending the same command ID and payload through the
+existing idempotent journal. Factory rejections are preserved. If confirmation
+remains unavailable, the message explicitly says the request may already be
+running and directs the person to check their apps before submitting again.
+Unnamed creation gets the longer deadline but does not automatically replay:
+the installed service chooses its technical name before consulting the journal.
+Five focused native tests passed, including lost-response recovery, identical
+retry payloads, the admission deadline, bounded failure, rejection handling,
+unnamed creation, evolution, and native-session replacement. The factory
+payload and public download pins are unchanged.
 
 ## Menlo docs header identity (October 8)
 

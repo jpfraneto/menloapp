@@ -788,6 +788,71 @@ final class NativeFactoryTests: XCTestCase {
         XCTAssertEqual(launches, "2")
     }
 
+    func testNamedCreationRecoversLostAdmissionResponseWithoutChangingCommand() async throws {
+        try await withCommandTransportFixture([.failure(.timedOut), .receipt]) { factory, transport in
+            let draft = CreationDraft(name: "Room", intention: "Make room for photos.")
+            let receipt = try await factory.create(draft, commandID: "native_fixture")
+            XCTAssertEqual(receipt.commandID, "native_fixture")
+            XCTAssertEqual(receipt.shotID, "shot_fixture")
+            let requests = transport.requests
+            XCTAssertEqual(requests.count, 2)
+            XCTAssertEqual(requests[0].body, requests[1].body)
+            XCTAssertEqual(requests[0].timeout, 60)
+            XCTAssertEqual(requests[1].timeout, 60)
+            XCTAssertEqual(requests[0].path, "/api/v1/shots")
+            let body = try XCTUnwrap(JSONSerialization.jsonObject(with: requests[0].body) as? [String: Any])
+            XCTAssertEqual(body["command_id"] as? String, "native_fixture")
+            XCTAssertEqual(body["name"] as? String, "Room")
+            XCTAssertEqual(body["intention"] as? String, draft.intention)
+        }
+    }
+
+    func testAdmissionRecoveryIsBoundedAndExplainsUncertainOutcome() async throws {
+        try await withCommandTransportFixture([.failure(.networkConnectionLost), .failure(.timedOut)]) { factory, transport in
+            do {
+                _ = try await factory.create(CreationDraft(name: "Room", intention: "Make room."), commandID: "native_fixture")
+                XCTFail("an unconfirmed command must not report success")
+            } catch {
+                XCTAssertTrue(error.localizedDescription.contains("may already be running"))
+            }
+            XCTAssertEqual(transport.requests.count, 2)
+        }
+    }
+
+    func testAdmissionDoesNotReplayRejectionOrUnnamedCreation() async throws {
+        try await withCommandTransportFixture([.rejected]) { factory, transport in
+            do {
+                _ = try await factory.create(CreationDraft(name: "Room", intention: "Make room."), commandID: "native_fixture")
+                XCTFail("the factory rejection must be preserved")
+            } catch let error as FactoryClientError {
+                XCTAssertEqual(error, .rejected(code: "not_ready", message: "Connect your iPhone."))
+            }
+            XCTAssertEqual(transport.requests.count, 1)
+        }
+        try await withCommandTransportFixture([.failure(.timedOut)]) { factory, transport in
+            do {
+                _ = try await factory.create(CreationDraft(intention: "Make room."), commandID: "native_fixture")
+                XCTFail("an unconfirmed command must not report success")
+            } catch {
+                XCTAssertTrue(error.localizedDescription.contains("Check your apps"))
+            }
+            XCTAssertEqual(transport.requests.count, 1)
+            XCTAssertEqual(transport.requests[0].timeout, 60)
+        }
+    }
+
+    func testEvolutionRecoversLostAdmissionResponse() async throws {
+        let workspace = try await FakeFactory().workspace()
+        let app = try XCTUnwrap(workspace.shots.first)
+        try await withCommandTransportFixture([.failure(.networkConnectionLost), .receipt]) { factory, transport in
+            _ = try await factory.evolve(app, draft: EvolutionDraft(intention: "Add reminders."), commandID: "native_fixture")
+            let requests = transport.requests
+            XCTAssertEqual(requests.count, 2)
+            XCTAssertEqual(requests[0].body, requests[1].body)
+            XCTAssertTrue(requests[0].path.hasSuffix("/evolutions"))
+        }
+    }
+
     func testPublishedSnakeCasePreservesSwiftAcronymProperties() throws {
         struct AcronymFixture: Decodable {
             let clientID: String
@@ -1466,6 +1531,70 @@ private final class NativeSessionTestURLProtocol: URLProtocol, @unchecked Sendab
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: body)
         client?.urlProtocolDidFinishLoading(self)
+    }
+}
+
+private func withCommandTransportFixture(
+    _ responses: [CommandTransportFixture.Response],
+    operation: (LoopbackFactoryClient, CommandTransportFixture) async throws -> Void
+) async throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent("menlo-command-\(UUID())")
+    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+    defer {
+        NativeSessionTestURLProtocol.setHandler(nil)
+        try? FileManager.default.removeItem(at: directory)
+    }
+    let helper = directory.appendingPathComponent("native-helper")
+    let script = """
+    #!/bin/sh
+    printf '%s\n' '{"schema":"tohseno.native-session/1","token":"\(String(repeating: "a", count: 43))","token_type":"TohsenoNative","client_id":"com.tohseno.mac","instance_id":"fixture","origin":"http://127.0.0.1:1","scopes":["factory.read","factory.mutate","events.read"],"expires_at":"2099-01-01T00:00:00Z"}'
+    """
+    try script.write(to: helper, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: helper.path)
+    let transport = CommandTransportFixture(responses)
+    NativeSessionTestURLProtocol.setHandler { request, instance in transport.respond(request, instance) }
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.protocolClasses = [NativeSessionTestURLProtocol.self]
+    let factory = LoopbackFactoryClient(helperOverride: helper, urlSession: URLSession(configuration: configuration))
+    try await operation(factory, transport)
+}
+
+private final class CommandTransportFixture: @unchecked Sendable {
+    enum Response { case failure(URLError.Code), receipt, rejected }
+    struct Request { let body: Data; let timeout: TimeInterval; let path: String }
+    private let lock = NSLock()
+    private var responses: [Response]
+    private var recorded: [Request] = []
+    init(_ responses: [Response]) { self.responses = responses }
+    var requests: [Request] {
+        lock.lock()
+        defer { lock.unlock() }
+        return recorded
+    }
+    func respond(_ request: URLRequest, _ instance: NativeSessionTestURLProtocol) {
+        var body = request.httpBody ?? Data()
+        if let stream = request.httpBodyStream {
+            stream.open()
+            defer { stream.close() }
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let count = stream.read(&buffer, maxLength: buffer.count)
+                if count <= 0 { break }
+                body.append(contentsOf: buffer.prefix(count))
+            }
+        }
+        lock.lock()
+        recorded.append(Request(body: body, timeout: request.timeoutInterval, path: request.url!.path))
+        let response = responses.isEmpty ? Response.rejected : responses.removeFirst()
+        lock.unlock()
+        switch response {
+        case let .failure(code):
+            instance.client?.urlProtocol(instance, didFailWithError: URLError(code))
+        case .receipt:
+            instance.respond(status: 200, body: Data(#"{"schema":"tohseno.create-shot-receipt/1","command_id":"native_fixture","shot_id":"shot_fixture","execution_id":"execution_fixture","state":"running"}"#.utf8))
+        case .rejected:
+            instance.respond(status: 409, body: Data(#"{"code":"not_ready","message":"Connect your iPhone."}"#.utf8))
+        }
     }
 }
 

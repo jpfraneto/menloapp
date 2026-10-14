@@ -510,7 +510,10 @@ public actor LoopbackFactoryClient: FactoryServing {
             intention: draft.intention,
             references: draft.references.map(APIReference.init)
         )
-        return try await request("/api/v1/shots", method: "POST", body: body)
+        return try await request(
+            "/api/v1/shots", method: "POST", body: body,
+            commandAdmission: true, retryTransport: body.name != nil
+        )
     }
 
     public func evolve(
@@ -528,7 +531,8 @@ public actor LoopbackFactoryClient: FactoryServing {
             return try await request(
                 "/api/v1/projects/\(try pathToken(app.shotID))/evolutions",
                 method: "POST",
-                body: body
+                body: body,
+                commandAdmission: true, retryTransport: true
             )
         }
         guard let expressionID = app.expressionID,
@@ -557,7 +561,8 @@ public actor LoopbackFactoryClient: FactoryServing {
         return try await request(
             "/api/v1/shots/\(try pathToken(app.shotID))/evolutions",
             method: "POST",
-            body: body
+            body: body,
+            commandAdmission: true, retryTransport: true
         )
     }
 
@@ -714,7 +719,9 @@ public actor LoopbackFactoryClient: FactoryServing {
         _ path: String,
         method: String,
         body: Body,
-        retrySession: Bool = true
+        retrySession: Bool = true,
+        commandAdmission: Bool = false,
+        retryTransport: Bool = false
     ) async throws -> Response {
         let credential = try await credential()
         guard let base = URL(string: credential.origin),
@@ -724,6 +731,9 @@ public actor LoopbackFactoryClient: FactoryServing {
             throw FactoryClientError.invalidConfiguration("The local factory origin is invalid.")
         }
         var urlRequest = URLRequest(url: url)
+        // Preparing a durable command can include identity and device checks.
+        // This deadline covers admission, not the unattended app build.
+        if commandAdmission { urlRequest.timeoutInterval = 60 }
         urlRequest.httpMethod = method
         urlRequest.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -753,7 +763,10 @@ public actor LoopbackFactoryClient: FactoryServing {
             let api = try? JSONDecoder.tohseno.decode(APIErrorBody.self, from: data)
             if http.statusCode == 403, api?.code == "native_session_rejected", retrySession {
                 invalidateNativeSession(rejected: credential)
-                return try await request(path, method: method, body: body, retrySession: false)
+                return try await request(
+                    path, method: method, body: body, retrySession: false,
+                    commandAdmission: commandAdmission, retryTransport: retryTransport
+                )
             }
             throw FactoryClientError.rejected(
                 code: api?.code ?? "http_\(http.statusCode)",
@@ -761,6 +774,22 @@ public actor LoopbackFactoryClient: FactoryServing {
             )
         } catch let error as FactoryClientError {
             throw error
+        } catch let error as URLError where commandAdmission && [
+            .timedOut, .networkConnectionLost, .cannotConnectToHost, .cannotFindHost
+        ].contains(error.code) {
+            if retryTransport {
+                // Keep the exact command ID and payload. The factory journal
+                // returns the existing receipt instead of starting another build.
+                // Unnamed creation cannot replay here: the installed service
+                // chooses its technical name before consulting that journal.
+                return try await request(
+                    path, method: method, body: body, retrySession: retrySession,
+                    commandAdmission: true, retryTransport: false
+                )
+            }
+            throw FactoryClientError.transport(
+                "Menlo could not confirm your request. It may already be running. Check your apps before submitting again."
+            )
         } catch {
             throw FactoryClientError.transport("The local factory could not be reached: \(error.localizedDescription)")
         }
