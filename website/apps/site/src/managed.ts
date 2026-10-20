@@ -16,9 +16,11 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { join } from "node:path";
+import StripeClient from "stripe";
 import type { AppConfig, ManagedConfig } from "../config.ts";
 import { verifyStripeWebhook } from "./billing.ts";
 import { withSecurityHeaders } from "./security.ts";
+import { MachinePaymentStore, createStripeMachineGateway, machineReceipt, type MachinePaymentGateway } from "./managed-mpp.ts";
 
 const CLAIM_SCHEMA = "tohseno.private-managed-claim/1";
 const CLAIM_ENVELOPE_SCHEMA = "tohseno.private-managed-claim-envelope/1";
@@ -847,6 +849,7 @@ function operatorAuthorized(request: Request, config: ManagedConfig): boolean {
 async function stripeRequest(config: ManagedConfig, path: string, init: RequestInit, fetchImpl: typeof fetch): Promise<any> {
   if (!config.stripeSecretKey) throw new Error("Stripe is not configured");
   const headers = new Headers(init.headers); headers.set("authorization", `Bearer ${config.stripeSecretKey}`);
+  headers.set("stripe-version", StripeClient.API_VERSION);
   const response = await fetchImpl(`https://api.stripe.com/v1/${path}`, { ...init, headers, redirect: "manual" });
   if (!response.ok) throw new Error(`Stripe returned HTTP ${response.status}`);
   return JSON.parse(new TextDecoder().decode(await boundedBytes(response, 256 * 1024)));
@@ -859,6 +862,9 @@ async function checkout(authority: ManagedAuthority, binding: string, request: a
   const params = new URLSearchParams({ mode: "payment", "line_items[0][price]": price, "line_items[0][quantity]": "1",
     success_url: authority.config.checkoutSuccessUrl ?? "", cancel_url: authority.config.checkoutCancelUrl ?? "",
     client_reference_id: request.claim_id ?? crypto.randomUUID(), "metadata[installation_binding]": binding, "metadata[pack_id]": pack });
+  const label = [...createHash("sha256").update(`${binding}:${request.claim_id}`).digest().subarray(0, 8)]
+    .map((byte) => String.fromCharCode(97 + byte % 26)).join("");
+  params.set("integration_identifier", `menloapp_${label}`);
   const session = await stripeRequest(authority.config, "checkout/sessions", {
     method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", "idempotency-key": `checkout_${binding}_${request.claim_id ?? pack}` }, body: params,
   }, authority.fetchImpl);
@@ -866,15 +872,40 @@ async function checkout(authority: ManagedAuthority, binding: string, request: a
   return json({ schema: "tohseno.managed-checkout-session/1", checkout_url: url.href }, 201);
 }
 
-async function stripeWebhook(authority: ManagedAuthority, request: Request): Promise<Response> {
+async function stripeWebhook(authority: ManagedAuthority, request: Request, machinePayments?: MachinePaymentStore): Promise<Response> {
   if (!authority.config.root) throw new Error("managed balance is not configured");
   const bytes = await boundedBytes(request, 256 * 1024);
   const text = verifyStripeWebhook(bytes, request.headers.get("stripe-signature") ?? "", authority.config.stripeWebhookSecret ?? "");
   const event = JSON.parse(text) as any; identifier(event.id, "Stripe event identifier");
   const type = String(event.type), object = event.data?.object;
-  if (["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(type)) {
+  if (type === "payment_intent.succeeded" && object?.metadata?.menloapp_payment_kind === "managed_topup") {
+    if (!machinePayments) throw new Error("machine payments are not configured");
+    const payment = String(object.id);
+    if (!/^pi_[A-Za-z0-9_]{1,160}$/.test(payment)) throw new Error("Stripe payment identifier is invalid");
+    const intent = await stripeRequest(authority.config, `payment_intents/${encodeURIComponent(payment)}`, { method: "GET" }, authority.fetchImpl);
+    const order = machinePayments.get(String(intent?.metadata?.menloapp_order_id));
+    if (!order || intent.metadata.menloapp_payment_kind !== "managed_topup"
+        || intent.status !== "succeeded" || intent.currency !== "usd"
+        || intent.amount !== order.amount_cents || intent.amount_received !== order.amount_cents
+        || intent.livemode !== /^(sk|rk)_live_/.test(authority.config.stripeSecretKey ?? "")) {
+      throw new Error("Stripe machine payment does not match its stored order");
+    }
+    await withAccountLock(authority.config.root, order.installation_binding, async () => {
+      const current = machinePayments.get(order.id)!;
+      if (current.payment_id && current.payment_id !== payment) throw new Error("machine payment order already has a different payment");
+      await append(authority.config.root!, {
+        installation_binding: order.installation_binding, amount_microusd: order.amount_cents * 10_000,
+        entry_type: "purchase_credit", bucket: "paid", related_payment_id: payment,
+        idempotency_key: `stripe_mpp_purchase_${order.id}`, description: "Stripe machine-payment compute balance purchase",
+      });
+      machinePayments.credited(order.id, payment);
+    });
+  } else if (["checkout.session.completed", "checkout.session.async_payment_succeeded"].includes(type)) {
     const sessionID = String(object?.id); if (!/^cs_[A-Za-z0-9_]{1,160}$/.test(sessionID)) throw new Error("Stripe session identifier is invalid");
     const session = await stripeRequest(authority.config, `checkout/sessions/${encodeURIComponent(sessionID)}?expand[]=line_items`, { method: "GET" }, authority.fetchImpl);
+    // Delayed payment methods complete Checkout before money arrives. The later
+    // async success event is the fulfillment signal; acknowledge this event now.
+    if (session.payment_status === "unpaid") return json({ received: true });
     const pack = session?.metadata?.pack_id as keyof typeof PACKS, binding = session?.metadata?.installation_binding;
     identifier(binding, "installation binding"); if (!(pack in PACKS)) throw new Error("Stripe session pack is invalid");
     if (session.payment_status !== "paid" || session.currency !== "usd" || session.amount_total !== PACKS[pack] / 10_000) throw new Error("Stripe payment does not match its configured pack");
@@ -967,18 +998,27 @@ async function pendingReconciliationCount(root: string): Promise<number> {
 
 export interface ManagedRouter { handles(pathname: string): boolean; fetch(request: Request): Promise<Response> }
 
-export async function createManagedRouter(config: AppConfig, provider?: ManagedProvider, fetchImpl: typeof fetch = fetch): Promise<ManagedRouter> {
+export async function createManagedRouter(config: AppConfig, provider?: ManagedProvider, fetchImpl: typeof fetch = fetch,
+  machineGateway?: MachinePaymentGateway): Promise<ManagedRouter> {
   const prefix = "/api/managed/v1/";
   const managedProvider = provider ?? new BankrProvider(config.managed, fetchImpl);
   const authority = new ManagedAuthority(config.managed, managedProvider, fetchImpl);
   await authority.initialize();
+  const machinePayments = config.managed.enabled && config.managed.root && config.managed.machinePayments
+    ? new MachinePaymentStore(config.managed.root) : undefined;
+  const gateway = machinePayments ? machineGateway ?? createStripeMachineGateway(config.managed, machinePayments, config.baseUrl) : undefined;
   return {
     handles: (pathname) => pathname.startsWith(prefix),
     async fetch(request) {
       if (!config.managed.enabled || !config.managed.root) return json({ error: "Managed compute is not active" }, 503);
       const url = new URL(request.url);
       try {
-        if (url.pathname === `${prefix}stripe/webhook` && request.method === "POST") return stripeWebhook(authority, request);
+        if (url.pathname === `${prefix}stripe/webhook` && request.method === "POST") return await stripeWebhook(authority, request, machinePayments);
+        if (url.pathname === `${prefix}payment-methods` && request.method === "GET") {
+          return json({ schema: "menloapp.managed-payment-methods/1", stripe_checkout: true,
+            machine_payments: Boolean(gateway), tempo: Boolean(gateway), compute_required: true,
+            packs: Object.entries(PACKS).map(([pack_id, amount_microusd]) => ({ pack_id, amount_microusd, currency: "USD" })) });
+        }
         if (url.pathname === `${prefix}operator/grants` && request.method === "POST") {
           if (!operatorAuthorized(request, config.managed)) return json({ error: "Operator authentication required" }, 401);
           const value = await jsonBody(request); const entry = await authority.grant(value.installation_binding, value.amount_microusd, value.reason, value.idempotency_key, value.operator ?? "operator");
@@ -1007,11 +1047,48 @@ export async function createManagedRouter(config: AppConfig, provider?: ManagedP
           return authority.complete(token, await boundedBytes(request, MAX_REQUEST_BYTES));
         }
         if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
+        const paymentRequest = url.pathname === `${prefix}checkout/mpp` ? request.clone() : undefined;
         const value = await jsonBody(request, 128 * 1024); const action = url.pathname.slice(prefix.length).replaceAll("/", "_");
         const claim = verifyManagedClaim(value.claim, value.request, action);
         if (url.pathname === `${prefix}balance`) return json(await balanceProjection(config.managed.root, claim.installation_binding));
         if (url.pathname === `${prefix}catalog`) return json({ schema: "tohseno.managed-model-catalog/1", models: await authority.catalog() });
-        if (url.pathname === `${prefix}checkout`) return checkout(authority, claim.installation_binding, { ...value.request, claim_id: claim.claim_id });
+        if (url.pathname === `${prefix}checkout`) return await checkout(authority, claim.installation_binding, { ...value.request, claim_id: claim.claim_id });
+        if (url.pathname === `${prefix}checkout/status`) {
+          const order = machinePayments?.get(String(value.request?.order_id));
+          if (!order || order.installation_binding !== claim.installation_binding) return json({ error: "Payment order not found" }, 404);
+          return json({ order_id: order.id, payment_status: order.payment_id ? "credited" : order.receipt ? "settlement_pending"
+            : order.attempted_at ? "verification_pending" : "awaiting_payment" });
+        }
+        if (url.pathname === `${prefix}checkout/mpp`) {
+          if (!machinePayments || !gateway || !paymentRequest) return json({ error: "Machine payments are not active" }, 503);
+          const pack = value.request?.pack_id as keyof typeof PACKS;
+          if (!Object.hasOwn(PACKS, pack)) throw new Error("balance pack is invalid");
+          return await withAccountLock(config.managed.root, claim.installation_binding, async () => {
+            const order = machinePayments.order(claim.installation_binding, claim.claim_id, pack, PACKS[pack] / 10_000, claim.expires_at);
+            if (!order.receipt && !order.payment_id && !order.attempted_at) {
+              const submittedPayment = /^Payment\s/i.test(paymentRequest.headers.get("authorization") ?? "");
+              // Persist before entering a payment-capable SDK call. A crash or
+              // ambiguous network outcome must never offer a second payment.
+              if (submittedPayment) machinePayments.attempted(order.id);
+              try {
+                const result = await gateway.charge(paymentRequest, order);
+                if (result.status === 402 && !submittedPayment) return withSecurityHeaders(result);
+                if (result.status === 200) machinePayments.paid(order.id, machineReceipt(result));
+                else if (!submittedPayment) throw new Error("Machine payment service is unavailable");
+              } catch {
+                if (!submittedPayment) throw new Error("Machine payment service is unavailable");
+                // Status recovery and the Stripe webhook resolve this order.
+                // Do not infer that a submitted payment failed or retry it.
+              }
+            }
+            const current = machinePayments.get(order.id)!;
+            const result = json({ schema: "menloapp.managed-machine-payment/1", order_id: order.id,
+              payment_status: current.payment_id ? "credited" : current.receipt ? "settlement_pending" : "verification_pending",
+              amount_microusd: PACKS[pack], currency: "USD" }, current.payment_id ? 200 : 202);
+            if (current.receipt) result.headers.set("payment-receipt", current.receipt);
+            return result;
+          });
+        }
         if (url.pathname === `${prefix}reserve`) {
           const reserved = await authority.reserve(claim.installation_binding, value.request as ReservationRequest);
           return json({ schema: "tohseno.managed-reservation/1", ...reserved }, 201);

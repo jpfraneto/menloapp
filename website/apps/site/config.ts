@@ -105,6 +105,11 @@ export interface ManagedConfig {
   operatorTokenSha256?: string;
   launchFeeFundingConfirmed: boolean;
   launchFeeFundingReference?: string;
+  machinePayments?: {
+    stripeProfileId: string;
+    tempoDepositAddress: string;
+    challengeSecret: string;
+  };
 }
 
 export interface RelayConfig {
@@ -239,6 +244,19 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     "bankr",
   );
   const managedRoot = env.MANAGED_COMPUTE_ROOT;
+  const machinePaymentsEnabled = parseBoolean("MANAGED_MPP_ENABLED", env.MANAGED_MPP_ENABLED, false);
+  if (machinePaymentsEnabled) {
+    if (!managedEnabled) throw new Error("machine payments require managed compute");
+    if (!/^profile_[A-Za-z0-9_]+$/.test(env.STRIPE_PROFILE_ID ?? "")) {
+      throw new Error("STRIPE_PROFILE_ID is required for machine payments");
+    }
+    if (!/^0x[0-9a-fA-F]{40}$/.test(env.TEMPO_DEPOSIT_ADDRESS ?? "")) {
+      throw new Error("TEMPO_DEPOSIT_ADDRESS must be a Stripe-owned Tempo deposit address");
+    }
+    if (Buffer.byteLength(env.MPP_SECRET_KEY ?? "") < 32) {
+      throw new Error("MPP_SECRET_KEY must contain at least 32 bytes");
+    }
+  }
   const modelAllowlist = (env.BANKR_MODEL_ALLOWLIST ?? "")
     .split(",").map((value) => value.trim()).filter(Boolean);
   const launchFeeFundingConfirmed = parseBoolean(
@@ -275,8 +293,8 @@ export function loadConfig(env: Environment = process.env): AppConfig {
         throw new Error("BANKR_BASE_URL must be the bare official https://llm.bankr.bot origin");
       }
     }
-    if (nodeEnv === "production" && !env.STRIPE_SECRET_KEY?.startsWith("sk_live_")) {
-      throw new Error("production managed compute requires a live Stripe secret key");
+    if (nodeEnv === "production" && !/^(sk|rk)_live_/.test(env.STRIPE_SECRET_KEY ?? "")) {
+      throw new Error("production managed compute requires a live Stripe API key");
     }
     if (!modelAllowlist.length || modelAllowlist.some((id) => !/^[A-Za-z0-9._:[\]-]{1,128}$/.test(id))) {
       throw new Error("BANKR_MODEL_ALLOWLIST must contain bounded model identifiers");
@@ -480,6 +498,11 @@ export function loadConfig(env: Environment = process.env): AppConfig {
       operatorTokenSha256: env.TOHSENO_OPERATOR_TOKEN_SHA256,
       launchFeeFundingConfirmed,
       launchFeeFundingReference: env.BANKR_LAUNCH_FEE_FUNDING_REFERENCE,
+      machinePayments: machinePaymentsEnabled ? {
+        stripeProfileId: env.STRIPE_PROFILE_ID!,
+        tempoDepositAddress: env.TEMPO_DEPOSIT_ADDRESS!,
+        challengeSecret: env.MPP_SECRET_KEY!,
+      } : undefined,
     },
     distribution: {
       macosEnabled,

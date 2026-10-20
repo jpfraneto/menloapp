@@ -6,6 +6,30 @@ inference. Stripe collects prepaid pack payments; the append-only TOHSENO
 micro-USD ledger is balance authority; Bankr is the inference supplier. Do not
 treat one system's balance or event as authority for another.
 
+The [paid-compute tutorial](../tutorials/MENLOAPP_PAID_COMPUTE.md) exercises
+Stripe Checkout and the Tempo-backed Machine Payments Protocol against this
+same ledger. `MANAGED_MPP_ENABLED` adds agent payments without changing the
+existing native build engine or charging authority. Every build still needs
+an available execution machine and an approved compute budget.
+
+MPP uses installation-signed `POST /api/managed/v1/checkout/mpp` requests.
+The server owns pack amounts, binds each challenge to one immutable order,
+and persists orders and atomic replay protection in
+`MANAGED_COMPUTE_ROOT/machine-payments.sqlite`. Keep this SQLite database,
+its WAL, and the append-only ledger on the same durable operator volume;
+back up SQLite using its online backup mechanism or stop writers first.
+All service processes must use that same local volume. Separate replicas
+with independent disks are not a supported payment authority.
+
+An MPP receipt returns `settlement_pending`, not spendable credit. Subscribe
+the existing Stripe webhook to `payment_intent.succeeded` as well as its
+Checkout/refund/dispute events. The handler retrieves the PaymentIntent,
+checks its mode, currency, exact amount, and stored order, then credits once.
+`POST /api/managed/v1/checkout/status` accepts a fresh installation-signed
+claim and the order ID for recovery after the original claim expires.
+If payment was observed but settlement remains pending, reconcile that
+order with Stripe; do not ask the person to pay a new order.
+
 ## Secrets and durable state
 
 Store these only in the production secret manager:

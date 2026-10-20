@@ -1,8 +1,38 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-10-14. This is the plain-language
+Written 2026-07-30, amended through 2026-10-20. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Paid compute with Stripe and Tempo (October 20)
+
+The managed-compute service now has an optional Stripe MPP payment route
+with Tempo and SPT offers. Human Checkout and machine payments fund the
+same existing append-only balance; actual compute still needs an approved
+reservation and an available execution provider. Native local/BYO routes,
+Apple signing, and intended-iPhone authority are unchanged.
+
+Machine-payment orders and atomic replay protection persist in SQLite on the
+operator's existing durable volume. Challenges bind the signed installation,
+server-owned funding pack, order, and expiry. A submitted payment is durably
+marked before the SDK can transact. Paid retries recover the same receipt;
+an interrupted or ambiguous attempt remains pending across restart rather
+than offering another payment. Only a verified Stripe webhook and retrieved,
+matching PaymentIntent credit spendable value. Delayed unpaid Checkout
+completion is acknowledged without fulfillment. Restricted live API keys are
+accepted by managed configuration.
+
+The [tutorial](tutorials/MENLOAPP_PAID_COMPUTE.md) and `payments:client` cover
+sandbox setup, signed identities, Checkout, Tempo, status recovery, and one
+bounded inference call. Twenty-six focused payment/compute tests and the
+website TypeScript check passed. A real local HTTP service and the tutorial
+client passed identity initialization, zero-balance retrieval, Tempo request
+preparation with an SDK `402`, and payment-method discovery using test-only
+credentials. No actual Stripe/Tempo payment, supplier inference, or physical
+iPhone installation was performed for this change. Machine payments remain
+configuration-gated; this is no claim of live billing activation. The proposed
+web composer, automatic computer pairing, and web-to-agent dispatch are not
+implemented by this payment change.
 
 ## Native creation confirmation timeout (October 14)
 
