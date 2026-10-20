@@ -14,11 +14,14 @@ engine or change the native app's signing and intended-iPhone rules.
 
 ## 1. Run the executable checks
 
-You need Git and Bun. Start with a fresh checkout:
+You need Git and Bun. Start with a fresh checkout pinned to the tested
+implementation commit:
 
 ```sh
 git clone https://github.com/jpfraneto/menloapp.git
-cd menloapp/website
+cd menloapp
+git checkout 6e8fd9f20c40abfb07fda3124023a4b00cf51880
+cd website
 bun install --frozen-lockfile
 bun run payments:test
 ```
