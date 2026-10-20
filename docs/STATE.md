@@ -32,6 +32,20 @@ owner supplies the signed `menloapp.lol` account association. Signature tests,
 browser checks, deployment and real Farcaster acceptance are distinct evidence;
 the completed wallet approval and cross-client path remain owner-attended.
 
+Source `1521196` passed TypeScript checking and all 200 website tests, including
+real SIWF signatures, delegated auth addresses, revocation of established
+sessions, JWT signature/audience/expiry checks, replay, cancellation and saved
+version isolation. Brave visibly discovered Phantom, Coinbase Wallet, MetaMask
+and Rainbow without a Farcaster-app handoff. No wallet connection or signature
+was approved by the agent.
+
+Railway production deployment `d91f183f-37d6-4134-adcf-ac8d685a2fc1` succeeded.
+Certificate-checked requests to `menloapp.lol` observed healthy service, the
+direct-wallet `/login`, `/library`, and available guest session API. The manifest
+returns 503 because the owner's domain association is absent. This is deployed
+login infrastructure, not evidence of completed human authentication or an
+accepted published Mini App.
+
 ## Native creation confirmation timeout (October 14)
 
 Owner creation of Room through the real Mac composer displayed a loopback
