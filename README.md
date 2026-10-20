@@ -47,3 +47,8 @@ build and delivery runtime in `cli/`, `engine/`, and `macos/`.
 Read [AGENTS.md](AGENTS.md) before changing the project. The
 [launch runbook](docs/runbooks/MENLOAPP_LAUNCH.md) covers production operation;
 [STATE.md](docs/STATE.md) records verified behavior and remaining work.
+
+For the paid-compute case study, follow
+[Run paid compute with Menlo, Stripe, and Tempo](docs/tutorials/MENLOAPP_PAID_COMPUTE.md).
+It includes an executable sandbox client, webhook fulfillment, persistent
+payment recovery, and a bounded model call on the existing managed-compute path.

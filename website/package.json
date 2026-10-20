@@ -18,6 +18,8 @@
     "companion:local": "../scripts/local-companion-e2e.sh",
     "companion:local:test": "../scripts/test-local-companion-e2e.sh",
     "site:icons": "bun apps/site/scripts/extract-shot-icons.ts",
+    "payments:client": "bun apps/site/scripts/paid-compute.ts",
+    "payments:test": "bun test apps/site/tests/managed.test.ts apps/site/tests/managed-mpp.test.ts",
     "registry:r2:migrate": "bun apps/site/scripts/registry-r2-migrate.ts",
     "registry:r2:smoke": "bun apps/site/scripts/registry-r2-smoke.ts",
     "test": "bun test",
@@ -25,6 +27,7 @@
     "check": "bun run typecheck && bun test"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@types/bun": "^1.2.18",
     "typescript": "^5.8.3"
   },
@@ -37,6 +40,8 @@
     "@noble/hashes": "^1.8.0",
     "@resvg/resvg-js": "2.6.2",
     "@smithy/node-http-handler": "^4.12.0",
-    "viem": "^2.37.6"
+    "mppx": "^0.13.6",
+    "stripe": "^23.0.0",
+    "viem": "^2.57.7"
   }
 }
