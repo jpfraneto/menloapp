@@ -144,6 +144,26 @@
   .ml-footer { align-items: flex-start; flex-direction: column; }
   .ml-footer .ml-brand-statement { max-width: 24ch; }
 }
+
+/* Farcaster is another view of the same public pages and private saved library. */
+.menlo-landing.ml-store { padding-top: var(--fc-inset-top, 0px); padding-right: var(--fc-inset-right, 0px); padding-bottom: var(--fc-inset-bottom, 0px); padding-left: var(--fc-inset-left, 0px); }
+.ml-store .ml-header { flex-wrap: wrap; gap: 16px; padding-block: 20px; }
+.ml-store .ml-header nav { flex-wrap: wrap; row-gap: 12px; }
+.ml-account-page { padding-top: 32px; }
+.menlo-landing .ml-account-page h1 { max-width: 16ch; font: 700 clamp(32px, 7vw, 48px)/1.08 var(--ml-brand); }
+.ml-account-page > p { color: var(--ml-soft); line-height: 1.6; }
+[data-farcaster-account] { margin-block: 28px; padding: 24px; border: 1px solid var(--ml-line); border-radius: 20px; background: var(--ml-surface); }
+[data-farcaster-wallets] { margin-top: 24px; }
+.ml-saved-apps { list-style: none; margin: 24px 0 0; padding: 0; }
+.ml-saved-apps li { padding-block: 16px; border-top: 1px solid var(--ml-line); overflow-wrap: anywhere; }
+.ml-saved-apps li > a { font-size: 19px; }
+.ml-save-app { margin-top: 24px; }
+.ml-save-app > a { margin-left: 12px; }
+@media (max-width: 599px) {
+  .ml-store .ml-header nav { font-size: 13px; }
+  .ml-store .ml-header nav > a[href*="github.com"], .ml-store .ml-header .ml-nav-llms { display: none; }
+  [data-farcaster-account] { padding: 18px; }
+}
 @media (max-width: 359px) {
   .ml-header { gap: 8px; }
   .ml-wordmark img { width: 92px; }

@@ -35,7 +35,7 @@ export interface GitHubApp {
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9_.-]{1,100}$/;
 const SHA = /^[a-f0-9]{40}$/;
-const RESERVED = new Set(["api", "auth", "apps", "claims", "docs", "download", "healthz", "install", "privacy", "registry", "releases", "s", "buy", "menlo", "login", "logout", "latest"]);
+const RESERVED = new Set(["api", "auth", "apps", "claims", "docs", "download", "healthz", "install", "privacy", "registry", "releases", "s", "buy", "menlo", "login", "logout", "library", "latest"]);
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 function json(value: unknown, status = 200) {
   return Response.json(value, { status, headers: { "Cache-Control": "no-store" } });
@@ -370,6 +370,13 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       return app && [app.publisher.login, app.repository.split("/")[0]!].some(name => name.toLowerCase() === login) ? app.slug : undefined;
     },
     close: () => db?.close(),
+    async savedVersion(slug: string, commit: string, repository: number) {
+      const record = requireApp(slug);
+      if (record.repository_id !== repository) throw new HttpError(409, "This app's repository identity changed. Open its listing again.");
+      const app = await presented(await version(record, new URLSearchParams({ commit, repository: String(repository) })));
+      return { slug, repository_id: repository, commit, name: app.name, repository: app.repository,
+        url: `${config.baseUrl}/${slug}?commit=${commit}&repository=${repository}` };
+    },
     async fetch(request: Request): Promise<Response | undefined> {
       const url = new URL(request.url);
       if (!url.pathname.startsWith("/api/menlo/v1/")) return undefined;

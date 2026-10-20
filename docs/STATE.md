@@ -1,8 +1,36 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-10-14. This is the plain-language
+Written 2026-07-30, amended through 2026-10-20. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Farcaster account continuity (October 20)
+
+The website now implements optional Farcaster login and a private saved-app
+library. Browser sign-in discovers the person's wallet and requests a one-time,
+domain-bound SIWF signature directly; it does not redirect to the Farcaster app,
+use an auth relay, request a transaction, or import recovery phrases. The server
+verifies current custody or registered auth-address authority. Custody FIDs are
+resolved on-chain; delegated auth wallets can supply their FID explicitly.
+An ordinary verified profile address or posting signer alone is insufficient.
+Wallet extensions and wallet browsers are supported; WalletConnect is not
+configured for standard mobile browsers without an injected provider.
+
+Mini App requests use server-verified Quick Auth, with both flows accessing
+the same saved versions by FID. Saves bind a repository ID and full commit;
+they are independent of the native installed-app library. Guest saves remain
+browser-local until explicitly merged. GitHub remains the publication and source
+review authority. No source execution, Apple signing, or intended-device
+boundary changes.
+
+Session hashes, expiring challenges and saved versions persist in SQLite under
+the existing Menlo data root. Browser sessions last 24 hours, challenges ten
+minutes, and logout revokes the session. Authenticated browser requests recheck
+the signing address's current authority. Public pages carry Mini App embeds and
+the SDK loading handshake. Domain publication remains unavailable until the
+owner supplies the signed `menloapp.lol` account association. Signature tests,
+browser checks, deployment and real Farcaster acceptance are distinct evidence;
+the completed wallet approval and cross-client path remain owner-attended.
 
 ## Native creation confirmation timeout (October 14)
 

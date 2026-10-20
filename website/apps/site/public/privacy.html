@@ -36,12 +36,13 @@
 
     <main class="document-main" id="main-content">
 <section><h2>GitHub distribution on MENLO</h2><p>When you deploy, MENLO uses your GitHub token to check your account and repository write access. The public service does not store the token. It stores your public GitHub account and repository IDs, app name, description, build recipe, and registration history. Your source stays on GitHub. Your Mac fetches the exact selected commit directly from GitHub and keeps build and installation records locally. MENLO checks public repository heads to show available updates. Native sign-in stores its session in your Mac's Keychain; you can sign out in the GitHub profile screen.</p></section>
+<section><h2>Optional Farcaster sign-in and saved apps</h2><p>You can browse Menlo without signing in. Guest saved apps stay in this browser's local storage. If you sign in with Farcaster, Menlo stores your numeric Farcaster ID, the public signing address for browser sessions, and the app names, repositories, and exact source versions you choose to save. Guest saves are added to your account only when you explicitly choose to do so. You can remove saves from your library.</p><p>Browser sign-in asks your wallet to sign a one-time login message. Menlo checks the signature and current Farcaster custody or auth-address authority through an Optimism RPC. Mini Apps use Farcaster Quick Auth, whose tokens Menlo verifies for this domain. These providers receive the information required to authenticate or check public identity. Menlo does not request seed phrases, wallet private keys, payments, or permission to post. Signing in does not authorize GitHub publication, source reviews, builds, or installation.</p><p>Browser sessions use an HttpOnly cookie and expire after 24 hours. Only a hash of the session token is stored on the server. Pending login challenges expire after ten minutes. Authenticated browser requests recheck the signing address’s current Farcaster authority, and logout revokes the browser session. Saved apps remain with your Farcaster account after logout; they are private to authenticated account access. Access logs record a semantic route and response status, not authentication messages or tokens.</p></section>
 
       <article class="document">
         <header class="document-header">
           <p class="eyebrow">Tohseno / PRIVACY</p>
           <h1>Privacy notice</h1>
-          <p class="document-intro">No Tohseno account or analytics. The native Mac factory stays local by default; managed intelligence is a separately approved Tohseno → Bankr → model-provider path.</p>
+          <p class="document-intro">Browsing requires no account. Optional Farcaster sign-in keeps saved apps across devices. The native Mac factory stays local by default; managed intelligence is a separately approved Tohseno → Bankr → model-provider path.</p>
         </header>
 
         <section>

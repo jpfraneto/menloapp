@@ -30,6 +30,7 @@ export interface AppConfig {
   registry: RegistryConfig;
   claims: ClaimsConfig;
   menlo?: { root?: string; clientId?: string; readToken?: string };
+  farcaster?: { accountAssociation?: { header: string; payload: string; signature: string }; rpcUrl?: string };
 }
 
 export interface RegistryConfig {
@@ -431,11 +432,27 @@ export function loadConfig(env: Environment = process.env): AppConfig {
     }
   }
 
+  let accountAssociation: NonNullable<AppConfig["farcaster"]>["accountAssociation"];
+  if (env.FARCASTER_ACCOUNT_ASSOCIATION) {
+    try {
+      const value = JSON.parse(env.FARCASTER_ACCOUNT_ASSOCIATION);
+      if (!value || Object.keys(value).sort().join(",") !== "header,payload,signature"
+          || ![value.header, value.payload, value.signature].every(part => typeof part === "string" && /^[A-Za-z0-9_+/=-]{1,2048}$/.test(part))
+          || JSON.parse(Buffer.from(value.payload, "base64url").toString()).domain !== parsedBase.hostname) throw new Error();
+      accountAssociation = value;
+    } catch { throw new Error("FARCASTER_ACCOUNT_ASSOCIATION must be the signed association JSON for BASE_URL's domain"); }
+  }
+  if (env.FARCASTER_RPC_URL) {
+    const rpc = new URL(env.FARCASTER_RPC_URL);
+    if (rpc.protocol !== "https:" || rpc.username || rpc.password || rpc.hash) throw new Error("FARCASTER_RPC_URL must be HTTPS");
+  }
+
   return {
     nodeEnv,
     port,
     baseUrl: parsedBase.origin,
     trustProxy: env.TRUST_PROXY === "true",
+    farcaster: { accountAssociation, rpcUrl: env.FARCASTER_RPC_URL },
     menlo: {
       root: env.MENLO_ROOT,
       clientId: env.GITHUB_CLIENT_ID,

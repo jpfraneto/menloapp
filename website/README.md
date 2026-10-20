@@ -19,6 +19,42 @@ for dedicated read-only server requests. See
 No developer access tokens or source archives are stored by this directory.
 The existing private Companion relay is unchanged.
 
+## Farcaster sign-in and saved apps
+
+`/login` connects an available browser wallet and asks it to sign a one-time
+Sign In with Farcaster message. There is no Farcaster-app redirect, auth relay,
+transaction, gas charge, or seed-phrase import. EIP-6963 wallet discovery supports
+multiple installed wallets; a wallet's own browser can supply its injected
+provider. Standard Safari without a provider needs a wallet browser or extension;
+WalletConnect is not configured. Custody wallets resolve their FID from the
+Optimism IdRegistry. Delegated auth wallets can supply their FID in the optional
+field; the server verifies current KeyRegistry authority. An ordinary profile
+verification or Ed25519 posting key alone does not authorize login.
+
+Inside a Farcaster Mini App, the self-hosted SDK uses Quick Auth; the server
+checks its signature, issuer, audience, expiry and numeric FID. SDK context is
+never authentication. Both flows access the same private `/library`. Saves pin
+the repository ID and full commit and do not install, execute or publish source.
+Guest saves stay in localStorage and require an explicit action to merge.
+GitHub still authorizes publication and source reviews.
+
+`farcaster.sqlite` lives alongside `github-apps.sqlite` under `MENLO_ROOT` (or
+`$REGISTRY_ROOT/menlo`). Browser sessions last 24 hours, challenges ten minutes;
+only session-token hashes are stored. Browser sessions bind the signing address
+and recheck current Farcaster authority on authenticated requests. Logout revokes
+that browser session.
+Optional `FARCASTER_RPC_URL` selects an HTTPS Optimism RPC instead of the public
+endpoint. No provider secret is needed for the default path.
+
+Mini App embeds preserve exact-version URLs. Menlo pages allow framing only by
+the canonical Farcaster and legacy Warpcast hosts; other surfaces retain their
+existing framing policy. The owner must generate the domain association for
+`menloapp.lol` at <https://farcaster.xyz/~/developers/mini-apps/manifest> and set
+`FARCASTER_ACCOUNT_ASSOCIATION` to its JSON object (`header`, `payload`,
+`signature`). These are public signature bytes, never a private key.
+`/.well-known/farcaster.json` returns 503 until that association is configured.
+Its presence is separate from observed login and Mini App acceptance.
+
 The following Registry services remain for historical, explicitly requested
 chain-based releases. They do not gate GitHub distribution.
 

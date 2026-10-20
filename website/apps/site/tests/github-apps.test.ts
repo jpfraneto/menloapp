@@ -94,6 +94,18 @@ test("an ordinary GitHub push becomes an update without another registration", a
   expect(() => db.exec("DELETE FROM registration_events")).toThrow("append-only");
   db.close();
 });
+test("saved app versions verify repository identity and keep the selected commit across a push", async () => {
+  const f = await fixture();
+  await f.request("POST", "apps", metadata);
+  f.state.head = next;
+  const app = await f.router.savedVersion("test-app", sha, 12);
+  expect(app.commit).toBe(sha);
+  expect(app.url).toBe(`https://tohseno.com/test-app?commit=${sha}&repository=12`);
+  await expect(f.router.savedVersion("test-app", sha, 99)).rejects.toThrow("identity changed");
+  f.state.id = 99;
+  f.restart();
+  await expect(f.router.savedVersion("test-app", sha, 12)).rejects.toThrow("identity changed");
+});
 test("rewritten history never fabricates a commits-behind count", async () => {
   const f = await fixture();
   await f.request("POST", "apps", metadata);

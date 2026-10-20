@@ -11,6 +11,8 @@ import { createClaimsRouter } from "./src/claims.ts";
 import { createBuyRouter } from "./src/buy.ts";
 import type { RegistryRouter } from "./src/registry.ts";
 import { createGitHubApps } from "./src/github-apps.ts";
+import { createFarcaster, renderFarcasterAccount } from "./src/farcaster.ts";
+import { farcasterManifest, farcasterBrowserBundle, miniAppResponse } from "./src/farcaster-miniapp.ts";
 
 const PUBLIC_DIRECTORY = join(import.meta.dir, "public");
 
@@ -401,6 +403,9 @@ const STATIC_FILES: Record<
   "/llms.txt": { file: "llms.txt", type: "text/plain; charset=utf-8", revalidate: true },
   "/og.png": { file: "og.png", type: "image/png" },
   "/menlo/og.png": { file: "menlo/og.png", type: "image/png" },
+  "/menlo/farcaster-icon.png": { file: "menlo/farcaster-icon.png", type: "image/png" },
+  "/menlo/farcaster-splash.png": { file: "menlo/farcaster-splash.png", type: "image/png" },
+  "/menlo/farcaster-preview.png": { file: "menlo/farcaster-preview.png", type: "image/png" },
   "/og-buy.png": { file: "og-buy.png", type: "image/png" },
   "/favicon.png": { file: "favicon.png", type: "image/png" },
   "/tohseno-logo.png": { file: "tohseno-logo.png", type: "image/png" },
@@ -420,7 +425,7 @@ const BROWSER_MODULE_PATH = /^\/modules\/[a-z0-9-]+\.js$/;
 const GLOBAL_ALIAS_PATH = /^\/[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const RESERVED_GLOBAL_PATHS = new Set([
   "/api", "/buy", "/claims", "/docs", "/download", "/healthz", "/install", "/privacy",
-  "/registry", "/releases", "/s",
+  "/registry", "/releases", "/s", "/login", "/logout", "/library",
 ]);
 
 function isGlobalAliasPath(pathname: string): boolean {
@@ -430,6 +435,8 @@ function isGlobalAliasPath(pathname: string): boolean {
 }
 
 function semanticRoute(pathname: string): string {
+  if (pathname.startsWith("/api/menlo/v1/farcaster/")) return "farcaster-auth";
+  if (["/login", "/library"].includes(pathname)) return "farcaster-account";
   if (pathname.startsWith("/api/buy/v1/")) return "buy-api";
   if (pathname.startsWith("/api/intent-relay/")) return "intent-relay";
   if (pathname.startsWith("/api/billing/v1/")) return "billing";
@@ -533,6 +540,10 @@ export async function createApplication(
     clientId: config.menlo?.clientId,
     readToken: config.menlo?.readToken,
   }, { legacySlugExists: async slug => !!(await registry.renderHumanRoute(`/${slug}`)) });
+  const farcaster = createFarcaster({ baseUrl: config.baseUrl,
+    root: config.menlo?.root ?? (config.registry.root ? join(config.registry.root, "menlo") : undefined),
+    rpcUrl: config.farcaster?.rpcUrl,
+  }, githubApps.savedVersion);
   const log = options.log ??
     ((record: Record<string, unknown>) => console.info(JSON.stringify(record)));
   const logError = options.logError ??
@@ -598,6 +609,24 @@ export async function createApplication(
     const method = request.method.toUpperCase();
     const canonicalResponse = canonicalBoundary(request, config);
     if (canonicalResponse) return canonicalResponse;
+    const farcasterResponse = await farcaster.fetch(request);
+    if (farcasterResponse) return withSecurityHeaders(farcasterResponse);
+    if (pathname === "/.well-known/farcaster.json") {
+      if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
+      return headResponse(withSecurityHeaders(farcasterManifest(config)), method);
+    }
+    if (pathname === "/menlo/farcaster.js") {
+      if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
+      return headResponse(withSecurityHeaders(new Response(await farcasterBrowserBundle(), { headers: {
+        "Content-Type": "text/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600",
+      } })), method);
+    }
+    if (pathname === "/login" || pathname === "/library") {
+      if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
+      const response = miniAppResponse(html(renderFarcasterAccount(config.baseUrl, pathname === "/library")));
+      response.headers.set("Cache-Control", "private, no-store");
+      return headResponse(response, method);
+    }
     const githubResponse = await githubApps.fetch(request);
     if (githubResponse) return withSecurityHeaders(githubResponse);
     if (relay.handles(pathname)) return relay.fetch(request);
@@ -609,7 +638,7 @@ export async function createApplication(
 
     if (pathname === "/apps") {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
-      return headResponse(html(await githubApps.renderIndex()), method);
+      return headResponse(miniAppResponse(html(await githubApps.renderIndex())), method);
     }
     if (pathname === "/docs") {
       if (method !== "GET" && method !== "HEAD") return methodNotAllowed();
@@ -638,7 +667,8 @@ export async function createApplication(
       else if (/^\/@[^/]+$/.test(pathname)) content = await registry.renderBuilder(decodeURIComponent(pathname.slice(2)));
       else content = await githubApps.render(pathname.slice(1), url.searchParams) ?? await registry.renderHumanRoute(pathname);
       if (!content) throw new HttpError(404, "Not found");
-      return headResponse(html(content), method);
+      const response = html(content);
+      return headResponse(content.includes('src="/menlo/farcaster.js?') ? miniAppResponse(response) : response, method);
     }
 
     if (pathname === "/install" || pathname === "/download") {
