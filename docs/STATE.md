@@ -28,9 +28,15 @@ for up to six hours when GitHub rate-limits.
 Website source `e776146` is live as Railway deployment
 `6853c984-05df-418a-8600-231c0f1a5019`; Anky and Logos cards and pages show
 their real icons. A real non-interactive redeploy of `hello-menlo` with the new
-CLI source returned its link in 8.5 seconds. CLI 1.7.0 is not yet on npm, the
-interactive folder-to-GitHub path has only test evidence (real pushes into a
-local bare repository), and production still has no `GITHUB_READ_TOKEN`.
+CLI source returned its link in 8.5 seconds. The owner published CLI 1.7.0 to
+npm and configured `GITHUB_READ_TOKEN`; Railway deployment
+`6ced0931-a049-492e-b0da-3b5e9f3b744d` succeeded with it. Fatline
+(`jpfraneto/fatline`, `apps/ios/Fatline.xcodeproj`) is live at
+`https://menloapp.lol/fatline`, deployed non-interactively from a clean clone;
+deploy committed `menloapp/` with its copied AppIcon, and the live card shows it.
+The interactive folder-to-GitHub path still has only test evidence (real pushes
+into a local bare repository). No recipient has installed a GitHub-distributed
+app from a link on a physical iPhone as part of this work.
 
 ## Farcaster account continuity (October 20)
 
