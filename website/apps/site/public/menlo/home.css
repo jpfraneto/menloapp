@@ -236,6 +236,7 @@ a.ml-tile:hover { background: color-mix(in srgb, var(--app) 22%, #141a17); }
 .ml-tile-shelf li:first-child { margin-left: auto; }
 .ml-tile-shelf li:last-child { margin-right: auto; }
 .ml-tile-shelf a { display: block; border-radius: 32px; }
+.ml-tile-shelf .ml-phone { width: 232px; height: 490px; }
 .ml-app-actions { margin-block: 24px 8px; }
 .menlo-landing .ml-app-actions > .ml-small { margin: 14px 0 0; font-size: 14px; line-height: 22px; }
 .ml-store .ml-get-button { min-width: 0; }
@@ -255,6 +256,7 @@ a.ml-tile:hover { background: color-mix(in srgb, var(--app) 22%, #141a17); }
 .ml-store .ml-command, .ml-store .ml-link-field { background: var(--ml-inset); }
 @media (max-width: 599px) {
   .ml-store .ml-header { min-height: 72px; }
+  .ml-tile-shelf .ml-phone { width: 200px; height: 422px; }
   .ml-store .ml-header nav { gap: 14px; }
   .ml-store .ml-wordmark img { width: 96px; }
   .ml-row { grid-template-columns: 1fr; gap: 4px; }
