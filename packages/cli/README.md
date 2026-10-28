@@ -23,8 +23,15 @@ npm i -g menloapp
 menloapp deploy
 ```
 
-Run deploy in your app’s public GitHub repository. It returns a live link like
+Run deploy in your app’s folder. It returns a live link like
 **https://menloapp.lol/your-app**. Share it. New commits update the same app page.
+
+Deploy takes care of the Git and GitHub steps, asking before each one. A plain
+folder gets a Git repository (with a standard Xcode `.gitignore` that keeps
+`.env`, signing keys and provisioning profiles out). Uncommitted changes can be
+committed with your message, a missing GitHub repository is created as a public
+repository under your account, and unpushed commits are pushed. Deploy never
+commits files that look like secrets and stops on files GitHub would reject.
 Interactive Mac deploy copies the link and prints a ready-to-share X link.
 Empty app descriptions are filled from your public GitHub repository description;
 supplied copy is preserved.

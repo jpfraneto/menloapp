@@ -1,9 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { githubRepository, deployOptions, deviceLogin, inspectProject, authenticate, deploy } from "../src/github.js";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, rm, stat } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
+import process from "node:process";
 import path from "node:path";
 import { suggestedCommand } from "../src/cli.js";
 
@@ -195,7 +196,7 @@ test("a private repo in noninteractive mode reports exact settings and never pro
 test("dirty source waits for a user commit and uses the resulting commit", async t => {
   const { root, git } = await repository(t);
   await writeFile(path.join(root, "App.swift"), "new source");
-  const ui = interfaceFor([() => { git("add", "App.swift"); git("commit", "-qm", "Add source"); return ""; }]);
+  const ui = interfaceFor(["n", () => { git("add", "App.swift"); git("commit", "-qm", "Add source"); return ""; }]);
   const result = await inspectProject({ directory: root }, ui);
   assert.equal(result.commit, git("rev-parse", "HEAD"));
   assert.match(ui.logs.join("\n"), /uncommitted changes/);
@@ -258,4 +259,101 @@ test("deploy fills empty copy from the repository and returns a share link pinne
   assert.match(ui.output[0], /App link copied/);
   assert.ok(ui.output[0].includes(`commit=${finalCommit}&repository=12`));
   assert.match(ui.output[0], /https:\/\/twitter.com\/intent\/tweet/);
+});
+
+// Real pushes go to a local bare repository standing in for github.com.
+function redirectGitHub(t, repository, bare) {
+  const saved = { ...process.env };
+  Object.assign(process.env, {
+    GIT_CONFIG_COUNT: "3", GIT_CONFIG_KEY_0: `url.${bare}.pushInsteadOf`, GIT_CONFIG_VALUE_0: `https://github.com/${repository}.git`,
+    GIT_CONFIG_KEY_1: "commit.gpgsign", GIT_CONFIG_VALUE_1: "false", GIT_CONFIG_KEY_2: "core.hooksPath", GIT_CONFIG_VALUE_2: "/dev/null",
+    GIT_AUTHOR_NAME: "MENLO Test", GIT_AUTHOR_EMAIL: "menlo@example.invalid", GIT_COMMITTER_NAME: "MENLO Test", GIT_COMMITTER_EMAIL: "menlo@example.invalid",
+  });
+  t.after(() => { for (const key of Object.keys(process.env)) if (!(key in saved)) delete process.env[key]; Object.assign(process.env, saved); });
+}
+const bareHead = bare => { try { return execFileSync("git", ["--git-dir", bare, "rev-parse", "refs/heads/main"], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim(); } catch { return null; } };
+
+test("a plain app folder becomes a public GitHub repository and a live link in one deploy", async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "menlo-fresh-"));
+  const bare = await mkdtemp(path.join(os.tmpdir(), "menlo-github-"));
+  t.after(() => Promise.all([rm(root, { recursive: true, force: true }), rm(bare, { recursive: true, force: true })]));
+  execFileSync("git", ["init", "--bare", "-q", bare]);
+  redirectGitHub(t, "maker/App", bare);
+  for (const [file, content] of Object.entries({ ...appFiles("App"), "App/ContentView.swift": "struct ContentView {}", ".env": "API_KEY=private" })) {
+    await mkdir(path.dirname(path.join(root, file)), { recursive: true });
+    await writeFile(path.join(root, file), content);
+  }
+  const created = [];
+  const fetcher = async (url, init = {}) => {
+    if (url === "https://api.github.com/user") return Response.json({ id: 42, login: "maker" });
+    if (url === "https://api.github.com/user/repos") { created.push(JSON.parse(init.body)); return Response.json({ full_name: "maker/App" }, { status: 201 }); }
+    if (url === "https://api.github.com/repos/maker/App") return Response.json({ private: false, default_branch: "main", description: "" });
+    if (url.endsWith("/commits/main")) { const sha = bareHead(bare); return sha ? Response.json({ sha }) : Response.json({ message: "Git Repository is empty." }, { status: 409 }); }
+    if (url === "https://menloapp.lol/api/menlo/v1/apps") { const body = JSON.parse(init.body); assert.equal(body.commit, bareHead(bare)); return Response.json({ public_url: `https://menloapp.lol/${body.slug}`, repository_id: 7 }); }
+    throw new Error(`Unexpected URL: ${url}`);
+  };
+  // Set up Git, commit the first version, create github.com/maker/App.
+  const ui = interfaceFor(["", "", "App"]);
+  assert.equal(await deploy([root, "--no-preview"], { ui, fetcher, env: { GH_TOKEN: "fixture-secret" }, sleep: async () => {} }), 0);
+  assert.deepEqual(created, [{ name: "App", private: false }]);
+  assert.match(ui.output.join("\n"), /Your app is live:\nhttps:\/\/menloapp.lol\/app/);
+  const published = execFileSync("git", ["--git-dir", bare, "ls-tree", "-r", "--name-only", "main"], { encoding: "utf8" });
+  assert.match(published, /App\/ContentView.swift/);
+  assert.match(published, /^\.gitignore$/m);
+  assert.doesNotMatch(published, /^\.env$/m, "secrets stay on the Mac");
+  assert.equal(execFileSync("git", ["-C", root, "remote", "get-url", "origin"], { encoding: "utf8" }).trim(), "https://github.com/maker/App.git");
+});
+
+test("declining to set up Git changes nothing", async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "menlo-fresh-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await mkdir(path.join(root, "App.xcodeproj"));
+  await writeFile(path.join(root, "App.xcodeproj", "project.pbxproj"), "fixture");
+  const ui = interfaceFor(["n"]);
+  await assert.rejects(deploy([root], { ui, ...requests("a".repeat(40)), env: { GH_TOKEN: "fixture-secret" } }), /Nothing was changed/);
+  await assert.rejects(stat(path.join(root, ".git")));
+});
+
+test("a plain folder without prompts explains the setup instead of guessing", async t => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "menlo-fresh-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await assert.rejects(deploy([root, "--json"], { ui: interfaceFor([], false), ...requests("a".repeat(40)), env: { GH_TOKEN: "fixture-secret" } }), /not a Git repository yet[\s\S]*git init/);
+});
+
+test("uncommitted changes can be committed in place with the person's message", async t => {
+  const { root, git } = await repository(t);
+  await writeFile(path.join(root, "App.swift"), "new source");
+  const ui = interfaceFor(["y", "Add the timer"]);
+  const result = await inspectProject({ directory: root }, ui);
+  assert.equal(git("log", "-1", "--format=%s"), "Add the timer");
+  assert.equal(result.commit, git("rev-parse", "HEAD"));
+  assert.match(ui.logs.join("\n"), /App.swift/);
+});
+
+test("secret-looking changes are never committed automatically", async t => {
+  const { root, git } = await repository(t);
+  const before = git("rev-parse", "HEAD");
+  await writeFile(path.join(root, "AuthKey_ABC123.p8"), "-----BEGIN PRIVATE KEY-----");
+  const ui = interfaceFor([() => { git("rm", "-q", "--cached", "--ignore-unmatch", "AuthKey_ABC123.p8"); execFileSync("rm", [path.join(root, "AuthKey_ABC123.p8")]); return ""; }]);
+  await inspectProject({ directory: root }, ui);
+  assert.equal(git("rev-parse", "HEAD"), before);
+  assert.match(ui.logs.join("\n"), /look like secrets[\s\S]*AuthKey_ABC123.p8/);
+  assert.equal(ui.prompts.length, 1, "only the manual fallback prompt");
+});
+
+test("an unpushed commit on the default branch is pushed when the person agrees", async t => {
+  const { root, git, commit } = await repository(t);
+  const bare = git("config", "remote.origin.pushurl");
+  git("push", "-q", "origin", "main");
+  await writeFile(path.join(root, "App.swift"), "more source");
+  git("add", "App.swift"); git("commit", "-qm", "More");
+  const local = git("rev-parse", "HEAD");
+  const network = requests(local);
+  const fetcher = (url, init) => url.endsWith("/commits/main") ? Response.json({ sha: bareHead(bare) }) : network.fetcher(url, init);
+  const ui = interfaceFor([""]);
+  await deploy([root, "--no-preview"], { ui, fetcher, env: { GH_TOKEN: "fixture-secret" }, sleep: async () => {} });
+  assert.notEqual(commit, local);
+  assert.match(execFileSync("git", ["--git-dir", bare, "log", "--format=%s", "main"], { encoding: "utf8" }), /^More$/m);
+  assert.match(ui.prompts[0], /Push your new commit to GitHub's main branch/);
+  assert.match(ui.output.join("\n"), /Your app is live/);
 });

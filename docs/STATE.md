@@ -1,8 +1,36 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-10-20. This is the plain-language
+Written 2026-07-30, amended through 2026-10-28. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Deploy from any app folder, real icons on share cards (October 28)
+
+`menloapp deploy` (CLI 1.7.0 source) now carries a plain app folder to a live
+link, asking before each step: `git init` with a standard Xcode `.gitignore`
+that keeps `.env`, signing keys and provisioning profiles out; a reviewed first
+commit; creating the public GitHub repository under the signed-in account; and
+pushing. In an existing repository it offers to commit pending changes with the
+person's message and to push unpushed default-branch commits. Secret-looking
+files are never committed automatically, and files over GitHub's 100 MB limit
+stop the commit. Pushes use the person's own Git credentials first, then the
+already-verified GitHub sign-in for that single push, passed through the
+environment and never saved.
+
+Share cards use the dark Menlo design with the app icon (or the committed
+screenshot), name, description, maker and link. Apps whose `menloapp/app.json`
+names no icon now show their committed Xcode AppIcon on cards, app pages and the
+home feed, chosen only within the deployed project's folder and never guessed
+between several icon sets. Cards render at deploy time. GitHub reads named by
+full hash are cached for a day, and pages fall back to the last verified answer
+for up to six hours when GitHub rate-limits.
+
+Website source `e776146` is live as Railway deployment
+`6853c984-05df-418a-8600-231c0f1a5019`; Anky and Logos cards and pages show
+their real icons. A real non-interactive redeploy of `hello-menlo` with the new
+CLI source returned its link in 8.5 seconds. CLI 1.7.0 is not yet on npm, the
+interactive folder-to-GitHub path has only test evidence (real pushes into a
+local bare repository), and production still has no `GITHUB_READ_TOKEN`.
 
 ## Farcaster account continuity (October 20)
 

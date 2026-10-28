@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { pushBranch } from "./repository-setup.js";
 import { PRESENTATION_PATH, MAX_PRESENTATION_BYTES, MAX_IMAGE_BYTES, MAX_VIDEO_BYTES, validatePresentation, presentationFiles, validateMediaBytes } from "./presentation.js";
 
 export function projectRoot(directory) {
@@ -134,7 +135,7 @@ export function previewNeedsRefresh(root, commit, presentation) {
   } catch { return true; }
 }
 
-export function commitPresentation(root, files, branch) {
+export function commitPresentation(root, files, branch, { repository, credential } = {}) {
   const allowed = new Set(files);
   for (const file of allowed) if (!file.startsWith("menloapp/") || file.split("/").some(part => part === ".." || part === ".")) throw new Error("Only generated app presentation files can be committed by deploy.");
   const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8", timeout: 60_000, stdio: ["ignore", "pipe", "pipe"] }).trim();
@@ -145,7 +146,9 @@ export function commitPresentation(root, files, branch) {
   if (!trackedChanges.length && !untracked.length) return false;
   git("add", "--", ...allowed);
   git("commit", "-m", "Update MENLO app page", "--only", "--", ...allowed);
-  try { git("push", "origin", branch); }
-  catch { throw new Error(`The app page is committed locally, but the push did not complete. Run git push origin ${branch}, then menloapp deploy.`); }
+  try {
+    if (repository) pushBranch(root, repository, branch, credential);
+    else git("push", "origin", branch);
+  } catch { throw new Error(`The app page is committed locally, but the push did not complete. Run git push origin ${branch}, then menloapp deploy.`); }
   return true;
 }

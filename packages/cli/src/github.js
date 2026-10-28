@@ -6,6 +6,7 @@ import { choose, continueAfter, deployUI, openBrowser, shellQuote } from "./depl
 
 import { setupPresentation, readCommittedPresentation, updatePresentationLinks, fillPresentationDescription, fillPresentationIcon, commitPresentation, previewNeedsRefresh } from "./project-presentation.js";
 import { recordExperience } from "./record.js";
+import { createGitHubRepository, initRepository, offerCommit, pushBranch } from "./repository-setup.js";
 import { previewTools } from "./experience-agent.js";
 
 export const MENLO_ORIGIN = "https://menloapp.lol";
@@ -121,6 +122,11 @@ export async function authenticate(ui, { fetcher = fetch, execute = run, env = p
   catch (error) { if (error.status === 401) throw new Error(`GitHub did not accept the new sign-in.\n${instructions}`); throw error; }
 }
 
+function isAncestor(root, ancestor, commit) {
+  try { execFileSync("git", ["-C", root, "merge-base", "--is-ancestor", ancestor, commit], { stdio: "ignore", timeout: 20_000 }); return true; }
+  catch { return false; }
+}
+
 function git(directory, ...args) {
   try { return run("git", ["-C", directory, ...args]); }
   catch { throw new Error("Open your app's Git repository, then run menloapp deploy. It needs a GitHub origin and at least one commit."); }
@@ -138,9 +144,34 @@ async function inspectRepository(options) {
   return { root, directory, explicitContainer, repository: githubRepository(remote) };
 }
 
+/**
+ * Take the folder as far as a GitHub repository with at least one commit,
+ * asking before each step: git init, first commit, public GitHub repository.
+ */
+async function prepareRepository(options, ui, { credential, user, fetcher, description }) {
+  let input;
+  try { input = await realpath(options.directory); } catch { throw new Error(`App directory not found: ${options.directory}\nRun menloapp deploy from your app's repository.`); }
+  const directory = /\.(xcodeproj|xcworkspace)$/.test(input) ? path.dirname(input) : input;
+  let root = optionalRun(run, "git", ["-C", directory, "rev-parse", "--show-toplevel"]);
+  if (!root) root = await initRepository(directory, ui);
+  if (!optionalRun(run, "git", ["-C", root, "rev-parse", "--verify", "-q", "HEAD"])) {
+    if (!ui.interactive) throw new Error("This repository has no commits yet.\nCommit your app (git add -A && git commit -m \"First version\"), then run menloapp deploy.");
+    if (!await offerCommit(root, ui, { first: true, name: path.basename(root) })) throw new Error("Deploy needs a first commit. Nothing was published.");
+  }
+  if (!optionalRun(run, "git", ["-C", root, "remote", "get-url", "origin"])) {
+    const call = (url, init) => api(url, { ...init, headers: { ...headers(credential), "Content-Type": "application/json" } }, fetcher);
+    await createGitHubRepository(root, ui, { credential, user, api: call, describe: description });
+  }
+  return inspectRepository(options);
+}
+
 export async function inspectProject(options, ui = deployUI(options)) {
   const { root, directory, explicitContainer, repository } = await inspectRepository(options);
   while (git(root, "status", "--porcelain", "--untracked-files=normal")) {
+    if (ui.interactive) {
+      try { if (await offerCommit(root, ui, { name: path.basename(root) })) continue; }
+      catch (error) { ui.log(`\n${error.message}`); }
+    }
     await continueAfter(ui, "Your app has uncommitted changes. MENLO shares the code pushed to GitHub.\nIn another terminal, review git status, commit the files you want to share, and push them. Local files will not be uploaded automatically.");
   }
   const commit = git(root, "rev-parse", "HEAD");
@@ -232,21 +263,43 @@ export async function deploy(args, dependencies = {}) {
   const ui = dependencies.ui || deployUI(options);
   const fetcher = dependencies.fetcher || fetch;
   if (options.help) {
-    ui.print("MENLO deploy\n\nmenloapp deploy [path]\n\nSign in to GitHub, choose your app if needed, and get a production app link.\nMENLO guides you through each step. Later pushes appear automatically.\n\nOptions: --project path/App.xcodeproj, --scheme Name, --app-slug your-app,\n         --name Name, --dry-run (local checks only), --json (no prompts)\n         --record (regenerate the automatic preview), --no-preview,\n         --seconds 3–60, --simulator UDID");
+    ui.print("MENLO deploy\n\nmenloapp deploy [path]\n\nSign in to GitHub, choose your app if needed, and get a production app link.\nMENLO sets up Git and a public GitHub repository if needed, asking first.\nLater pushes appear automatically.\n\nOptions: --project path/App.xcodeproj, --scheme Name, --app-slug your-app,\n         --name Name, --dry-run (local checks only), --json (no prompts)\n         --record (regenerate the automatic preview), --no-preview,\n         --seconds 3–60, --simulator UDID");
     return 0;
   }
   if (options.dryRun) { ui.print(JSON.stringify(await inspectProject(options, ui), null, 2)); return 0; }
-  const local = await inspectRepository(options);
-  ui.log(`MENLO deploy\nRepository: ${local.repository}`);
-  const { credential } = await authenticate(ui, { ...dependencies, fetcher });
+  // A non-GitHub origin fails before sign-in; a missing repository or origin is set up after it.
+  const existingRoot = optionalRun(run, "git", ["-C", options.directory, "rev-parse", "--show-toplevel"]);
+  const existingRemote = existingRoot && optionalRun(run, "git", ["-C", existingRoot, "remote", "get-url", "origin"]);
+  if (existingRemote) githubRepository(existingRemote);
+  ui.log("MENLO deploy");
+  const { credential, user } = await authenticate(ui, { ...dependencies, fetcher });
+  const local = await prepareRepository(options, ui, { credential, user, fetcher, description: "" });
+  ui.log(`Repository: ${local.repository}`);
   const repo = await publicRepository(local.repository, credential, ui, fetcher);
+  const sleep = dependencies.sleep || (ms => new Promise(resolve => setTimeout(resolve, ms)));
+  let pushed = 0;
   let project;
   while (true) {
     project = await inspectProject(options, ui);
     if (project.repository !== local.repository) throw new Error("The GitHub origin changed during deployment. Run menloapp deploy again to connect the new repository.");
-    const head = await api(`https://api.github.com/repos/${project.repository}/commits/${encodeURIComponent(repo.default_branch)}`, { headers: headers(credential) }, fetcher);
-    if (head.sha === project.commit) break;
+    let head;
+    try { head = await api(`https://api.github.com/repos/${project.repository}/commits/${encodeURIComponent(repo.default_branch)}`, { headers: headers(credential) }, fetcher); }
+    catch (error) { if (error.status !== 409 && error.status !== 404) throw error; head = null; /* An empty GitHub repository. */ }
+    if (head?.sha === project.commit) break;
+    // GitHub can take a moment to report a branch that was just pushed.
+    if (pushed && pushed < 4) { pushed++; await sleep(1500); continue; }
     const branch = git(local.root, "branch", "--show-current");
+    const ahead = branch === repo.default_branch && (!head || isAncestor(local.root, head.sha, project.commit));
+    if (ahead && ui.interactive && pushed === 0) {
+      const count = Number(optionalRun(run, "git", ["-C", local.root, "rev-list", "--count", head ? `${head.sha}..HEAD` : "HEAD"])) || 1;
+      const answer = await ui.ask(`Push ${count === 1 ? "your new commit" : `${count} new commits`} to GitHub's ${branch} branch? [Y/n] `);
+      if (!answer || /^y(es)?$/i.test(answer)) {
+        pushBranch(local.root, project.repository, branch, credential);
+        pushed = 1;
+        continue;
+      }
+    }
+    pushed = 0;
     const instruction = branch === repo.default_branch
       ? `Push your committed changes: git push origin ${shellQuote(branch)}\nIf GitHub has newer commits, bring them in first: git pull --ff-only origin ${shellQuote(branch)}`
       : `MENLO follows ${repo.default_branch}. Merge your changes into that branch and push it, then switch this checkout to ${repo.default_branch}.`;
@@ -271,7 +324,7 @@ export async function deploy(args, dependencies = {}) {
     }
   }
   if (generated.length) {
-    (dependencies.commitPresentation || commitPresentation)(local.root, [...new Set(generated)], repo.default_branch);
+    (dependencies.commitPresentation || commitPresentation)(local.root, [...new Set(generated)], repo.default_branch, { repository: local.repository, credential });
     project = await inspectProject(options, ui);
   }
   ui.log(`App: ${project.name}\nProject: ${project.project} · ${project.scheme}\nConnecting this app to MENLO…`);
@@ -309,7 +362,7 @@ export async function deploy(args, dependencies = {}) {
   }
   if (result.public_url !== `${MENLO_ORIGIN}/${project.slug}`) throw new Error("MENLO did not confirm the expected app link. Run menloapp deploy again to verify it.");
   if (await updatePresentationLinks(local.root, project.repository, result.public_url)) {
-    (dependencies.commitPresentation || commitPresentation)(local.root, ["menloapp/app.json"], repo.default_branch);
+    (dependencies.commitPresentation || commitPresentation)(local.root, ["menloapp/app.json"], repo.default_branch, { repository: local.repository, credential });
     ui.log("Saved your GitHub and MENLO links to menloapp/app.json.");
   }
   result = { ...result, githubRepo: `https://github.com/${project.repository}`, menloLink: result.public_url };
