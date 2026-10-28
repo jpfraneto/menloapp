@@ -80,3 +80,47 @@ public struct GitHubAppLink: Equatable, Sendable {
         self.slug = slug; self.repositoryID = repositoryID; self.commit = commit
     }
 }
+
+/// A GitHub app's public listing art from menloapp.lol: the icon and first
+/// screenshot the web page shows. The local runtime only has a placeholder for
+/// imported apps, so the Mac shows the same public images as the link.
+public enum MenloListingAssets {
+    private struct Listing: Decodable {
+        let head_commit: String?
+        let icon_url: String?
+        let presentation: Presentation?
+        struct Presentation: Decodable { let screenshots: [String]? }
+    }
+
+    private static let base = "https://menloapp.lol/api/menlo/v1/apps/"
+    private static let maximumImageBytes = 10 * 1024 * 1024
+
+    public static func load(slug: String, session: URLSession = .shared) async throws -> (icon: Data?, screenshot: Data?) {
+        guard slug.range(of: #"^[a-z0-9]+(?:-[a-z0-9]+)*$"#, options: .regularExpression) != nil,
+              let url = URL(string: base + slug) else { return (nil, nil) }
+        let (data, response) = try await session.data(for: URLRequest(url: url, timeoutInterval: 20))
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { return (nil, nil) }
+        let listing = try JSONDecoder().decode(Listing.self, from: data)
+        let icon = await image(listing.icon_url.flatMap(URL.init(string:)), session: session)
+        var screenshotURL: URL?
+        if let commit = listing.head_commit, commit.range(of: #"^[a-f0-9]{40}$"#, options: .regularExpression) != nil,
+           let path = listing.presentation?.screenshots?.first {
+            let encoded = path.split(separator: "/").map { String($0).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? "" }.joined(separator: "/")
+            screenshotURL = URL(string: "\(base)\(slug)/media/\(commit)/\(encoded)")
+        }
+        return (icon, await image(screenshotURL, session: session))
+    }
+
+    private static func image(_ url: URL?, session: URLSession) async -> Data? {
+        guard let url, url.scheme == "https", url.host == "menloapp.lol",
+              let (data, response) = try? await session.data(for: URLRequest(url: url, timeoutInterval: 30)),
+              (response as? HTTPURLResponse)?.statusCode == 200,
+              data.count <= maximumImageBytes, isImage(data) else { return nil }
+        return data
+    }
+
+    /// PNG or JPEG only, matching what Menlo listings accept.
+    static func isImage(_ data: Data) -> Bool {
+        data.starts(with: [0x89, 0x50, 0x4E, 0x47]) || data.starts(with: [0xFF, 0xD8, 0xFF])
+    }
+}

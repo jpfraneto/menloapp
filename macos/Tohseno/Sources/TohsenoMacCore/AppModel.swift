@@ -75,6 +75,7 @@ public final class TohsenoAppModel {
     private let client: any FactoryServing
     private let preferences: UserDefaults
     private var previewVersions: [String: String] = [:]
+    private var listingAssetsRequested: Set<String> = []
     private var monitoringTask: Task<Void, Never>?
     private var readinessMonitoringTask: Task<Void, Never>?
     private var pairingMonitoringTask: Task<Void, Never>?
@@ -144,6 +145,16 @@ public final class TohsenoAppModel {
 
     public func dismissPhoneSetup() {
         requestedPhoneSetup = false
+    }
+
+    /// The first-app link is done once any version of that repository is on
+    /// the iPhone, even if it was installed from the terminal or a newer commit.
+    private func clearInstalledFirstApp() {
+        guard let url = pendingFirstAppURL, let link = GitHubAppLink(url),
+              apps.contains(where: { $0.github?.repositoryID == link.repositoryID && $0.github?.installedCommit != nil })
+        else { return }
+        pendingFirstAppURL = nil
+        preferences.removeObject(forKey: "menlo.first-app-url")
     }
 
     public func resumeFirstApp() async {
@@ -249,6 +260,7 @@ public final class TohsenoAppModel {
         do {
             workspace = try await client.workspace()
             repairRoute()
+            clearInstalledFirstApp()
             await refreshAssets()
             await refreshSelectedAppDetails()
             errorMessage = nil
@@ -387,6 +399,15 @@ public final class TohsenoAppModel {
         for app in workspace.visibleApps {
             if icons[app.id] == nil, let data = try? await client.icon(for: app.id) {
                 icons[app.id] = data
+            }
+            if let github = app.github, !listingAssetsRequested.contains(app.id) {
+                listingAssetsRequested.insert(app.id)
+                if let assets = try? await MenloListingAssets.load(slug: github.slug) {
+                    if let icon = assets.icon { icons[app.id] = icon }
+                    if previews[app.id] == nil, let screenshot = assets.screenshot { previews[app.id] = screenshot }
+                } else {
+                    listingAssetsRequested.remove(app.id)
+                }
             }
             if let versionID = app.latestVersionID,
                previewVersions[app.id] != versionID {
