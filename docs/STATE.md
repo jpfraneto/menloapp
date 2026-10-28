@@ -46,8 +46,8 @@ cards now prefer the subtitle over the long description. The first preview
 encode was downscaled to 590px at a low bitrate and looked soft; Fatline
 `93fbede` replaces it with a 720px encode from the same raw recording (observed
 live). App-page screenshot tiles grow from 168px to 232px wide (200px on
-phones) in `7c5b080`; that change is committed but not yet deployed because
-Railway paused deploys during its October 28 incident.
+phones) in `7c5b080`, deployed as Railway `32662c63` (SUCCESS) after Railway lifted
+its October 28 deploy pause; the new stylesheet is observed live.
 The interactive folder-to-GitHub path still has only test evidence (real pushes
 into a local bare repository). No recipient has installed a GitHub-distributed
 app from a link on a physical iPhone as part of this work.
