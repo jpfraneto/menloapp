@@ -1,4 +1,8 @@
-import { spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import { promisify } from "node:util";
 import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -89,8 +93,35 @@ async function askLine(question) {
   try { return await prompt.question(question); } finally { prompt.close(); }
 }
 
+const execFileAsync = promisify(execFile);
+
+/**
+ * A phone on the same Wi-Fi often has no open CoreDevice connection, so the
+ * service, which only lists devices, never sees it as reachable. Asking that
+ * one intended phone for its details opens the connection. Nothing is installed
+ * here; the service still chooses the target and installs.
+ */
+export async function wakeIntendedPhone(root = installRoot(), exec = execFileAsync) {
+  let intended;
+  try { intended = JSON.parse(await readFile(path.join(root, "service", "cable-genesis-v1.json"), "utf8")).intended_device_digest; } catch { return false; }
+  if (!intended) return false;
+  const directory = await mkdtemp(path.join(os.tmpdir(), "menlo-devices-"));
+  try {
+    const list = path.join(directory, "devices.json");
+    await exec("xcrun", ["devicectl", "list", "devices", "--json-output", list], { timeout: 30_000 });
+    const devices = JSON.parse(await readFile(list, "utf8"))?.result?.devices ?? [];
+    const phone = devices.find(device => createHash("sha256").update(`TOHSENO-CABLE-DEVICE-V1\0${device.identifier}`).digest("hex") === intended);
+    if (!phone) return false;
+    if (phone.connectionProperties?.tunnelState === "connected") return true;
+    await exec("xcrun", ["devicectl", "device", "info", "details", "--device", phone.identifier, "--timeout", "20"], { timeout: 40_000 });
+    return true;
+  } catch { return false; } finally { await rm(directory, { recursive: true, force: true }); }
+}
+
 /** Watch the record while the service installs the saved build. */
-async function watchInstall(slug, { read, output, seconds, pause }) {
+async function watchInstall(slug, { read, output, seconds, pause, wake }) {
+  output.write("\r\x1b[2KConnecting to your iPhone…");
+  await wake();
   for (let elapsed = 0; elapsed <= seconds; elapsed += 2) {
     const record = await read(slug);
     const delivery = record?.network_delivery;
@@ -113,6 +144,7 @@ export async function tryApp(args, {
   output = process.stdout,
   pause = sleep,
   watchSeconds = 40,
+  wake = wakeIntendedPhone,
   interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY),
 } = {}) {
   const slug = args[2];
@@ -142,7 +174,7 @@ export async function tryApp(args, {
       log("OK. The signed build is saved on this Mac. It installs the next time your iPhone is unlocked and reachable, or run this command again.");
       return 0;
     }
-    const result = await watchInstall(slug, { read, output, seconds: watchSeconds, pause });
+    const result = await watchInstall(slug, { read, output, seconds: watchSeconds, pause, wake });
     if (result === "installed") return 0;
     if (result === "failed") return 1;
     if (result === "changed") return run(args).then(attempt => attempt.status);

@@ -65,6 +65,14 @@ and signed, and says "building (source already downloaded)" instead of
 "Downloading" when only the source is saved. The native runtime still re-adopts
 and rebuilds on every `github install`, resetting a saved ready build; a rerun
 interrupted with Ctrl-C (observed) leaves the record at `verified_source`.
+The owner's phone then stayed unreachable although it was unlocked on the same
+Wi-Fi: CoreDevice listed it `disconnected`, and the service only lists devices,
+never opening a connection. One `devicectl device info details` call opened
+it, and the service installed Fatline `e6031ef` on the intended iPhone within
+seconds (installed and verified 20:29:34 UTC, observed in the service record).
+`try` now opens that connection for the intended iPhone only (matched by its
+cable-genesis digest) before watching the install. The native service should
+do the same.
 The interactive folder-to-GitHub path still has only test evidence (real pushes
 into a local bare repository). No recipient has installed a GitHub-distributed
 app from a link on a physical iPhone as part of this work.
