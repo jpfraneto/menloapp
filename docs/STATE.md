@@ -48,6 +48,18 @@ encode was downscaled to 590px at a low bitrate and looked soft; Fatline
 live). App-page screenshot tiles grow from 168px to 232px wide (200px on
 phones) in `7c5b080`, deployed as Railway `32662c63` (SUCCESS) after Railway lifted
 its October 28 deploy pause; the new stylesheet is observed live.
+Owner's own `menloapp try https://menloapp.lol/fatline` (October 28): the Mac
+app's "Build for my iPhone" showed a spinner and then nothing; the terminal run
+failed with "Symbolic links and submodules need manual source review" because
+Fatline had one in-repo symlink (`skills/fatline-setup/SKILL.md`). Fatline
+`01d86a6` makes it a generated copy. The next run built and signed
+(`ready_for_iphone`) but the intended iPhone was not reachable (CoreDevice
+`disconnected` over the local network), and the command exited. Unfixed in the
+native runtime: no progress beyond an elapsed counter, any symlink is refused,
+and the Mac app does not show this error. CLI 1.7.1 (not yet on npm; installed
+locally on the owner's Mac) keeps `try` in the same session: one live timer, and
+when the build waits for the iPhone, Enter retries and `/notnow` leaves the
+saved build for the service's automatic retry.
 The interactive folder-to-GitHub path still has only test evidence (real pushes
 into a local bare repository). No recipient has installed a GitHub-distributed
 app from a link on a physical iPhone as part of this work.

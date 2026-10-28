@@ -9,6 +9,7 @@ import { openProduct, startProduct } from "../src/start.js";
 import { initPresentation } from "../src/project-presentation.js";
 import { deploy } from "../src/github.js";
 import { review } from "../src/review.js";
+import { tryApp } from "../src/try.js";
 
 async function main() {
   const raw = process.argv.slice(2);
@@ -54,6 +55,7 @@ async function main() {
     installed = await installedNative(PRODUCT_VERSION);
     if (!installed) throw new Error("the verified native release did not activate safely");
   }
+  if (command.kind === "delegate" && trying && commandIndex === 0) return tryApp(command.args);
   if (command.kind === "delegate") return delegate(command.args);
   if (command.kind === "open") return openProduct();
   return startProduct();
