@@ -35,6 +35,11 @@ export interface GitHubApp {
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const REPOSITORY = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})\/[A-Za-z0-9_.-]{1,100}$/;
 const SHA = /^[a-f0-9]{40}$/;
+const IMMUTABLE = /^\/repos\/[^/]+\/[^/]+\/(?:git\/(?:trees|blobs)\/[a-f0-9]{40}|commits\/[a-f0-9]{40})(?:\?recursive=1)?$/;
+const IMMUTABLE_FOR = 24 * 60 * 60_000;
+const STALE_FOR = 6 * 60 * 60_000;
+// Directories that hold dependencies or build output, never the app's own icon.
+const ICON_IGNORED = /(?:^|\/)(?:Pods|Carthage|node_modules|\.build|DerivedData|build)\//;
 const RESERVED = new Set(["api", "auth", "apps", "claims", "docs", "download", "healthz", "install", "privacy", "registry", "releases", "s", "buy", "menlo", "login", "logout", "library", "latest"]);
 const escape = (value: string) => value.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 function json(value: unknown, status = 200) {
@@ -96,23 +101,40 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     if (Date.now() - rateWindow >= 60_000) { rateWindow = Date.now(); reads = 0; writes = 0; }
     if ((write ? ++writes > 30 : ++reads > 600)) throw new HttpError(429, "MENLO is receiving too many requests. Try again in a minute.");
   }
+  // Last good answers for mutable reads. When GitHub rate-limits or stalls, a
+  // recently verified answer keeps app pages and share cards working.
+  const stale = new Map<string, { at: number; value: any }>();
   async function github(path: string, token?: string, cached = false): Promise<any> {
     const key = path;
     const hit = cached && cache.get(key);
     if (hit && hit.until > Date.now()) return hit.value;
     const value = (async () => {
-      const response = await remote(`https://api.github.com${path}`, {
-        headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "menlo-distribution", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        redirect: "error", signal: AbortSignal.timeout(15_000),
-      });
-      if (!response.ok) throw new HttpError(response.status === 404 ? 404 : response.status === 401 ? 401 : 503,
-        response.status === 404 ? "This public GitHub repository or commit is unavailable" : response.status === 401 ? "Sign in to GitHub again" : "GitHub is temporarily unavailable or rate limited. Try again shortly.");
-      const body = await boundedText(response.body, 4 * 1024 * 1024);
-      return JSON.parse(body);
+      try {
+        const response = await remote(`https://api.github.com${path}`, {
+          headers: { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "menlo-distribution", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          redirect: "error", signal: AbortSignal.timeout(15_000),
+        });
+        if (!response.ok) throw new HttpError(response.status === 404 ? 404 : response.status === 401 ? 401 : 503,
+          response.status === 404 ? "This public GitHub repository or commit is unavailable" : response.status === 401 ? "Sign in to GitHub again" : "GitHub is temporarily unavailable or rate limited. Try again shortly.");
+        const body = JSON.parse(await boundedText(response.body, 4 * 1024 * 1024));
+        if (cached) {
+          if (stale.size >= 1024) stale.delete(stale.keys().next().value!);
+          stale.delete(key);
+          stale.set(key, { at: Date.now(), value: body });
+        }
+        return body;
+      } catch (error) {
+        // Only transient failures fall back; a deleted repository or commit stays unavailable.
+        const previous = cached && stale.get(key);
+        const transient = !(error instanceof HttpError) || error.status === 503;
+        if (previous && transient && Date.now() - previous.at < STALE_FOR) return previous.value;
+        throw error;
+      }
     })();
     if (cached) {
       if (cache.size >= 512) cache.delete(cache.keys().next().value!);
-      cache.set(key, { until: Date.now() + 60_000, value });
+      // Trees, blobs and commits named by full hash never change.
+      cache.set(key, { until: Date.now() + (IMMUTABLE.test(path) ? IMMUTABLE_FOR : 60_000), value });
       value.catch(() => { if (cache.get(key)?.value === value) cache.delete(key); });
     }
     return value;
@@ -184,6 +206,84 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
   function verifyBlob(info: any, bytes: Buffer) {
     if (info.size !== bytes.length || createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex") !== info.sha) throw new HttpError(502, "GitHub media bytes do not match the committed file");
   }
+  // Fetch one committed file from GitHub's raw host and prove it is the exact blob in the pinned tree.
+  async function rawFile(repository: string, commit: string, file: string, info: { size: number; sha: string }, maximum: number) {
+    // Resolve a fixed public GitHub URL ourselves; never follow supplied URLs or
+    // forward a GitHub credential to an asset host.
+    const response = await remote(`https://raw.githubusercontent.com/${repository}/${commit}/${file.split("/").map(encodeURIComponent).join("/")}`, { redirect: "error", signal: AbortSignal.timeout(30_000) });
+    if (!response.ok) throw new HttpError(response.status === 404 ? 404 : 503, "GitHub media is temporarily unavailable");
+    const bytes = await boundedBytes(response.body, maximum);
+    verifyBlob(info, bytes);
+    return bytes;
+  }
+  type CatalogIcon = { path: string; size: number; sha: string; pixels: number; type: "image/png" | "image/jpeg" };
+  const catalogIconCache = new Map<string, Promise<CatalogIcon[]>>();
+  /**
+   * The app's own icon from its committed Xcode AppIcon set, smallest first.
+   * Used only when menloapp/app.json names no icon. Ambiguous repositories
+   * (several app icon sets for the selected project) get no icon rather than a guess.
+   */
+  function catalogIcons(app: Pick<GitHubApp, "repository" | "repository_id" | "project" | "scheme">, commit: string): Promise<CatalogIcon[]> {
+    const key = `${app.repository_id}:${commit}:${app.project}:${app.scheme}`;
+    const cached = catalogIconCache.get(key);
+    if (cached) return cached.catch(() => []);
+    const value = (async (): Promise<CatalogIcon[]> => {
+      const tree = await github(`/repos/${app.repository}/git/trees/${commit}?recursive=1`, config.readToken);
+      if (tree.truncated || !Array.isArray(tree.tree)) return [];
+      const files = new Map<string, { size: number; sha: string }>();
+      for (const entry of tree.tree) {
+        if (entry?.type === "blob" && ["100644", "100755"].includes(entry.mode) && typeof entry.path === "string" && SHA.test(entry.sha) && Number.isSafeInteger(entry.size)) files.set(entry.path, { size: entry.size, sha: entry.sha });
+      }
+      const base = app.project.includes("/") ? app.project.slice(0, app.project.lastIndexOf("/") + 1) : "";
+      let catalogs = [...files.keys()].filter(file => file.startsWith(base) && /(?:^|\/)AppIcon\.appiconset\/Contents\.json$/.test(file) && !ICON_IGNORED.test(file));
+      if (catalogs.length > 1) {
+        const scheme = app.scheme.toLowerCase().replace(/[^a-z0-9]/g, "");
+        catalogs = catalogs.filter(file => file.toLowerCase().split("/").some(part => part.replace(/[^a-z0-9]/g, "") === scheme));
+      }
+      if (catalogs.length !== 1) return [];
+      const catalog = catalogs[0]!, info = files.get(catalog)!;
+      if (info.size > MAX_PRESENTATION_BYTES) return [];
+      const blob = await github(`/repos/${app.repository}/git/blobs/${info.sha}`, config.readToken, true);
+      if (blob.encoding !== "base64" || typeof blob.content !== "string") return [];
+      const bytes = Buffer.from(blob.content, "base64");
+      verifyBlob(info, bytes);
+      let images: unknown;
+      try { images = JSON.parse(bytes.toString("utf8")).images; } catch { return []; }
+      if (!Array.isArray(images)) return [];
+      const folder = catalog.slice(0, catalog.lastIndexOf("/") + 1), seen = new Set<string>(), result: CatalogIcon[] = [];
+      for (const image of images) {
+        // Dark and tinted variants are not the icon people recognize.
+        if (!image || typeof image !== "object" || image.appearances || typeof image.filename !== "string" || !/^[^/\\]+\.(?:png|jpe?g)$/i.test(image.filename)) continue;
+        const file = folder + image.filename, entry = files.get(file);
+        if (!entry || seen.has(file) || entry.size <= 0 || entry.size > MAX_IMAGE_BYTES) continue;
+        seen.add(file);
+        const pixels = (parseFloat(image.size) || 0) * (parseFloat(image.scale) || 1);
+        result.push({ path: file, ...entry, pixels, type: /\.png$/i.test(file) ? "image/png" : "image/jpeg" });
+      }
+      return result.sort((a, b) => a.pixels - b.pixels);
+    })();
+    if (catalogIconCache.size >= 256) catalogIconCache.delete(catalogIconCache.keys().next().value!);
+    catalogIconCache.set(key, value);
+    // A transient GitHub failure is retried on the next request instead of remembered.
+    value.catch(() => { if (catalogIconCache.get(key) === value) catalogIconCache.delete(key); });
+    return value.catch(() => []);
+  }
+  async function catalogIconBytes(app: Pick<GitHubApp, "repository" | "repository_id" | "project" | "scheme">, commit: string, minimumPixels: number) {
+    const icons = await catalogIcons(app, commit);
+    const icon = icons.find(item => item.pixels >= minimumPixels) ?? icons.at(-1);
+    if (!icon) return undefined;
+    const bytes = await rawFile(app.repository, commit, icon.path, icon, MAX_IMAGE_BYTES);
+    const valid = icon.type === "image/png" ? bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])) : bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
+    if (!valid) throw new HttpError(422, "The committed app icon is not a PNG or JPEG file");
+    return { bytes, type: icon.type };
+  }
+  async function iconResponse(request: Request, slug: string, commit: string) {
+    const app = await current(requireApp(slug));
+    const icon = await catalogIconBytes(app, commit, 180);
+    if (!icon) throw new HttpError(404, "This app has no committed app icon");
+    const headers = { "Content-Type": icon.type, "Content-Length": String(icon.bytes.length), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" };
+    return new Response(request.method === "HEAD" ? null : Uint8Array.from(icon.bytes).buffer, { headers });
+  }
   async function presentation(repository: string, commit: string, token = config.readToken, cached = true) {
     let info;
     try { info = await fileInfo(repository, commit, PRESENTATION_PATH, token, cached); }
@@ -198,8 +298,11 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
   }
   async function presented(app: Awaited<ReturnType<typeof current>>) {
     const media = await presentation(app.repository, app.head_commit);
+    // Prefer the maker's chosen icon; otherwise show the app's own committed AppIcon.
+    const icon_url = media?.icon ? mediaURL(app, app.head_commit, media.icon)
+      : (await catalogIcons(app, app.head_commit)).length ? `${config.baseUrl}/api/menlo/v1/apps/${app.slug}/icon/${app.head_commit}` : null;
     return { ...app, name: media?.name ?? app.name, description: media?.description ?? app.description, subtitle: media?.subtitle ?? "",
-      website: media?.website ?? null, tokenAddress: media?.tokenAddress ?? null, githubRepo: app.github_url, menloLink: app.public_url,
+      website: media?.website ?? null, tokenAddress: media?.tokenAddress ?? null, githubRepo: app.github_url, menloLink: app.public_url, icon_url,
       ...reviewLedger.list(app, app.head_commit),
       presentation: media ? { ...media, githubRepo: app.github_url, menloLink: app.public_url } : null };
   }
@@ -225,40 +328,44 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
       headers.set("Content-Range", `bytes ${start}-${end}/${info.size}`);
       headers.set("Content-Length", String(end - start + 1));
     }
-    // Resolve a fixed public GitHub URL ourselves; never follow supplied URLs or
-    // forward a GitHub credential to an asset host.
-    const response = await remote(`https://raw.githubusercontent.com/${app.repository}/${commit}/${file}`, { redirect: "error", signal: AbortSignal.timeout(30_000) });
-    if (!response.ok) throw new HttpError(response.status === 404 ? 404 : 503, "GitHub media is temporarily unavailable");
-    const bytes = await boundedBytes(response.body, maximum);
-    verifyBlob(info, bytes);
+    const bytes = await rawFile(app.repository, commit, file, info, maximum);
     try { validateMediaBytes(file, bytes); } catch (error) { throw new HttpError(422, (error as Error).message); }
     return new Response(request.method === "HEAD" ? null : Uint8Array.from(bytes.subarray(start, end + 1)).buffer, { status: range ? 206 : 200, headers });
   }
-  async function shareImage(request: Request, slug: string) {
+  // One selected public file, verified against the pinned tree, for server-side rendering.
+  async function presentationMedia(repository: string, commit: string, file: string) {
+    const maximum = file.endsWith(".mp4") ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES;
+    const info = await fileInfo(repository, commit, file);
+    regularFile(info, maximum);
+    const bytes = await rawFile(repository, commit, file, info, maximum);
+    return { bytes, type: validateMediaBytes(file, bytes) as string };
+  }
+  /** `verified` is the just-registered app, so deploy can render its card without another identity lookup. */
+  async function shareImage(request: Request, slug: string, verified?: GitHubApp) {
     const record = requireApp(slug);
     const commit = new URL(request.url).searchParams.get("commit");
     if (commit !== null && !SHA.test(commit)) throw new HttpError(400, "Share images require a full Git commit");
     // A page without current GitHub evidence still has its registered title and description.
     // The usual URL pins the metadata and icon to the commit displayed on the page.
-    const app = commit ? await current(record) : undefined;
+    const app = commit ? verified ?? await current(record) : undefined;
     const selected = app && commit ? await presentation(app.repository, commit) : null;
-    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v2`, async () => {
+    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v3`, async () => {
       let icon, screenshot;
-      if (selected?.icon && commit) {
-        try {
-          const response = await mediaResponse(new Request(mediaURL(record, commit, selected.icon)), slug, commit, selected.icon);
-          icon = { bytes: Buffer.from(await response.arrayBuffer()), type: mediaType(selected.icon) };
-        } catch { /* A failed asset uses a labeled initial, never unverified bytes. */ }
+      if (selected?.icon && app && commit) {
+        try { icon = await presentationMedia(app.repository, commit, selected.icon); }
+        catch { /* A failed asset uses a labeled initial, never unverified bytes. */ }
       }
-      if (selected?.screenshots[0] && commit) {
-        try {
-          const file = selected.screenshots[0];
-          const response = await mediaResponse(new Request(mediaURL(record, commit, file)), slug, commit, file);
-          screenshot = { bytes: Buffer.from(await response.arrayBuffer()), type: mediaType(file) };
-        } catch { /* A missing preview must not prevent sharing the app. */ }
+      if (!icon && app && commit) {
+        try { icon = await catalogIconBytes(app, commit, 512); }
+        catch { /* No committed icon: the card uses a labeled initial. */ }
       }
-      try { return renderSocialCard({ title: selected?.name ?? record.name, description: selected?.description ?? record.description, url: `${config.baseUrl}/${slug}`, icon, screenshot }); }
-      catch { return renderSocialCard({ title: selected?.name ?? record.name, description: selected?.description ?? record.description, url: `${config.baseUrl}/${slug}` }); }
+      if (selected?.screenshots[0] && app && commit) {
+        try { screenshot = await presentationMedia(app.repository, commit, selected.screenshots[0]); }
+        catch { /* A missing preview must not prevent sharing the app. */ }
+      }
+      const card = { title: selected?.name ?? record.name, description: selected?.description || selected?.subtitle || record.description, url: `${config.baseUrl}/${slug}`, maker: record.publisher.login };
+      try { return renderSocialCard({ ...card, icon, screenshot }); }
+      catch { return renderSocialCard(card); }
     });
   }
   async function reviewRequest(request: Request, slug: string, params: URLSearchParams) {
@@ -358,6 +465,8 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     })();
     cache.clear();
     directoryCache = undefined;
+    // Render the share card now, so the first person to paste the link sees it without waiting.
+    void shareImage(new Request(`${config.baseUrl}/api/menlo/v1/apps/${slug}/og.png?commit=${commit.sha}`), slug, result).catch(() => {});
     return json({ ...result, head_commit: commit.sha, public_url: `${config.baseUrl}/${slug}` }, 201);
   }
   return {
@@ -391,6 +500,8 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
         if (reviews && ["GET", "POST"].includes(request.method)) return await reviewRequest(request, reviews[1]!, url.searchParams);
         const asset = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/media\/([a-f0-9]{40})\/(menloapp\/[A-Za-z0-9_./-]+)$/.exec(url.pathname);
         if (asset && ["GET", "HEAD"].includes(request.method)) return await mediaResponse(request, asset[1]!, asset[2]!, asset[3]!);
+        const appIcon = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/icon\/([a-f0-9]{40})$/.exec(url.pathname);
+        if (appIcon && ["GET", "HEAD"].includes(request.method)) return await iconResponse(request, appIcon[1]!, appIcon[2]!);
         const share = /^\/api\/menlo\/v1\/apps\/([a-z0-9-]+)\/og\.png$/.exec(url.pathname);
         if (share && ["GET", "HEAD"].includes(request.method)) return await shareImage(request, share[1]!);
         if (request.method !== "GET") return json({ error: "Method not allowed" }, 405);

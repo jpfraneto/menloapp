@@ -27,7 +27,7 @@ async function fixture() {
     }
     if (url.origin === "https://raw.githubusercontent.com") {
       expect(init?.headers).toBeUndefined();
-      const file = files.get(url.pathname.split("/").slice(4).join("/"));
+      const file = files.get(decodeURIComponent(url.pathname.split("/").slice(4).join("/")));
       return file ? new Response(Uint8Array.from(file).buffer) : new Response(null, { status: 404 });
     }
     expect(url.origin).toBe("https://api.github.com");
@@ -37,6 +37,9 @@ async function fixture() {
     if (url.pathname.includes("/compare/")) return Response.json({ status: state.status, ahead_by: state.ahead });
     if (url.pathname.endsWith("/commits")) return Response.json(state.commits);
     if (url.pathname.includes("/commits/")) return Response.json({ sha: state.badCommit ? next : /^[a-f0-9]{40}$/.test(url.pathname.split("/").at(-1)!) ? url.pathname.split("/").at(-1) : state.head });
+    if (url.pathname.includes("/git/trees/") && url.searchParams.get("recursive") === "1") {
+      return Response.json({ tree: [...files].map(([file, bytes]) => ({ path: file, type: "blob", mode: state.fileMode, size: bytes.length, sha: hash(bytes) })), truncated: false });
+    }
     if (url.pathname.includes("/git/trees/")) {
       const folder = "c".repeat(40);
       const tree = url.pathname.endsWith(folder) ? [...files].map(([file, bytes]) => ({ path: file.slice(9), type: "blob", mode: state.fileMode, size: bytes.length, sha: hash(bytes) })) : files.size ? [{ path: "menloapp", type: "tree", mode: state.folderMode, sha: folder }] : [];
@@ -281,8 +284,8 @@ test("app share metadata is server-rendered and serves a real 1200 by 630 PNG to
   const page = (await f.router.render("test-app"))!;
   expect(page).toContain('<meta property="og:title" content="Committed App">');
   expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
-  expect(page).toContain(`og.png?v=2&amp;commit=${sha}`);
-  const url = `https://tohseno.com/api/menlo/v1/apps/test-app/og.png?v=2&commit=${sha}`;
+  expect(page).toContain(`og.png?v=3&amp;commit=${sha}`);
+  const url = `https://tohseno.com/api/menlo/v1/apps/test-app/og.png?v=3&commit=${sha}`;
   const image = (await f.router.fetch(new Request(url, { headers: { "User-Agent": "Twitterbot/1.0" } })))!;
   expect(image.status).toBe(200);
   expect(image.headers.get("content-type")).toBe("image/png");
@@ -436,4 +439,79 @@ test("a selected custom share image overrides the generated card and is served o
   const image = (await f.router.fetch(new Request(imageURL)))!;
   expect(image.status).toBe(200);
   expect(Buffer.from(await image.arrayBuffer())).toEqual(png);
+});
+
+function addCatalog(files: Map<string, Buffer>, folder: string, icon = png) {
+  files.set(`${folder}/AppIcon.appiconset/Contents.json`, Buffer.from(JSON.stringify({ images: [
+    { filename: "Icon-60@3x.png", idiom: "iphone", scale: "3x", size: "60x60" },
+    { filename: "Icon-1024.png", idiom: "ios-marketing", scale: "1x", size: "1024x1024" },
+    { filename: "Dark.png", idiom: "universal", platform: "ios", size: "1024x1024", appearances: [{ appearance: "luminosity", value: "dark" }] },
+  ] })));
+  files.set(`${folder}/AppIcon.appiconset/Icon-60@3x.png`, icon);
+  files.set(`${folder}/AppIcon.appiconset/Icon-1024.png`, icon);
+  files.set(`${folder}/AppIcon.appiconset/Dark.png`, Buffer.from("not the recognizable icon"));
+}
+
+test("apps without a chosen icon show their committed Xcode AppIcon on the page, feed and share card", async () => {
+  const f = await fixture();
+  addCatalog(f.files, "App/Assets.xcassets");
+  addCatalog(f.files, "Pods/Vendor/Assets.xcassets", Buffer.from("dependency icon"));
+  await f.request("POST", "apps", metadata);
+  const iconURL = `https://tohseno.com/api/menlo/v1/apps/test-app/icon/${sha}`;
+  const page = (await f.router.render("test-app"))!;
+  expect(page).toContain(`src="${iconURL}"`);
+  expect(page).not.toContain("ml-icon-placeholder");
+  expect((await f.router.renderIndex())).toContain(`src="${iconURL}"`);
+  expect((await (await f.request("GET", "apps/test-app"))!.json()).icon_url).toBe(iconURL);
+  const icon = (await f.router.fetch(new Request(iconURL)))!;
+  expect(icon.status).toBe(200);
+  expect(icon.headers.get("content-type")).toBe("image/png");
+  expect(icon.headers.get("cache-control")).toContain("immutable");
+  expect(Buffer.from(await icon.arrayBuffer())).toEqual(png);
+  const card = (await f.request("GET", `apps/test-app/og.png?v=3&commit=${sha}`))!;
+  expect(card.status).toBe(200);
+  // Altered bytes never reach a page or card.
+  f.files.set("App/Assets.xcassets/AppIcon.appiconset/Icon-60@3x.png", Buffer.from("changed"));
+  expect((await f.router.fetch(new Request(iconURL)))!.status).toBe(502);
+  // A committed file that is not really an image is refused too.
+  f.restart();
+  expect((await f.router.fetch(new Request(iconURL)))!.status).toBe(422);
+});
+
+test("several app icon sets give no guessed icon unless the scheme names one", async () => {
+  const f = await fixture();
+  addCatalog(f.files, "Widget/Assets.xcassets");
+  addCatalog(f.files, "Other/Assets.xcassets");
+  await f.request("POST", "apps", metadata);
+  expect((await f.router.render("test-app"))!).toContain("ml-icon-placeholder");
+  expect((await f.router.fetch(new Request(`https://tohseno.com/api/menlo/v1/apps/test-app/icon/${sha}`)))!.status).toBe(404);
+  addCatalog(f.files, "App/Assets.xcassets");
+  f.restart();
+  expect((await f.router.render("test-app"))!).toContain(`/icon/${sha}`);
+});
+
+test("a nested project only uses icon sets inside its own folder", async () => {
+  const f = await fixture();
+  addCatalog(f.files, "apps/ios/App/Assets.xcassets");
+  addCatalog(f.files, "apps/legacy/ios/Old/Assets.xcassets", Buffer.from("legacy icon"));
+  await f.request("POST", "apps", { ...metadata, project: "apps/ios/App.xcodeproj" });
+  const icon = (await f.router.fetch(new Request(`https://tohseno.com/api/menlo/v1/apps/test-app/icon/${sha}`)))!;
+  expect(icon.status).toBe(200);
+  expect(Buffer.from(await icon.arrayBuffer())).toEqual(png);
+});
+
+test("a GitHub outage or rate limit keeps serving the last verified app page", async () => {
+  const f = await fixture(); addPresentation(f.files);
+  await f.request("POST", "apps", metadata);
+  expect((await f.router.render("test-app"))!).toContain("Get Committed App on your iPhone");
+  const realNow = Date.now;
+  try {
+    Date.now = () => realNow() + 5 * 60_000; // past the one-minute freshness window
+    f.state.fail = true;
+    const page = (await f.router.render("test-app"))!;
+    expect(page).toContain("Get Committed App on your iPhone");
+    expect(page).not.toContain("Installation is paused");
+    Date.now = () => realNow() + 7 * 60 * 60_000; // past the stale allowance
+    expect((await f.router.render("test-app"))!).toContain("Installation is paused");
+  } finally { Date.now = realNow; }
 });

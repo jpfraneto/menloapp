@@ -27,6 +27,8 @@ export interface AppListing extends GitHubApp {
   version_pinned?: boolean;
   count?: number;
   reviews?: GitHubSourceReview[];
+  /** The maker's chosen icon, or else the app's committed Xcode AppIcon. */
+  icon_url?: string | null;
   presentation: {
     icon: string | null;
     ogImage: string | null;
@@ -54,8 +56,9 @@ function asset(baseUrl: string, app: GitHubApp, commit: string, path: string) {
 }
 function icon(baseUrl: string, record: GitHubApp, app: AppListing | undefined, size: number) {
   const name = app?.name ?? record.name;
-  return app?.presentation?.icon
-    ? `<img class="ml-app-icon" src="${asset(baseUrl, record, app.head_commit, app.presentation.icon)}" width="${size}" height="${size}" alt="${escape(name)} app icon" loading="lazy">`
+  const source = app?.icon_url ?? (app?.presentation?.icon ? `${baseUrl}/api/menlo/v1/apps/${record.slug}/media/${app.head_commit}/${app.presentation.icon}` : null);
+  return source
+    ? `<img class="ml-app-icon" src="${escape(source)}" width="${size}" height="${size}" alt="${escape(name)} app icon" loading="lazy">`
     : `<span class="ml-app-icon ml-icon-placeholder" role="img" aria-label="${escape(name)} app icon placeholder">${escape(Array.from(name.trim())[0]?.toUpperCase() || "M")}</span>`;
 }
 // Makers do not choose a color; each app name always maps to the same one.
@@ -133,7 +136,7 @@ ${frames.length ? `<section class="ml-tile ml-tile-shelf ${tint(name)}" aria-lab
 ${app ? `<div class="ml-save-app"><button class="ml-button ml-button-secondary ml-pill" type="button" data-save-app="${escape(versionURL(baseUrl, app))}" data-app-name="${escape(name)}" hidden>Save app</button><a class="ml-text-link" href="/library">Saved apps →</a><p class="ml-small" data-save-status role="status" aria-live="polite"></p></div>` : ""}
 <dl class="ml-rows">${from}${app ? sourceReviews(baseUrl, record, app) : ""}${website}${token}</dl>
 </main>`, { title: name, description, url: canonical,
-    image: media?.ogImage ? `${baseUrl}/api/menlo/v1/apps/${record.slug}/media/${app!.head_commit}/${media.ogImage}` : `${baseUrl}/api/menlo/v1/apps/${record.slug}/og.png?v=2${app ? `&commit=${app.head_commit}` : ""}`,
+    image: media?.ogImage ? `${baseUrl}/api/menlo/v1/apps/${record.slug}/media/${app!.head_commit}/${media.ogImage}` : `${baseUrl}/api/menlo/v1/apps/${record.slug}/og.png?v=3${app ? `&commit=${app.head_commit}` : ""}`,
     imageType: media?.ogImage ? mediaType(media.ogImage) : "image/png", generated: !media?.ogImage });
 }
 export function renderAppDirectory(baseUrl: string, directory: AppDirectory, now = Date.now()) {
