@@ -49,43 +49,65 @@ test("plain output keeps every line when not in a terminal", async () => {
   assert.equal(output.written.join(""), "Downloading… 10 seconds elapsed. Keep this Terminal open.\n");
 });
 
-test("Enter retries the install in the same session until it lands", async () => {
-  const outcomes = [WAITING, WAITING, INSTALLED];
-  const runs = [];
-  const questions = [];
-  const status = await tryApp(["github", "install", "fatline"], {
-    run: async args => { runs.push(args); return { status: 0, text: outcomes.shift() }; },
-    ask: async question => { questions.push(question); return ""; },
-    log: () => {},
-    interactive: true,
-  });
+const COMMIT = "e6031efe923dcff9ccc61c7df34ac713ec19dcf8";
+const ARGS = ["github", "install", "fatline"];
+const fetcher = async () => ({ ok: true, json: async () => ({ head_commit: COMMIT }) });
+const record = (status, extra = {}) => ({ display_name: "Fatline", source_path: os.tmpdir(), github_origin: { slug: "fatline", commit: COMMIT }, network_delivery: { status, artifact_path: os.tmpdir() }, installations: [], ...extra });
+const quiet = { log: () => {}, output: sink(false), pause: async () => {}, fetcher };
+
+test("an exact commit already built and signed goes straight to the iPhone", async () => {
+  const states = [record("ready_for_iphone"), record("ready_for_iphone"), record("ready_for_iphone"), record("installed")];
+  const logs = [];
+  let runs = 0;
+  const output = sink(false);
+  const status = await tryApp(ARGS, { ...quiet, output, log: value => logs.push(value), read: async () => states.length > 1 ? states.shift() : states[0], run: async () => { runs++; return { status: 0, text: "" }; }, ask: async () => "", interactive: true });
   assert.equal(status, 0);
-  assert.equal(runs.length, 3);
-  assert.equal(questions.length, 2);
+  assert.equal(runs, 0);
+  assert.match(logs[0], /Fatline e6031ef is already built and signed on this Mac/);
+  assert.match(output.written.join(""), /Installed on your iPhone/);
+});
+
+test("after a build waits for the iPhone, Enter watches the install instead of rebuilding", async () => {
+  const states = [record("verified_source"), record("ready_for_iphone"), record("installed")];
+  let runs = 0;
+  const questions = [];
+  const status = await tryApp(ARGS, { ...quiet, read: async () => states.shift() ?? record("installed"), run: async () => { runs++; return { status: 0, text: WAITING }; }, ask: async question => { questions.push(question); return ""; }, interactive: true });
+  assert.equal(status, 0);
+  assert.equal(runs, 1);
+  assert.equal(questions.length, 1);
   assert.match(questions[0], /Press Enter to install now, or type \/notnow/);
+});
+
+test("an unreachable iPhone asks again", async () => {
+  let questions = 0;
+  const status = await tryApp(ARGS, { ...quiet, watchSeconds: 4, read: async () => record("ready_for_iphone"), run: async () => ({ status: 0, text: "" }), ask: async () => (++questions === 1 ? "" : "/notnow"), interactive: true });
+  assert.equal(status, 0);
+  assert.equal(questions, 2);
 });
 
 test("/notnow leaves the signed build for later", async () => {
   const logs = [];
+  const status = await tryApp(ARGS, { ...quiet, log: value => logs.push(value), read: async () => record("ready_for_iphone"), run: async () => ({ status: 0, text: "" }), ask: async () => "/notnow", interactive: true });
+  assert.equal(status, 0);
+  assert.match(logs.at(-1), /installs the next time your iPhone is unlocked and reachable/);
+});
+
+test("a downloaded commit says it is building, not downloading", async () => {
+  let rename;
+  await tryApp(ARGS, { ...quiet, read: async () => record("verified_source"), run: async (args, options) => { rename = options.rename; return { status: 0, text: INSTALLED }; }, ask: async () => "", interactive: true });
+  assert.equal(rename("Downloading the selected GitHub commit, then building for your iPhone… 10 seconds elapsed. Keep this Terminal open."), "Building Fatline e6031ef for your iPhone (source already downloaded)… 10 seconds elapsed. Keep this Terminal open.");
+});
+
+test("a new commit still downloads and builds", async () => {
   let runs = 0;
-  const status = await tryApp([], {
-    run: async () => { runs++; return { status: 0, text: WAITING }; },
-    ask: async () => "/notnow",
-    log: value => logs.push(value),
-    interactive: true,
-  });
+  const status = await tryApp(ARGS, { ...quiet, read: async () => ({ ...record("ready_for_iphone"), github_origin: { slug: "fatline", commit: "a".repeat(40) } }), run: async () => { runs++; return { status: 0, text: INSTALLED }; }, ask: async () => "", interactive: true });
   assert.equal(status, 0);
   assert.equal(runs, 1);
-  assert.match(logs[0], /installs the next time your iPhone is unlocked and reachable/);
 });
 
 test("without a terminal it does not wait for input", async () => {
   let asked = false;
-  const status = await tryApp([], {
-    run: async () => ({ status: 0, text: WAITING }),
-    ask: async () => { asked = true; return ""; },
-    interactive: false,
-  });
+  const status = await tryApp(ARGS, { ...quiet, read: async () => null, run: async () => ({ status: 0, text: WAITING }), ask: async () => { asked = true; return ""; }, interactive: false });
   assert.equal(status, 0);
   assert.equal(asked, false);
 });

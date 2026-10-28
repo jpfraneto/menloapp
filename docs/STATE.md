@@ -58,8 +58,13 @@ Fatline had one in-repo symlink (`skills/fatline-setup/SKILL.md`). Fatline
 native runtime: no progress beyond an elapsed counter, any symlink is refused,
 and the Mac app does not show this error. CLI 1.7.1 (not yet on npm; installed
 locally on the owner's Mac) keeps `try` in the same session: one live timer, and
-when the build waits for the iPhone, Enter retries and `/notnow` leaves the
-saved build for the service's automatic retry.
+when the build waits for the iPhone, Enter watches the service install the
+saved build (it retries every two seconds) and `/notnow` leaves it for later.
+A rerun of the same commit no longer rebuilds when that commit is already built
+and signed, and says "building (source already downloaded)" instead of
+"Downloading" when only the source is saved. The native runtime still re-adopts
+and rebuilds on every `github install`, resetting a saved ready build; a rerun
+interrupted with Ctrl-C (observed) leaves the record at `verified_source`.
 The interactive folder-to-GitHub path still has only test evidence (real pushes
 into a local bare repository). No recipient has installed a GitHub-distributed
 app from a link on a physical iPhone as part of this work.
