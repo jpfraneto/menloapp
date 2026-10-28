@@ -34,6 +34,15 @@ npm and configured `GITHUB_READ_TOKEN`; Railway deployment
 (`jpfraneto/fatline`, `apps/ios/Fatline.xcodeproj`) is live at
 `https://menloapp.lol/fatline`, deployed non-interactively from a clean clone;
 deploy committed `menloapp/` with its copied AppIcon, and the live card shows it.
+Fatline's page now has an 18-second Simulator preview of source `83407c9`
+(feed, Fatlines constellation, profile), three screenshots and an iPhone-focused
+description, committed to `menloapp/` as `6c3daf5`. Three automatic
+`deploy --record` runs failed while Fatline loaded 2,257 followed accounts
+(a stuck `axe` tap, a Codex run that returned no action, then a stuck Simulator
+screenshot), so this capture was driven manually with the same tools. The
+recorder now keeps already-recorded clips when a tap stalls and retries one
+missing Codex answer; the stalled-screenshot case is not yet handled. Share
+cards now prefer the subtitle over the long description.
 The interactive folder-to-GitHub path still has only test evidence (real pushes
 into a local bare repository). No recipient has installed a GitHub-distributed
 app from a link on a physical iPhone as part of this work.

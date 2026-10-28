@@ -284,8 +284,8 @@ test("app share metadata is server-rendered and serves a real 1200 by 630 PNG to
   const page = (await f.router.render("test-app"))!;
   expect(page).toContain('<meta property="og:title" content="Committed App">');
   expect(page).toContain('<meta name="twitter:card" content="summary_large_image">');
-  expect(page).toContain(`og.png?v=3&amp;commit=${sha}`);
-  const url = `https://tohseno.com/api/menlo/v1/apps/test-app/og.png?v=3&commit=${sha}`;
+  expect(page).toContain(`og.png?v=4&amp;commit=${sha}`);
+  const url = `https://tohseno.com/api/menlo/v1/apps/test-app/og.png?v=4&commit=${sha}`;
   const image = (await f.router.fetch(new Request(url, { headers: { "User-Agent": "Twitterbot/1.0" } })))!;
   expect(image.status).toBe(200);
   expect(image.headers.get("content-type")).toBe("image/png");
@@ -468,7 +468,7 @@ test("apps without a chosen icon show their committed Xcode AppIcon on the page,
   expect(icon.headers.get("content-type")).toBe("image/png");
   expect(icon.headers.get("cache-control")).toContain("immutable");
   expect(Buffer.from(await icon.arrayBuffer())).toEqual(png);
-  const card = (await f.request("GET", `apps/test-app/og.png?v=3&commit=${sha}`))!;
+  const card = (await f.request("GET", `apps/test-app/og.png?v=4&commit=${sha}`))!;
   expect(card.status).toBe(200);
   // Altered bytes never reach a page or card.
   f.files.set("App/Assets.xcassets/AppIcon.appiconset/Icon-60@3x.png", Buffer.from("changed"));

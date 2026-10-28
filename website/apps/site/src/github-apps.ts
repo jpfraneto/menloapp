@@ -349,7 +349,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
     // The usual URL pins the metadata and icon to the commit displayed on the page.
     const app = commit ? verified ?? await current(record) : undefined;
     const selected = app && commit ? await presentation(app.repository, commit) : null;
-    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v3`, async () => {
+    return socialCardResponse(request, `github:${config.baseUrl}:${record.id}:${commit ?? record.updated_at}:v4`, async () => {
       let icon, screenshot;
       if (selected?.icon && app && commit) {
         try { icon = await presentationMedia(app.repository, commit, selected.icon); }
@@ -363,7 +363,7 @@ export function createGitHubApps(config: GitHubAppsConfig, options: {
         try { screenshot = await presentationMedia(app.repository, commit, selected.screenshots[0]); }
         catch { /* A missing preview must not prevent sharing the app. */ }
       }
-      const card = { title: selected?.name ?? record.name, description: selected?.description || selected?.subtitle || record.description, url: `${config.baseUrl}/${slug}`, maker: record.publisher.login };
+      const card = { title: selected?.name ?? record.name, description: selected?.subtitle || selected?.description || record.description, url: `${config.baseUrl}/${slug}`, maker: record.publisher.login };
       try { return renderSocialCard({ ...card, icon, screenshot }); }
       catch { return renderSocialCard(card); }
     });

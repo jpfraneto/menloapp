@@ -136,7 +136,7 @@ ${frames.length ? `<section class="ml-tile ml-tile-shelf ${tint(name)}" aria-lab
 ${app ? `<div class="ml-save-app"><button class="ml-button ml-button-secondary ml-pill" type="button" data-save-app="${escape(versionURL(baseUrl, app))}" data-app-name="${escape(name)}" hidden>Save app</button><a class="ml-text-link" href="/library">Saved apps →</a><p class="ml-small" data-save-status role="status" aria-live="polite"></p></div>` : ""}
 <dl class="ml-rows">${from}${app ? sourceReviews(baseUrl, record, app) : ""}${website}${token}</dl>
 </main>`, { title: name, description, url: canonical,
-    image: media?.ogImage ? `${baseUrl}/api/menlo/v1/apps/${record.slug}/media/${app!.head_commit}/${media.ogImage}` : `${baseUrl}/api/menlo/v1/apps/${record.slug}/og.png?v=3${app ? `&commit=${app.head_commit}` : ""}`,
+    image: media?.ogImage ? `${baseUrl}/api/menlo/v1/apps/${record.slug}/media/${app!.head_commit}/${media.ogImage}` : `${baseUrl}/api/menlo/v1/apps/${record.slug}/og.png?v=4${app ? `&commit=${app.head_commit}` : ""}`,
     imageType: media?.ogImage ? mediaType(media.ogImage) : "image/png", generated: !media?.ogImage });
 }
 export function renderAppDirectory(baseUrl: string, directory: AppDirectory, now = Date.now()) {

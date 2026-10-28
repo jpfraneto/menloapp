@@ -92,7 +92,7 @@ export async function recordExperience(root, project, options, ui) {
       const movie = path.join(temporary, `clip-${step}.mp4`);
       const duration = Math.min(stepSeconds, maximumSeconds - step * stepSeconds);
       if (duration <= 0) break;
-      await recordClip(device.udid, movie, duration, () => {
+      const { actionError } = await recordClip(device.udid, movie, duration, () => {
         const args = actionArguments(action, device.udid, bounds);
         if (args) execFileSync("axe", args, { timeout: 15_000, stdio: "ignore" });
       });
@@ -106,6 +106,8 @@ export async function recordExperience(root, project, options, ui) {
       captures.push(after);
       history.push({ action: action.action, label: action.label, reason: action.reason, priorUI: hierarchy.slice(0, 4000) });
       if (action.action === "done") break;
+      // A stuck tap ends the tour; the clips already recorded are still a good preview.
+      if (actionError) { ui.log(`Preview: the Simulator stopped responding to taps (${actionError.message}). Keeping the ${clips.length} recorded ${clips.length === 1 ? "clip" : "clips"}.`); break; }
     }
     if (!clips.length) throw new Error("The app could not be safely previewed automatically. Add a preview after preparing a demo screen, or deploy with --no-preview.");
     const movie = path.join(temporary, "preview.mp4");
@@ -154,7 +156,7 @@ export async function recordExperience(root, project, options, ui) {
 async function recordClip(udid, movie, seconds, action) {
   await new Promise((resolve, reject) => {
     const child = spawn("xcrun", ["simctl", "io", udid, "recordVideo", "--codec=h264", movie], { stdio: ["ignore", "ignore", "pipe"] });
-    let timer, started = false, failure, diagnostic = "";
+    let timer, started = false, failure, actionError, diagnostic = "";
     const cancel = () => { failure = new Error("Preview cancelled."); child.kill("SIGINT"); };
     process.once("SIGINT", cancel);
     const deadline = setTimeout(() => { failure = new Error("Preview capture timed out."); child.kill("SIGKILL"); }, (seconds + 30) * 1000);
@@ -162,12 +164,12 @@ async function recordClip(udid, movie, seconds, action) {
       diagnostic = (diagnostic + chunk.toString()).slice(-1024);
       if (!started && diagnostic.includes("Recording started")) {
         started = true;
-        setTimeout(() => { try { action(); } catch (error) { failure = error; child.kill("SIGINT"); } }, 400);
+        setTimeout(() => { try { action(); } catch (error) { actionError = error; } }, 400);
         timer = setTimeout(() => child.kill("SIGINT"), seconds * 1000);
       }
     });
     const cleanup = () => { clearTimeout(timer); clearTimeout(deadline); process.removeListener("SIGINT", cancel); };
     child.once("error", error => { cleanup(); reject(error); });
-    child.once("exit", code => { cleanup(); !failure && started && code === 0 ? resolve() : reject(failure || new Error("Preview recording did not finish.")); });
+    child.once("exit", code => { cleanup(); !failure && started && code === 0 ? resolve({ actionError }) : reject(failure || new Error("Preview recording did not finish.")); });
   });
 }
