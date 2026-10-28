@@ -73,6 +73,14 @@ seconds (installed and verified 20:29:34 UTC, observed in the service record).
 `try` now opens that connection for the intended iPhone only (matched by its
 cable-genesis digest) before watching the install. The native service should
 do the same.
+The Mac app showed imported GitHub apps (Fatline, Logos, Anky) with the
+runtime's placeholder icon and "Preview not available yet", and kept "Continue
+installing fatline" because it only cleared that link for the exact linked
+commit. `e2e68ec` makes the Mac UI load a GitHub app's icon and first
+screenshot from its menloapp.lol listing and clear the link once any version of
+that repository is installed. Mac tests pass; it runs on the owner's Mac only
+as a `scripts/dev-macos.sh` "Menlo Local" preview over the unchanged signed
+factory until the next Mac release.
 The interactive folder-to-GitHub path still has only test evidence (real pushes
 into a local bare repository). No recipient has installed a GitHub-distributed
 app from a link on a physical iPhone as part of this work.
