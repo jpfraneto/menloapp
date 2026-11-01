@@ -247,8 +247,18 @@ pub async fn verify_checkout(root: &Path, commit: &str) -> Result<String, BoxErr
     let mut entries = Vec::new();
     for record in listing.split('\0').filter(|value| !value.is_empty()) {
         let (metadata, name) = record.split_once('\t').ok_or("Invalid Git source entry")?;
+        if metadata.starts_with("160000 commit ") {
+            // Submodules are never fetched; Git leaves an empty folder, so they add no source.
+            let path = root.join(name);
+            if !std::fs::symlink_metadata(&path)?.is_dir()
+                || std::fs::read_dir(&path)?.next().is_some()
+            {
+                return Err("The GitHub checkout contains an indirect source path".into());
+            }
+            continue;
+        }
         if !metadata.starts_with("100644 blob ") && !metadata.starts_with("100755 blob ") {
-            return Err("This repository uses symbolic links or submodules. Resolve them into ordinary source before sharing through MENLO.".into());
+            return Err("This repository uses symbolic links. Replace them with ordinary files before sharing through MENLO.".into());
         }
         let path = root.join(name);
         if !std::fs::symlink_metadata(&path)?.is_file()
@@ -334,11 +344,9 @@ pub async fn install(
         .await?;
         // Inspect Git objects before checkout can materialize any symlinks.
         let entries = git(temp.path(), &["ls-tree", "-r", &request.commit]).await?;
-        if entries
-            .lines()
-            .any(|line| line.starts_with("120000 ") || line.starts_with("160000 "))
-        {
-            return Err("Symbolic links and submodules need manual source review before MENLO can import this app.".into());
+        // Submodules stay unfetched (empty folders); symbolic links could point outside.
+        if entries.lines().any(|line| line.starts_with("120000 ")) {
+            return Err("Symbolic links need manual source review before MENLO can import this app. Replace them with ordinary files.".into());
         }
         git(temp.path(), &["checkout", "--detach", &request.commit]).await?;
         verify_checkout(temp.path(), &request.commit).await?;
@@ -468,7 +476,14 @@ pub async fn receive(
         bus,
     )
     .await
-    .map_err(|e| e.to_string())?;
+    .map_err(|e| {
+        let message = e.to_string();
+        if message.starts_with("Requires review on your Mac") {
+            format!("{message}\nTo build it, run: menloapp try https://menloapp.lol/{} --approve-mac-review", request.slug)
+        } else {
+            message
+        }
+    })?;
     let status = project
         .network_delivery
         .as_ref()
@@ -831,6 +846,25 @@ mod tests {
             .unwrap_err()
             .to_string()
             .contains("symbolic links"));
+        std::fs::remove_file(root.path().join("link")).unwrap();
+        run(&["rm", "-q", "--cached", "link"]);
+        run(&[
+            "update-index",
+            "--add",
+            "--cacheinfo",
+            &format!("160000,{commit},lib/dependency"),
+        ]);
+        run(&["commit", "-qm", "Submodule"]);
+        let submodule_commit = run(&["rev-parse", "HEAD"]);
+        // Checkout leaves an unfetched submodule as an empty folder; it adds no source.
+        std::fs::create_dir_all(root.path().join("lib/dependency")).unwrap();
+        verify_checkout(root.path(), &submodule_commit)
+            .await
+            .unwrap();
+        std::fs::write(root.path().join("lib/dependency/extra.swift"), "x").unwrap();
+        assert!(verify_checkout(root.path(), &submodule_commit)
+            .await
+            .is_err());
     }
 
     #[test]

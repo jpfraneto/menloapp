@@ -1,8 +1,37 @@
 # State of this repository
 
-Written 2026-07-30, amended through 2026-10-28. This is the plain-language
+Written 2026-07-30, amended through 2026-11-01. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
+
+## Makers can install their own apps with extensions (November 1)
+
+Anky (`jpfraneto/anky-seed`) could not travel the GitHub path for two reasons.
+First, every GitHub build overrode `PRODUCT_BUNDLE_IDENTIFIER` for all targets
+with `app.menlo.github.r<repository id>`. A real build of public commit
+`7ba3d33` with those exact flags failed: the profile lacked App Groups and
+Family Controls for the app and all four extensions. Now, when the Mac's
+signing team equals the project's committed `DEVELOPMENT_TEAM`, Menlo builds
+the committed identifiers unchanged. That team owns them. Every other
+recipient keeps the Menlo identifier. On the maker's own phone, the build
+replaces an App Store install of the same bundle ID; the app's data stays.
+The same commit and flags without the override built and signed in 1m38s
+(team 84V63LKV45): `com.jpfraneto.Anky` plus four `.appex` targets, and
+`codesign --verify --deep --strict` passed. Other recipients' builds of apps
+with extensions, App Groups or App Clips remain unsupported. Fixing those
+needs per-target identifier mapping.
+
+Second, any submodule refused the whole repository. Anky has
+`smart_contracts/lib/forge-std`. Submodules are now left unfetched: checkout
+leaves an empty folder, the source digest covers only the real files, and a
+non-empty folder at a submodule path is refused. Symbolic links are still
+refused. A Mac-review stop now tells the terminal user the exact
+`menloapp try … --approve-mac-review` rerun.
+
+This is source and local-build evidence only. The installed native runtime is
+still signed 1.3.0, so `menloapp try` on this Mac keeps the old behavior until
+a new runtime is released and activated. No Anky install through Menlo has
+been observed.
 
 ## Deploy from any app folder, real icons on share cards (October 28)
 

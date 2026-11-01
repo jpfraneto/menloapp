@@ -645,6 +645,15 @@ impl LivingProjectService {
             _ => {}
         }
         let team = tohseno_engine::gates::sign::development_team_profile()?;
+        // A maker whose Apple team owns the committed bundle identifiers builds
+        // them unchanged, so apps with extensions, App Groups or an App Clip keep
+        // working. Everyone else gets a Menlo identifier that cannot collide.
+        let keeps_project_identity = keeps_project_bundle_identity(&project, &team.team_id);
+        let local_bundle = if keeps_project_identity {
+            project.bundle_identifier.clone()
+        } else {
+            local_bundle
+        };
         let delivery_root = self.project_data_directory(project_id)?.join(format!(
             "network-release-{}",
             release_identity.trim_start_matches("0x")
@@ -669,8 +678,12 @@ impl LivingProjectService {
             OsString::from("ENABLE_USER_SCRIPT_SANDBOXING=YES"),
             OsString::from("CODE_SIGN_STYLE=Automatic"),
             OsString::from(format!("DEVELOPMENT_TEAM={}", team.team_id)),
-            OsString::from(format!("PRODUCT_BUNDLE_IDENTIFIER={local_bundle}")),
         ]);
+        if !keeps_project_identity {
+            arguments.push(OsString::from(format!(
+                "PRODUCT_BUNDLE_IDENTIFIER={local_bundle}"
+            )));
+        }
         arguments.push(build);
         if let Some(delivery) = &mut project.network_delivery {
             delivery.status = "building".into();
@@ -971,6 +984,7 @@ impl LivingProjectService {
                 existing.source_path = source_root.display().to_string();
                 existing.scheme = scheme.clone();
                 existing.bundle_identifier = bundle_identifier.clone();
+                existing.signing_team = nonempty_setting(&settings, "DEVELOPMENT_TEAM");
                 existing.wrapper_name = nonempty_setting(&settings, "WRAPPER_NAME")
                     .ok_or("Xcode application wrapper is missing")?;
                 existing.github_origin = Some(origin.clone());
@@ -3880,6 +3894,10 @@ fn ensure_private_directory(path: &Path) -> Result<(), BoxError> {
     Ok(())
 }
 
+fn keeps_project_bundle_identity(project: &LivingProjectRecord, signing_team_id: &str) -> bool {
+    project.github_origin.is_some() && project.signing_team.as_deref() == Some(signing_team_id)
+}
+
 fn github_delivery(origin: &crate::github_commands::GitHubOrigin) -> NetworkDeliveryState {
     NetworkDeliveryState {
         release_digest: origin.source_digest.clone(),
@@ -4269,6 +4287,15 @@ mod tests {
             assert_eq!(retained.installed_commit, Some("a".repeat(40)));
             assert_eq!(retained.local_bundle_identifier(), bundle);
         }
+        github.signing_team = Some("AB12CD34EF".into());
+        assert!(keeps_project_bundle_identity(&github, "AB12CD34EF"));
+        assert!(!keeps_project_bundle_identity(&github, "ZZ99YY88XX"));
+        github.signing_team = None;
+        assert!(!keeps_project_bundle_identity(&github, "AB12CD34EF"));
+        let mut not_github = github.clone();
+        not_github.github_origin = None;
+        not_github.signing_team = Some("AB12CD34EF".into());
+        assert!(!keeps_project_bundle_identity(&not_github, "AB12CD34EF"));
 
         let parent_shot = format!("0x{}", "22".repeat(32));
         let parent_release = format!("0x{}", "33".repeat(32));
