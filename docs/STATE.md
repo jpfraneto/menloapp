@@ -42,6 +42,14 @@ Release evidence:
   `41d8e0a8-b3e5-4298-807f-be47849ad496` was Accepted and the ticket was
   stapled. Gatekeeper reports "Notarized Developer ID". The bundled runtime is
   universal 1.3.1.
+- The owner published `menloapp@1.8.0` to npm on November 2 (now `latest`,
+  shasum `22e36d62…798e`, identical to the tested tarball). On the owner's
+  Mac, `npm i -g menloapp@1.8.0` followed by `menloapp list --help` printed
+  "Updating the MENLO runtime to 1.3.1…". The runtime moved from 1.3.0 to
+  `releases/1.3.1-aarch64-apple-darwin-d93032fbabff`, and the LaunchAgent
+  service restarted on the 1.3.1 binary and reported healthy. A first
+  `npm i` right after publishing hit npm's stale package list; adding
+  `--prefer-online` worked.
 - The DMG is in prerelease `mac-v1.3.1-rc.1`: 54,477,056 bytes, SHA-256
   `476ee652…a9d0`. The origin download matched.
 - The release-candidate pin moved to it (Railway `f3f4fa11`, SUCCESS). The live API reports 1.3.1-rc.1 (10015), and `/download/macos` returns the exact pinned bytes.
