@@ -4,6 +4,32 @@ Written 2026-07-30, amended through 2026-11-01. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Getting an app says plainly that the code is copied (November 2)
+
+The owner's direction: recipients should never need Terminal, and Menlo must
+say clearly that it copies the app's code onto the person's Mac so they can
+run it on their iPhone.
+
+- App pages (commit `cdb806f`, Railway `058d68e5`) no longer offer "Use
+  Terminal instead". The Get app sheet says Menlo copies the app's code from
+  its GitHub repository onto the Mac, builds the person's own copy with Xcode
+  under their Apple account, and installs it on their iPhone. Live on
+  `menloapp.lol/hello-menlo`. The reviewer's Terminal option remains.
+- The Mac Get sheet lists the same three steps and shows the folder of the
+  copy (`~/Developer/Menlo/<slug>-<repository id>/<commit>`). When an app
+  needs review, the reasons are a list and "Show copy in Finder" opens the
+  already-copied code.
+- Mac 1.3.1-rc.2 (10016) was built from a clean clone of `b550962`. Notary
+  submission `cd72e8ac-378b-4b59-a983-399e69d9198f` was Accepted and stapled.
+  Gatekeeper reports "Notarized Developer ID", and the bundled runtime is
+  universal 1.3.1. DMG in prerelease `mac-v1.3.1-rc.2`: 54,522,550 bytes,
+  SHA-256 `6185c3c7…6760`; the origin download matched. The release-candidate
+  pin moved to it (Railway `17163ca1`, SUCCESS); `/api/distribution/v1/macos`
+  and `/download/macos` serve it on both domains.
+
+The new sheet was checked as a rendered image in tests, not yet in a real
+person's hands.
+
 ## Menlo 1.3.1: seamless try and runtime updates (November 1)
 
 Source `84551d0` ships what the Anky attempt taught:
