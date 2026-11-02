@@ -654,6 +654,18 @@ impl LivingProjectService {
         } else {
             local_bundle
         };
+        if let Some(blocker) = other_team_blocker(&project, keeps_project_identity, &safety.reasons)
+        {
+            if let Some(delivery) = &mut project.network_delivery {
+                delivery.status = "failed".into();
+                delivery.failure = Some(blocker);
+                delivery.updated_at = now();
+            }
+            project.revision += 1;
+            project.updated_at = now();
+            self.replace_project(&project)?;
+            return Ok(project);
+        }
         let delivery_root = self.project_data_directory(project_id)?.join(format!(
             "network-release-{}",
             release_identity.trim_start_matches("0x")
@@ -3898,6 +3910,38 @@ fn keeps_project_bundle_identity(project: &LivingProjectRecord, signing_team_id:
     project.github_origin.is_some() && project.signing_team.as_deref() == Some(signing_team_id)
 }
 
+/// Extensions, App Groups and iCloud name identifiers owned by the maker's Apple
+/// team. Under another team's Menlo identifier Xcode cannot provision them.
+fn other_team_blocker(
+    project: &LivingProjectRecord,
+    keeps_project_identity: bool,
+    reasons: &[String],
+) -> Option<String> {
+    if keeps_project_identity || project.github_origin.is_none() {
+        return None;
+    }
+    let features: Vec<&str> = [
+        (
+            "application extension with coordinated signing",
+            "app extensions",
+        ),
+        ("App Groups entitlement", "App Groups"),
+        ("iCloud entitlement", "iCloud"),
+    ]
+    .into_iter()
+    .filter(|(reason, _)| reasons.iter().any(|value| value == reason))
+    .map(|(_, feature)| feature)
+    .collect();
+    if features.is_empty() {
+        return None;
+    }
+    Some(format!(
+        "{} uses {}, which only its maker's Apple team can sign for now. Menlo can't build it with your Apple team yet; nothing was built.",
+        project.display_name,
+        features.join(", ")
+    ))
+}
+
 fn github_delivery(origin: &crate::github_commands::GitHubOrigin) -> NetworkDeliveryState {
     NetworkDeliveryState {
         release_digest: origin.source_digest.clone(),
@@ -4296,6 +4340,16 @@ mod tests {
         not_github.github_origin = None;
         not_github.signing_team = Some("AB12CD34EF".into());
         assert!(!keeps_project_bundle_identity(&not_github, "AB12CD34EF"));
+        let reasons = vec![
+            "App Groups entitlement".to_owned(),
+            "Run Script build phase".to_owned(),
+            "application extension with coordinated signing".to_owned(),
+        ];
+        let blocker = other_team_blocker(&github, false, &reasons).unwrap();
+        assert!(blocker.contains("app extensions, App Groups"), "{blocker}");
+        assert!(other_team_blocker(&github, true, &reasons).is_none());
+        assert!(other_team_blocker(&github, false, &reasons[1..2]).is_none());
+        assert!(other_team_blocker(&not_github, false, &reasons).is_none());
 
         let parent_shot = format!("0x{}", "22".repeat(32));
         let parent_release = format!("0x{}", "33".repeat(32));

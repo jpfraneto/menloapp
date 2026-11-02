@@ -2344,6 +2344,10 @@ impl CompanionCoordinator {
         };
         let projection: PublishedWorkspaceProjection =
             tohseno_companion::canonical::from_slice(&bytes)?;
+        if projection.service_version != env!("CARGO_PKG_VERSION") {
+            // Written by another runtime version: publish a fresh full snapshot.
+            return Ok(None);
+        }
         validate_workspace_projection(&projection, record, &self.workspace.record.workspace_id)?;
         Ok(Some(projection))
     }

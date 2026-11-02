@@ -862,7 +862,7 @@ fn unix_seconds() -> Result<u64, String> {
         .map_err(|_| "system clock is before the Unix epoch".into())
 }
 
-fn parse_version(value: &str) -> Option<[u64; 3]> {
+pub(crate) fn parse_version(value: &str) -> Option<[u64; 3]> {
     fn component(value: &str) -> Option<u64> {
         if value.is_empty() || (value.len() > 1 && value.starts_with('0')) {
             return None;

@@ -3,7 +3,7 @@ import process from "node:process";
 import { spawnSync } from "node:child_process";
 import { GUIDE, HELP, parseCommand, redact, suggestedCommand, tryArguments } from "../src/cli.js";
 import { NPM_CLI_VERSION, PRODUCT_VERSION } from "../src/constants.js";
-import { delegate, installedNative } from "../src/native.js";
+import { delegate, installedNative, restartService } from "../src/native.js";
 import { installAuthorizedNative } from "../src/installer.js";
 import { openProduct, startProduct } from "../src/start.js";
 import { initPresentation } from "../src/project-presentation.js";
@@ -50,10 +50,13 @@ async function main() {
     return delegate(["doctor"]);
   }
   if (!installed) {
-    console.log("Installing the verified MENLO runtime…");
+    const previous = await installedNative();
+    console.log(previous ? `Updating the MENLO runtime to ${PRODUCT_VERSION}…` : "Installing the verified MENLO runtime…");
     await installAuthorizedNative();
     installed = await installedNative(PRODUCT_VERSION);
     if (!installed) throw new Error("the verified native release did not activate safely");
+    // The background service keeps running the old program until it restarts.
+    if (previous) restartService();
   }
   if (command.kind === "delegate" && trying && commandIndex === 0) return tryApp(command.args);
   if (command.kind === "delegate") return delegate(command.args);

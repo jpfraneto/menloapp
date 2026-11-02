@@ -19,6 +19,7 @@ import { installRoot, nativeLauncher } from "./native.js";
 
 const WAITING_FOR_PHONE = /Connect and unlock your intended iPhone to install/;
 const ELAPSED = /^(.*?) (\d+) seconds elapsed\. Keep this Terminal open\.$/;
+const NEEDS_REVIEW = /Requires review on your Mac: (.+?)\. Source: (.+?)\. Review it/;
 const DOWNLOADING = "Downloading the selected GitHub commit, then building for your iPhone…";
 const API = "https://menloapp.lol/api/menlo/v1/apps";
 
@@ -28,10 +29,10 @@ export function clock(seconds) {
 }
 
 /** Run the native command, showing its output as it arrives. Resolves { status, text }. */
-export function runNative(args, { launcher = nativeLauncher(), output = process.stdout, live = output.isTTY, rename = value => value } = {}) {
+export function runNative(args, { launcher = nativeLauncher(), output = process.stdout, errorOutput = process.stderr, live = output.isTTY, rename = value => value, holdError = () => false } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(launcher, args, { stdio: ["inherit", "pipe", "inherit"] });
-    let text = "", pending = "", timerOpen = false;
+    const child = spawn(launcher, args, { stdio: ["inherit", "pipe", "pipe"] });
+    let text = "", errors = "", pending = "", timerOpen = false;
     const line = raw => {
       text += `${raw}\n`;
       const value = rename(raw);
@@ -51,11 +52,15 @@ export function runNative(args, { launcher = nativeLauncher(), output = process.
       pending = lines.pop();
       lines.forEach(line);
     });
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", chunk => { errors += chunk; });
     child.on("error", () => reject(new Error("the installed native TOHSENO could not start")));
     child.on("close", status => {
       if (pending) line(pending);
       if (timerOpen) output.write("\n");
-      resolve({ status: status ?? 1, text });
+      // A question `try` asks itself replaces the native error text.
+      if (errors && !holdError(errors)) errorOutput.write(errors);
+      resolve({ status: status ?? 1, text, errors });
     });
   });
 }
@@ -163,7 +168,16 @@ export async function tryApp(args, {
   } else {
     const downloaded = sameCommit && await exists(saved.source_path ?? "");
     const rename = value => downloaded ? value.replace(DOWNLOADING, `Building ${saved.display_name} ${short} for your iPhone (source already downloaded)…`) : value;
-    const attempt = await run(args, { rename });
+    const canAsk = interactive && !args.includes("--approve-mac-review");
+    let attempt = await run(args, { rename, holdError: errors => canAsk && NEEDS_REVIEW.test(errors) });
+    const review = canAsk && attempt.status !== 0 && NEEDS_REVIEW.exec(attempt.errors ?? "");
+    if (review) {
+      const reasons = review[1].split("; ").map(reason => `  • ${reason}`).join("\n");
+      log(`\nThis app needs your OK before your Mac builds it:\n${reasons}\nIts source is saved at ${review[2]} if you want to look first.`);
+      const answer = (await ask(`Press Enter to build ${short ?? "this version"} on your Mac, or type /no to stop: `)).trim().toLowerCase();
+      if (["/no", "no", "n"].includes(answer)) { log("Stopped. Nothing was built."); return 0; }
+      attempt = await run([...args, "--approve-mac-review"], { rename: value => value.replace(DOWNLOADING, "Building for your iPhone (source already downloaded)…") });
+    }
     if (attempt.status !== 0 || !WAITING_FOR_PHONE.test(attempt.text)) return attempt.status;
     waiting = true;
   }

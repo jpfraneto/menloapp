@@ -30,3 +30,9 @@ export function delegate(args) {
   if (result.error) throw new Error("the installed native TOHSENO could not start");
   return result.status ?? 1;
 }
+
+/** Restart the installed background service onto the current runtime. Quiet; a missing service is fine. */
+export function restartService(launcher = nativeLauncher(), spawn = spawnSync) {
+  const result = spawn(launcher, ["service", "restart"], { stdio: "ignore", timeout: 60_000 });
+  return result.status === 0;
+}

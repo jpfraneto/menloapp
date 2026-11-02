@@ -44,6 +44,18 @@ pub fn install_bundled_core_if_present() -> Result<(), BoxError> {
     }
 
     let old_current = current_release_target(&paths.install_root)?;
+    if old_current
+        .as_deref()
+        .and_then(release_version)
+        .zip(crate::installation_commands::parse_version(env!(
+            "CARGO_PKG_VERSION"
+        )))
+        .is_some_and(|(active, bundled)| active > bundled)
+        && regular_destination_exists(&paths.launcher)?
+    {
+        // A newer runtime (for example from `menloapp`) is already active; keep it.
+        return Ok(());
+    }
     let old_launcher = old_current
         .as_deref()
         .map(|target| paths.install_root.join(target).join("bin/tohseno"))
@@ -444,6 +456,14 @@ fn publish_current(install_root: &Path, target: &str) -> Result<(), BoxError> {
     Ok(())
 }
 
+/// The version in an installed release name: `native-1.3.1-…` from the Mac app
+/// or `1.3.1-aarch64-apple-darwin-…` from npm.
+fn release_version(target: &str) -> Option<[u64; 3]> {
+    let name = target.strip_prefix("releases/")?;
+    let name = name.strip_prefix("native-").unwrap_or(name);
+    crate::installation_commands::parse_version(name.split('-').next()?)
+}
+
 fn current_release_target(install_root: &Path) -> Result<Option<String>, BoxError> {
     let current = install_root.join("current");
     match fs::symlink_metadata(&current) {
@@ -537,6 +557,24 @@ mod tests {
     use std::sync::mpsc;
     use std::thread;
     use std::time::Duration;
+
+    #[test]
+    fn release_names_carry_their_runtime_version() {
+        assert_eq!(
+            release_version("releases/native-1.3.1-b83d5a553d9505bb"),
+            Some([1, 3, 1])
+        );
+        assert_eq!(
+            release_version("releases/native-1.3.0-local-8cf53ff"),
+            Some([1, 3, 0])
+        );
+        assert_eq!(
+            release_version("releases/1.3.1-aarch64-apple-darwin-7d1480890f55"),
+            Some([1, 3, 1])
+        );
+        assert_eq!(release_version("releases/unknown"), None);
+        assert_eq!(release_version("native-1.3.1-x"), None);
+    }
 
     fn release(root: &Path, launcher: &[u8], identity: &[u8]) {
         fs::create_dir_all(root.join("bin")).unwrap();

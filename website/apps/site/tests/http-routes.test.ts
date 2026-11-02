@@ -378,6 +378,7 @@ describe("public pages", () => {
       ["/releases/native-v1.json", "application/json"],
       ["/releases/cli-v1.json", "application/json"],
       ["/releases/cli-1.3.0.json", "application/json"],
+      ["/releases/cli-1.3.1.json", "application/json"],
       ["/robots.txt", "text/plain"],
       ["/og.png", "image/png"],
       ["/og-buy.png", "image/png"],

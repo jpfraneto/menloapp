@@ -147,3 +147,51 @@ test("no intended iPhone means nothing is asked to connect", async () => {
   assert.equal(await wakeIntendedPhone(root, async () => { called = true; }), false);
   assert.equal(called, false);
 });
+
+const REVIEW_ERROR = "tohseno: Requires review on your Mac: Run Script build phase; App Groups entitlement. Source: /Users/me/Developer/Menlo/fatline-1/abc. Review it, then approve this exact commit to build.\nTo build it, run: menloapp try https://menloapp.lol/fatline --approve-mac-review (409 Conflict)\n";
+
+test("a Mac review stop asks once, then builds the same commit with approval", async () => {
+  const calls = [];
+  const logs = [];
+  const questions = [];
+  const status = await tryApp(ARGS, {
+    ...quiet, log: value => logs.push(value), read: async () => null,
+    run: async (args, options) => {
+      calls.push({ args, held: options.holdError?.(REVIEW_ERROR) });
+      return calls.length === 1 ? { status: 1, text: "", errors: REVIEW_ERROR } : { status: 0, text: INSTALLED };
+    },
+    ask: async question => { questions.push(question); return ""; }, interactive: true,
+  });
+  assert.equal(status, 0);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].held, true, "the native error text is replaced by the question");
+  assert.ok(!calls[0].args.includes("--approve-mac-review"));
+  assert.deepEqual(calls[1].args, [...ARGS, "--approve-mac-review"]);
+  assert.match(logs.join("\n"), /• Run Script build phase\n  • App Groups entitlement/);
+  assert.match(questions[0], /Press Enter to build/);
+});
+
+test("/no at the Mac review stops without building", async () => {
+  let runs = 0;
+  const status = await tryApp(ARGS, { ...quiet, read: async () => null, run: async () => { runs++; return { status: 1, text: "", errors: REVIEW_ERROR }; }, ask: async () => "/no", interactive: true });
+  assert.equal(status, 0);
+  assert.equal(runs, 1);
+});
+
+test("without a terminal a Mac review stop keeps the native message and exit code", async () => {
+  let held;
+  const status = await tryApp(ARGS, { ...quiet, read: async () => null, run: async (args, options) => { held = options.holdError?.(REVIEW_ERROR); return { status: 1, text: "", errors: REVIEW_ERROR }; }, ask: async () => "", interactive: false });
+  assert.equal(status, 1);
+  assert.equal(held, false);
+});
+
+test("native error output is forwarded unless held", async () => {
+  const launcher = await fakeNative("echo 'tohseno: broken' >&2; exit 3");
+  const errors = sink(false);
+  const result = await runNative(["x"], { launcher, output: sink(false), errorOutput: errors });
+  assert.equal(result.status, 3);
+  assert.equal(errors.written.join(""), "tohseno: broken\n");
+  const heldErrors = sink(false);
+  await runNative(["x"], { launcher, output: sink(false), errorOutput: heldErrors, holdError: () => true });
+  assert.equal(heldErrors.written.length, 0);
+});

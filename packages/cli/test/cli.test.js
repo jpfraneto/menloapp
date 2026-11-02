@@ -16,7 +16,7 @@ import path from "node:path";
 function manifest() {
   return {
     schema: "tohseno.native-release-manifest/1",
-    native_release_version: "1.3.0",
+    native_release_version: "1.3.1",
     minimum_npm_cli_version: "1.3.0",
     layout_version: "tohseno-user-release/2",
     artifacts: [
@@ -77,11 +77,11 @@ test("npm 1.3.0 refuses a stale native release manifest", () => {
   stale.native_release_version = "1.0.0";
   assert.throws(
     () => validateManifest(stale, "1.3.0", "arm64"),
-    /requires native TOHSENO 1\.3\.0/,
+    /requires native TOHSENO 1\.3\.1/,
   );
 });
 
-test("the deploy-only npm update keeps using the exact signed native 1.3.0 release", () => {
+test("this npm release uses the exact signed native 1.3.1 release", () => {
   assert.equal(validateManifest(manifest(), NPM_CLI_VERSION, "arm64").artifact.target, "aarch64-apple-darwin");
 });
 
