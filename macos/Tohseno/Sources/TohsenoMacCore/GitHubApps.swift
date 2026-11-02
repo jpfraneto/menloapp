@@ -57,6 +57,20 @@ public struct GitHubReview: Identifiable, Sendable {
     public let commit: String
     public var reasons: String?
     public var id: String { "\(app.repositoryID)-\(commit)" }
+
+    /// Where the runtime copies this commit (cli/src/github_commands.rs).
+    public var localFolder: URL {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Developer/Menlo/\(app.slug)-\(app.repositoryID)/\(commit)", directoryHint: .isDirectory)
+    }
+
+    /// The runtime's "Requires review on your Mac: a; b. Source: …" as a list.
+    public var reviewReasons: [String] {
+        guard let reasons else { return [] }
+        let start = reasons.range(of: "Requires review on your Mac: ")?.upperBound ?? reasons.startIndex
+        let end = reasons.range(of: ". Source: ")?.lowerBound ?? reasons.endIndex
+        return reasons[start..<end].split(separator: "; ").map { String($0) }
+    }
 }
 
 public struct GitHubAppLink: Equatable, Sendable {

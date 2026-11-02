@@ -264,14 +264,38 @@ struct GitHubReviewSheet: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
                 .background(TohsenoTheme.canvas, in: RoundedRectangle(cornerRadius: 12))
-            Text("Commit \(review.commit.prefix(7)) · \(review.app.scheme)").font(.system(.body, design: .monospaced))
-            Text("Your Mac will download this source, build it with Xcode, and sign it for your intended iPhone using your Apple identity.")
-                .fixedSize(horizontal: false, vertical: true)
-            if let reasons = review.reasons {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Menlo makes your own copy of this app:").font(.headline)
+                step(1, "Copies \(review.app.name)’s code from GitHub (\(review.app.repository), version \(review.commit.prefix(7))) onto this Mac.")
+                step(2, "Xcode builds it here, signed with your Apple account.")
+                step(3, "Installs it on your iPhone.")
+                Text("Your copy stays on this Mac:")
+                    .font(.caption).foregroundStyle(TohsenoTheme.textMuted).padding(.top, 4)
+                Text(review.localFolder.path(percentEncoded: false).replacingOccurrences(of: NSHomeDirectory(), with: "~"))
+                    .font(.system(.caption, design: .monospaced)).lineLimit(1).truncationMode(.middle)
+                    .textSelection(.enabled)
+            }
+            if !review.reviewReasons.isEmpty {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Before building, look at the code. This app includes:").font(.headline)
+                    ForEach(review.reviewReasons, id: \.self) { Text("• \($0)") }
+                    Text("The code is already copied. Nothing has run yet.")
+                        .font(.caption).foregroundStyle(TohsenoTheme.textMuted)
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(TohsenoTheme.canvas, in: RoundedRectangle(cornerRadius: 12))
+            } else if let reasons = review.reasons {
                 Text(reasons).foregroundStyle(.secondary).textSelection(.enabled)
             }
-            Link("Review this source on GitHub ↗", destination: URL(string: "https://github.com/\(review.app.repository)/tree/\(review.commit)")!)
-            if model.githubBusy { ProgressView("Preparing on your Mac. The first build can take several minutes.") }
+            HStack(spacing: 16) {
+                Link("See the code on GitHub ↗", destination: URL(string: "https://github.com/\(review.app.repository)/tree/\(review.commit)")!)
+                if review.reasons != nil {
+                    Button("Show copy in Finder") { NSWorkspace.shared.activateFileViewerSelecting([review.localFolder]) }
+                        .buttonStyle(.link)
+                }
+            }
+            if model.githubBusy { ProgressView("Copying the code and building it on this Mac. The first build can take several minutes.") }
             HStack {
                 Button("Cancel") { model.dismissGitHubReview() }
                     .keyboardShortcut(.cancelAction)
@@ -282,5 +306,12 @@ struct GitHubReviewSheet: View {
                 }.buttonStyle(PrimaryActionStyle()).disabled(model.githubBusy)
             }
         }.padding(32).frame(width: 580).background(TohsenoTheme.surface).foregroundStyle(TohsenoTheme.text).interactiveDismissDisabled(model.githubBusy)
+    }
+
+    private func step(_ number: Int, _ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("\(number)").font(.caption.weight(.semibold)).monospacedDigit().foregroundStyle(TohsenoTheme.textMuted)
+            Text(text).fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

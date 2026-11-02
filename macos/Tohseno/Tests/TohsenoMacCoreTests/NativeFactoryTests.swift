@@ -25,6 +25,17 @@ final class NativeFactoryTests: XCTestCase {
         XCTAssertEqual(model.githubReview?.commit, commit)
         let calls = await factory.githubInstallCalls
         XCTAssertEqual(calls, 0, "Opening a link still requires source/build consent")
+        var review = try XCTUnwrap(model.githubReview)
+        XCTAssertTrue(review.localFolder.path.hasSuffix("/Developer/Menlo/test-app-12/\(commit)"), "The sheet names the folder the runtime copies into")
+        XCTAssertEqual(review.reviewReasons, [])
+        review.reasons = "Requires review on your Mac: App Groups entitlement; Run Script build phase. Source: /x/y. Review it, then approve this exact commit to build."
+        XCTAssertEqual(review.reviewReasons, ["App Groups entitlement", "Run Script build phase"])
+        if let directory = ProcessInfo.processInfo.environment["MENLO_GET_APP_SHEET_PNG_DIR"] {
+            for (name, shown) in [("get-app", try XCTUnwrap(model.githubReview)), ("get-app-review", review)] {
+                try renderPNG(GitHubReviewSheet(model: model, review: shown), size: NSSize(width: 580, height: 640))
+                    .write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(name).png"), options: .atomic)
+            }
+        }
         model.dismissGitHubReview()
         XCTAssertFalse(model.shouldPresentPhoneSetup, "Dismissing a review must not install Menlo first")
 

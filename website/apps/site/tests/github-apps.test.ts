@@ -178,7 +178,11 @@ test("app pages and API use committed metadata and pin every asset to that commi
   expect(page).toContain(`href="menlo://app/test-app?commit=${sha}&amp;repository=12">Open in Menlo</a>`);
   expect(page).toContain('href="/download/macos" data-remember-app>Download Menlo</a>');
   // The ordinary page shows the plain app link; only a shared version carries its commit.
-  expect(page).toContain("npx menloapp@1.6.0 try &#39;https://tohseno.com/test-app&#39;");
+  // Getting an app never asks for Terminal, and says the code is copied onto the Mac.
+  expect(page).not.toContain("Use Terminal instead");
+  expect(page).not.toContain(" try &#39;");
+  expect(page).toContain("code from GitHub (<a href=\"https://github.com/");
+  expect(page).toContain(") onto your Mac.");
   expect(page).toContain('id="app-link" value="https://tohseno.com/test-app"');
   expect(f.router.resolvePath("test-app", "latest")).toBe("test-app");
   expect(f.router.resolvePath("missing", "latest")).toBeUndefined();
@@ -310,7 +314,7 @@ test("a shared version remains pinned after a push, including source, handoff, c
   expect(page).toContain(`rel="canonical" href="https://tohseno.com/test-app?commit=${sha}&amp;repository=12"`);
   expect(page).toContain("You’re viewing a shared version");
   expect(page).toContain("Send to your Mac");
-  expect(page).toContain(`npx menloapp@1.6.0 try &#39;https://tohseno.com/test-app?commit=${sha}&amp;repository=12&#39;`);
+  expect(page).toContain(`id="app-link" value="https://tohseno.com/test-app?commit=${sha}&amp;repository=12"`);
   expect(page).toContain("Share on X");
   expect(page).toContain(`npx menloapp@1.6.0 review &#39;https://tohseno.com/test-app?commit=${sha}&amp;repository=12&#39;`);
   const resolved = await (await f.request("GET", `apps/test-app?${params}`))!.json();
