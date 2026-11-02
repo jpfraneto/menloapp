@@ -157,7 +157,12 @@ history displays an explicit review state rather than inventing a count.
 
 Public repos only; checked-in Xcode projects/workspaces and an iOS app scheme
 are required. This does not generate missing native projects for other toolchains.
-Submodules and symlinks need source/layout work before import. Uncommitted edits
+Symbolic links need source/layout work before import. Submodules are never
+fetched (they stay empty folders), so an app must not need them to build.
+A recipient on the maker's own Apple team (the committed `DEVELOPMENT_TEAM`)
+builds the committed bundle identifiers unchanged; everyone else gets a Menlo
+identifier, so apps with extensions, App Groups or iCloud stop early for them
+with a plain message. Uncommitted edits
 and extra local files are preserved and rejected for exact-source builds.
 Downloaded commits live separately under `~/Developer/Menlo/`; moving an edited
 checkout aside permits a clean retry without deleting those edits.

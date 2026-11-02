@@ -4,6 +4,50 @@ Written 2026-07-30, amended through 2026-11-01. This is the plain-language
 answer to “what is going on here” for someone returning after time away. When
 something below stops being true, update this file in the same change.
 
+## Menlo 1.3.1: seamless try and runtime updates (November 1)
+
+Source `84551d0` ships what the Anky attempt taught:
+
+- `menloapp try` asks once (Enter to build, `/no` to stop) when an app needs
+  Mac review, instead of requiring `--approve-mac-review`. The reasons are
+  listed and the saved source path is shown.
+- After `menloapp` updates the runtime, it restarts the background service so
+  the new code runs immediately.
+- A recipient on another Apple team trying an app with extensions, App Groups
+  or iCloud now gets a plain message before Xcode runs. Before, the build
+  failed with a provisioning error.
+- Companion sync survives a runtime version change. Before, a saved projection
+  from another version failed validation on every publish cycle.
+- The Mac app no longer replaces a newer active runtime with its bundled one.
+  Before, opening `Menlo.app` 1.3.0-rc.3 reactivated runtime 1.3.0 even after
+  a newer install.
+- Native `tohseno deploy` embeds `repository-setup.js`. It had crashed on
+  import since the 1.7.0 deploy work; `menloapp deploy` was unaffected.
+
+Release evidence:
+
+- Native runtime 1.3.1 for both targets was built by `scripts/release.sh`
+  from a clean clone of `84551d0` (`dirty: false`) and Developer ID signed
+  (84V63LKV45).
+- The runtime archives are in immutable prerelease `v1.3.1-rc.1`:
+  - aarch64: 12,658,637 bytes, SHA-256 `d93032fb…4c7a`.
+  - x86_64: 13,481,310 bytes, SHA-256 `d315d288…086c`.
+  - Origin downloads matched both digests.
+- `cli-1.3.1.json` (commit `e5d1d3e`) went live in Railway deployment
+  `41d53abd`, byte-identical to the commit; `cli-1.3.0.json` remains for older
+  clients.
+- The packed npm 1.8.0 installed runtime 1.3.1 into an isolated home both
+  fresh and as an upgrade from published 1.7.0 (runtime 1.3.0).
+- Mac 1.3.1-rc.1 (10015) was built from the same clone. Notary submission
+  `41d8e0a8-b3e5-4298-807f-be47849ad496` was Accepted and the ticket was
+  stapled. Gatekeeper reports "Notarized Developer ID". The bundled runtime is
+  universal 1.3.1.
+- The DMG is in prerelease `mac-v1.3.1-rc.1`: 54,477,056 bytes, SHA-256
+  `476ee652…a9d0`. The origin download matched.
+- The release-candidate pin moved to it (Railway `f3f4fa11`, SUCCESS). The live API reports 1.3.1-rc.1 (10015), and `/download/macos` returns the exact pinned bytes.
+
+No clean-Mac walkthrough or physical install through 1.3.1 has been observed.
+
 ## Makers can install their own apps with extensions (November 1)
 
 Anky (`jpfraneto/anky-seed`) could not travel the GitHub path for two reasons.
